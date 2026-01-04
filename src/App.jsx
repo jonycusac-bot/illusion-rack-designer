@@ -4,12 +4,12 @@ import {
   ChevronDown, LayoutList, 
   Wind, Thermometer, 
   ShieldCheck, EyeOff,
-  MoveHorizontal
+  MoveHorizontal,
+  Fan
 } from 'lucide-react';
 
 /**
- * RackDesignerPro - Versión Corregida
- * Se ha arreglado la función de eliminar para equipos en bandejas (no rackables).
+ * RackDesignerPro - Versión con Lógica de Ventilación Ajustada (Máx 2)
  */
 
 export default function App() {
@@ -111,6 +111,12 @@ export default function App() {
     const uDeEquiposTotal = rackItems.reduce((acc, item) => acc + item.uOcupadas, 0) + bloquesBaldas.reduce((acc, b) => acc + b.uTotal, 0);
     const totalUNecesariasFrontales = uDeEquiposTotal + infraestructuraSuperiorU;
     const rackRecomendado = RACKS_COMERCIALES.find(r => r >= totalUNecesariasFrontales) || 47;
+    
+    // NUEVA LÓGICA DE VENTILADORES:
+    // < 24U -> 1 ventilador
+    // >= 24U -> 2 ventiladores (Máximo)
+    const numVentiladores = rackRecomendado < 24 ? 1 : 2;
+
     const numRegletasTraseras = Math.ceil(equipos.length / 8) || 1;
     const maxFondo = equipos.reduce((max, item) => Math.max(max, item.fondo || 0), 0);
     
@@ -128,7 +134,8 @@ export default function App() {
       consumoTotal: equipos.reduce((sum, eq) => sum + (eq.consumo || 0), 0),
       numEscobillas,
       numPlacasCiegas: 1 + numTapasBalda,
-      fondoRecomendado
+      fondoRecomendado,
+      numVentiladores
     };
   }, [equipos]);
 
@@ -286,6 +293,7 @@ export default function App() {
                 <span className="text-xs text-slate-400 mb-1.5 uppercase font-bold tracking-widest">U</span>
               </div>
             </div>
+            
             <div className="grid grid-cols-2 gap-3">
               <div className="p-4 bg-white/5 rounded-2xl border border-white/5 flex flex-col items-center text-center">
                 <span className="text-[8px] font-bold text-slate-500 block mb-1 uppercase">Bandejas</span>
@@ -300,7 +308,11 @@ export default function App() {
                 <span className="text-2xl font-black text-blue-400">{res.numEscobillas}</span>
               </div>
               <div className="p-4 bg-white/5 rounded-2xl border border-white/5 flex flex-col items-center text-center">
-                <span className="text-[8px] font-bold text-slate-500 block mb-1 uppercase">Tornillos</span>
+                <span className="text-[8px] font-bold text-slate-500 block mb-1 uppercase">Ventiladores</span>
+                <span className="text-2xl font-black text-cyan-400">{res.numVentiladores}</span>
+              </div>
+              <div className="p-4 bg-white/5 rounded-2xl border border-white/5 flex flex-col items-center text-center col-span-2">
+                <span className="text-[8px] font-bold text-slate-500 block mb-1 uppercase">Tornillos M6</span>
                 <span className="text-2xl font-black text-indigo-400">{res.numTornillos}</span>
               </div>
             </div>
@@ -310,7 +322,7 @@ export default function App() {
               <div className="flex items-center justify-between font-bold text-indigo-400 uppercase text-[9px]"><span>Accesorio</span><span>Cant.</span></div>
               <div className="flex items-center justify-between"><span><LayoutList className="inline mr-2" size={14}/> PDUs Verticales</span><span>x{res.numRegletasTraseras}</span></div>
               <div className="flex items-center justify-between"><span><Thermometer className="inline mr-2" size={14}/> Termostato</span><span>1</span></div>
-              <div className="flex items-center justify-between"><span><Wind className="inline mr-2" size={14}/> Ventilación Activa</span><span>1</span></div>
+              <div className="flex items-center justify-between"><span><Fan className="inline mr-2" size={14}/> Kit Ventilación Activa</span><span>1 ({res.numVentiladores} vent.)</span></div>
             </div>
             <button className="w-full py-4 bg-white hover:bg-slate-200 text-slate-950 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-xl transition-all active:scale-95">Generar Presupuesto PDF</button>
           </div>
