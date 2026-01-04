@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 
 /**
- * RackDesignerPro - Versión con Lógica de Ventilación Ajustada (Máx 2)
+ * RackDesignerPro - Versión con Lógica de Regletas (1 base + 1 cada 6 adicionales)
  */
 
 export default function App() {
@@ -112,14 +112,18 @@ export default function App() {
     const totalUNecesariasFrontales = uDeEquiposTotal + infraestructuraSuperiorU;
     const rackRecomendado = RACKS_COMERCIALES.find(r => r >= totalUNecesariasFrontales) || 47;
     
-    // NUEVA LÓGICA DE VENTILADORES:
-    // < 24U -> 1 ventilador
-    // >= 24U -> 2 ventiladores (Máximo)
     const numVentiladores = rackRecomendado < 24 ? 1 : 2;
 
-    const numRegletasTraseras = Math.ceil(equipos.length / 8) || 1;
+    /**
+     * Lógica de Regletas:
+     * 1 regleta base.
+     * Si equipos > 6, añadir 1 más por cada bloque de 6.
+     * Ej: 1-6 equipos = 1 regleta. 7-12 equipos = 2 regletas. 13-18 = 3 regletas.
+     */
+    const numEquipos = equipos.length;
+    const numRegletasTraseras = numEquipos === 0 ? 0 : Math.ceil(numEquipos / 6);
+
     const maxFondo = equipos.reduce((max, item) => Math.max(max, item.fondo || 0), 0);
-    
     let fondoRecomendado = 450;
     if (maxFondo + 100 > 450) fondoRecomendado = 600;
     if (maxFondo + 100 > 600) fondoRecomendado = 800;
@@ -163,9 +167,10 @@ export default function App() {
         </div>
         <div className="flex items-center gap-8">
           <div className="flex gap-6 items-center">
+            {/* Sustitución de Fondo Rack por Regletas */}
             <div className="flex flex-col text-right">
-              <span className="text-[8px] font-black text-slate-500 uppercase tracking-tighter">Fondo Rack</span>
-              <span className="text-xs font-bold text-blue-400">{res.fondoRecomendado}mm</span>
+              <span className="text-[8px] font-black text-slate-500 uppercase tracking-tighter">Regletas</span>
+              <span className="text-xs font-bold text-blue-400">x{res.numRegletasTraseras}</span>
             </div>
             <div className="flex flex-col border-l border-white/10 pl-6 text-right">
               <span className="text-[8px] font-black text-slate-500 uppercase tracking-tighter">Potencia</span>
@@ -217,7 +222,7 @@ export default function App() {
                 {[...Array(res.numRegletasTraseras)].map((_, i) => (
                   <div key={i} className="flex-1 bg-slate-900 border border-indigo-500/30 rounded-full flex flex-col items-center justify-around py-4">
                     <span className="text-[6px] font-black text-indigo-400 rotate-90 uppercase whitespace-nowrap">PDU TRASERA {i+1}</span>
-                    {[...Array(8)].map((_, j) => <div key={j} className="w-1.5 h-1.5 rounded-full bg-indigo-500/20 border border-indigo-500/40" />)}
+                    {[...Array(6)].map((_, j) => <div key={j} className="w-1.5 h-1.5 rounded-full bg-indigo-500/20 border border-indigo-500/40" />)}
                   </div>
                 ))}
              </div>
@@ -324,7 +329,7 @@ export default function App() {
               <div className="flex items-center justify-between"><span><Thermometer className="inline mr-2" size={14}/> Termostato</span><span>1</span></div>
               <div className="flex items-center justify-between"><span><Fan className="inline mr-2" size={14}/> Kit Ventilación Activa</span><span>1 ({res.numVentiladores} vent.)</span></div>
             </div>
-            <button className="w-full py-4 bg-white hover:bg-slate-200 text-slate-950 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-xl transition-all active:scale-95">Generar Presupuesto PDF</button>
+            <button className="w-full py-4 bg-white hover:bg-slate-200 text-slate-950 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-xl transition-all active:scale-95 text-center">Generar Presupuesto PDF</button>
           </div>
         </aside>
       </main>
