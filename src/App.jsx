@@ -8,22 +8,38 @@ import {
 } from 'lucide-react';
 
 /**
- * RackDesignerPro - Versión Maestra
- * Herramienta integral para el diseño de racks audiovisuales.
+ * RackDesignerPro - Versión con Catálogo Expandido
+ * Añadidos nuevos equipos en Redes y Audio manteniendo la estética original.
  */
 
 export default function App() {
   const CATALOGO_EQUIPOS = [
-    { id: 'udm-pro', nombre: 'UniFi Dream Machine Pro', altura: 44, esRackable: true, categoria: 'Redes', consumo: 33, requiereEscobilla: true },
-    { id: 'sw-pro-48', nombre: 'UniFi Switch Pro 48 PoE', altura: 44, esRackable: true, categoria: 'Redes', consumo: 600, requiereEscobilla: true },
-    { id: 'sw-ent-24', nombre: 'UniFi Enterprise 24', altura: 44, esRackable: true, categoria: 'Redes', consumo: 400, requiereEscobilla: true },
-    { id: 'crestron-cp4', nombre: 'Crestron CP4 Control System', altura: 44, esRackable: true, categoria: 'Control', consumo: 15 },
-    { id: 'crestron-rmc3', nombre: 'Crestron RMC3 Processor', altura: 40, esRackable: false, categoria: 'Control', consumo: 10, requiereTapaCiega: true, ancho: 'media' },
-    { id: 'crestron-swamp', nombre: 'Crestron SWAMP-24x8', altura: 177, esRackable: true, categoria: 'Audio', consumo: 800 },
-    { id: 'beoamp2', nombre: 'B&O Beoamp2', altura: 44, esRackable: true, categoria: 'Audio', consumo: 300 },
-    { id: 'sonos-amp', nombre: 'Sonos Amp', altura: 64, esRackable: false, categoria: 'Audio', consumo: 125, requiereTapaCiega: true, ancho: 'media' },
-    { id: 'apple-tv', nombre: 'Apple TV 4K', altura: 35, esRackable: false, categoria: 'Video', consumo: 6, requiereTapaCiega: true, ancho: 'media' },
-    { id: 'ups-apc', nombre: 'SAI APC Smart-UPS 1500', altura: 88, esRackable: true, categoria: 'Energía', consumo: 0 },
+    // --- REDES ---
+    { id: 'udm-pro', nombre: 'UniFi Dream Machine Pro', altura: 44, esRackable: true, categoria: 'Redes', consumo: 33, requiereEscobilla: true, fondo: 285 },
+    { id: 'sw-pro-48', nombre: 'UniFi Switch Pro 48 PoE', altura: 44, esRackable: true, categoria: 'Redes', consumo: 600, requiereEscobilla: true, fondo: 400 },
+    { id: 'sw-ent-24', nombre: 'UniFi Enterprise 24', altura: 44, esRackable: true, categoria: 'Redes', consumo: 400, requiereEscobilla: true, fondo: 320 },
+    { id: 'sw-pro-24-poe', nombre: 'UniFi Switch Pro 24 PoE', altura: 44, esRackable: true, categoria: 'Redes', consumo: 450, requiereEscobilla: true, fondo: 285 },
+    { id: 'nvr-pro', nombre: 'UniFi Protect UNVR Pro', altura: 88, esRackable: true, categoria: 'Redes', consumo: 160, requiereEscobilla: false, fondo: 325 },
+    { id: 'uxg-pro', nombre: 'UniFi Next-Generation Gateway', altura: 44, esRackable: true, categoria: 'Redes', consumo: 30, requiereEscobilla: true, fondo: 285 },
+    
+    // --- CONTROL ---
+    { id: 'crestron-cp4', nombre: 'Crestron CP4 Control System', altura: 44, esRackable: true, categoria: 'Control', consumo: 15, fondo: 170 },
+    { id: 'crestron-rmc3', nombre: 'Crestron RMC3 Processor', altura: 40, esRackable: false, categoria: 'Control', consumo: 10, requiereTapaCiega: true, ancho: 'media', fondo: 100 },
+    
+    // --- AUDIO ---
+    { id: 'crestron-swamp', nombre: 'Crestron SWAMP-24x8', altura: 177, esRackable: true, categoria: 'Audio', consumo: 800, fondo: 430 },
+    { id: 'beoamp2', nombre: 'B&O Beoamp2', altura: 44, esRackable: true, categoria: 'Audio', consumo: 300, fondo: 250 },
+    { id: 'sonos-amp', nombre: 'Sonos Amp', altura: 64, esRackable: false, categoria: 'Audio', consumo: 125, requiereTapaCiega: true, ancho: 'media', fondo: 210 },
+    { id: 'sonos-port', nombre: 'Sonos Port', altura: 41, esRackable: false, categoria: 'Audio', consumo: 15, requiereTapaCiega: true, ancho: 'media', fondo: 138 },
+    { id: 'denon-heos', nombre: 'Denon HEOS Drive HS2', altura: 88, esRackable: true, categoria: 'Audio', consumo: 500, fondo: 384 },
+    { id: 'nad-ci8', nombre: 'NAD CI 8-120 DSP', altura: 44, esRackable: true, categoria: 'Audio', consumo: 600, fondo: 350 },
+    
+    // --- VIDEO ---
+    { id: 'apple-tv', nombre: 'Apple TV 4K', altura: 35, esRackable: false, categoria: 'Video', consumo: 6, requiereTapaCiega: true, ancho: 'media', fondo: 93 },
+    { id: 'nvidia-shield', nombre: 'NVIDIA Shield TV Pro', altura: 26, esRackable: false, categoria: 'Video', consumo: 10, requiereTapaCiega: true, ancho: 'media', fondo: 159 },
+    
+    // --- ENERGÍA ---
+    { id: 'ups-apc', nombre: 'SAI APC Smart-UPS 1500', altura: 88, esRackable: true, categoria: 'Energía', consumo: 0, fondo: 457 },
   ];
 
   const [equipos, setEquipos] = useState([]);
@@ -88,28 +104,27 @@ export default function App() {
       });
     }
 
-    const ventilacionSuperiorU = 1; 
-    const termostatoU = 1;
-    const panelCiegoSeparadorU = 1; 
-    const infraestructuraSuperiorU = ventilacionSuperiorU + termostatoU + panelCiegoSeparadorU;
-    
+    const infraestructuraSuperiorU = 3; // Ventilación (1) + Termostato (1) + Panel Ciego (1)
     const uDeEquiposTotal = rackItems.reduce((acc, item) => acc + item.uOcupadas, 0) + bloquesBaldas.reduce((acc, b) => acc + b.uTotal, 0);
     const totalUNecesariasFrontales = uDeEquiposTotal + infraestructuraSuperiorU;
     const rackRecomendado = RACKS_COMERCIALES.find(r => r >= totalUNecesariasFrontales) || 47;
     const numRegletasTraseras = Math.ceil(equipos.length / 8) || 1;
+    const maxFondo = equipos.reduce((max, item) => Math.max(max, item.fondo || 0), 0);
+    let fondoRecomendado = 450;
+    if (maxFondo + 100 > 450) fondoRecomendado = 600;
+    if (maxFondo + 100 > 600) fondoRecomendado = 800;
 
     return {
       rackItems,
       bloquesBaldas,
       rackRecomendado,
-      ventilacionSuperiorU,
-      termostatoU,
       numRegletasTraseras,
       totalUNecesariasFrontales,
       numTornillos: Math.ceil(totalUNecesariasFrontales * 4),
       consumoTotal: equipos.reduce((sum, eq) => sum + (eq.consumo || 0), 0),
       numEscobillas,
-      numPlacasCiegas: panelCiegoSeparadorU + numTapasBalda
+      numPlacasCiegas: 1 + numTapasBalda,
+      fondoRecomendado
     };
   }, [equipos]);
 
@@ -138,8 +153,8 @@ export default function App() {
         <div className="flex items-center gap-8">
           <div className="flex gap-6 items-center">
             <div className="flex flex-col text-right">
-              <span className="text-[8px] font-black text-slate-500 uppercase tracking-tighter">Tornillos</span>
-              <span className="text-xs font-bold text-indigo-400">{res.numTornillos} PCS</span>
+              <span className="text-[8px] font-black text-slate-500 uppercase tracking-tighter">Fondo Rack</span>
+              <span className="text-xs font-bold text-blue-400">{res.fondoRecomendado}mm</span>
             </div>
             <div className="flex flex-col border-l border-white/10 pl-6 text-right">
               <span className="text-[8px] font-black text-slate-500 uppercase tracking-tighter">Potencia</span>
@@ -168,7 +183,7 @@ export default function App() {
                 {categoriasAbiertas.includes(cat) && (
                   <div className="p-1 border-t border-white/5 bg-black/20">
                     {CATALOGO_EQUIPOS.filter(i => i.categoria === cat).map(item => (
-                      <button key={item.id} onClick={() => agregarItem(item)} className="w-full p-2.5 rounded-lg hover:bg-indigo-600 group text-left flex justify-between items-center mb-0.5">
+                      <button key={item.id} onClick={() => agregarItem(item)} className="w-full p-2.5 rounded-lg hover:bg-indigo-600 group text-left flex justify-between items-center mb-0.5 transition-colors">
                         <span className="text-[11px] font-medium text-slate-400 group-hover:text-white truncate">{item.nombre}</span>
                         <Plus size={12} className="text-indigo-400 group-hover:text-white" />
                       </button>
@@ -217,13 +232,13 @@ export default function App() {
 
                 <div className="flex-1 mt-1 space-y-1">
                   {res.rackItems.map((eq) => (
-                    <div key={eq.id} className={`w-full ${eq.tipoPasivo === 'Escobilla' ? 'bg-slate-900 border-dashed border-slate-700' : getCategoryTheme(eq.categoria).rackColor} rounded-sm border-b border-black/40 flex items-center justify-center relative group mb-1`} style={{ height: `${eq.uOcupadas * PIXELS_PER_U}px` }}>
+                    <div key={eq.id} className={`w-full ${eq.tipoPasivo === 'Escobilla' ? 'bg-slate-900 border-dashed border-slate-700' : getCategoryTheme(eq.categoria).rackColor} rounded-sm border-b border-black/40 flex items-center justify-center relative group mb-1 transition-all`} style={{ height: `${eq.uOcupadas * PIXELS_PER_U}px` }}>
                       {eq.tipoPasivo === 'Escobilla' ? (
                         <div className="flex gap-1 opacity-40">{[...Array(20)].map((_, i) => <div key={i} className="w-px h-4 bg-slate-400 mx-0.5" />)}</div>
                       ) : (
                         <span className="font-black uppercase tracking-tight px-4 truncate text-[10px] text-white">{eq.nombre}</span>
                       )}
-                      <button onClick={() => eliminarItem(eq.id)} className="absolute right-2 opacity-0 group-hover:opacity-100 p-2 hover:text-red-400"><Trash2 size={12} /></button>
+                      <button onClick={() => eliminarItem(eq.id)} className="absolute right-2 opacity-0 group-hover:opacity-100 p-2 hover:text-red-400 transition-opacity"><Trash2 size={12} /></button>
                     </div>
                   ))}
 
@@ -231,7 +246,7 @@ export default function App() {
                     <div key={`bloque-${i}`} className="mb-1 flex flex-col">
                       <div className="w-full bg-slate-800 rounded-sm border-b-4 border-black/60 flex shadow-inner relative" style={{ height: `${(bloque.uTotal - (bloque.tieneTapa ? 1 : 0)) * PIXELS_PER_U}px` }}>
                         {bloque.equipos.map((e, idx) => (
-                          <div key={idx} className="h-[85%] flex flex-col items-center justify-center m-1.5 text-center bg-white rounded shadow-xl flex-1 border-t-2 border-slate-300">
+                          <div key={idx} className="h-[85%] flex flex-col items-center justify-center m-1.5 text-center bg-white rounded shadow-xl flex-1 border-t-2 border-slate-300 overflow-hidden">
                             <span className="font-black uppercase text-slate-900 text-[8px] px-2 leading-tight">{e.nombre}</span>
                           </div>
                         ))}
@@ -258,19 +273,19 @@ export default function App() {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="p-4 bg-white/5 rounded-2xl border border-white/5 flex flex-col items-center">
+              <div className="p-4 bg-white/5 rounded-2xl border border-white/5 flex flex-col items-center text-center">
                 <span className="text-[8px] font-bold text-slate-500 block mb-1 uppercase">Bandejas</span>
                 <span className="text-2xl font-black text-emerald-400">{res.bloquesBaldas.length}</span>
               </div>
-              <div className="p-4 bg-white/5 rounded-2xl border border-white/5 flex flex-col items-center">
+              <div className="p-4 bg-white/5 rounded-2xl border border-white/5 flex flex-col items-center text-center">
                 <span className="text-[8px] font-bold text-slate-500 block mb-1 uppercase">Placas Ciegas</span>
                 <span className="text-2xl font-black text-slate-300">{res.numPlacasCiegas}</span>
               </div>
-              <div className="p-4 bg-white/5 rounded-2xl border border-white/5 flex flex-col items-center">
+              <div className="p-4 bg-white/5 rounded-2xl border border-white/5 flex flex-col items-center text-center">
                 <span className="text-[8px] font-bold text-slate-500 block mb-1 uppercase">Escobillas</span>
                 <span className="text-2xl font-black text-blue-400">{res.numEscobillas}</span>
               </div>
-              <div className="p-4 bg-white/5 rounded-2xl border border-white/5 flex flex-col items-center">
+              <div className="p-4 bg-white/5 rounded-2xl border border-white/5 flex flex-col items-center text-center">
                 <span className="text-[8px] font-bold text-slate-500 block mb-1 uppercase">Tornillos</span>
                 <span className="text-2xl font-black text-indigo-400">{res.numTornillos}</span>
               </div>
@@ -283,7 +298,7 @@ export default function App() {
               <div className="flex items-center justify-between"><span><Thermometer className="inline mr-2" size={14}/> Termostato</span><span>1</span></div>
               <div className="flex items-center justify-between"><span><Wind className="inline mr-2" size={14}/> Ventilación Activa</span><span>1</span></div>
             </div>
-            <button className="w-full py-4 bg-white hover:bg-slate-200 text-slate-950 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-xl">Generar Presupuesto PDF</button>
+            <button className="w-full py-4 bg-white hover:bg-slate-200 text-slate-950 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-xl transition-all active:scale-95">Generar Presupuesto PDF</button>
           </div>
         </aside>
       </main>
