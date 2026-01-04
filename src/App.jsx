@@ -8,8 +8,8 @@ import {
 } from 'lucide-react';
 
 /**
- * RackDesignerPro - Versión con Catálogo Expandido
- * Añadidos nuevos equipos en Redes y Audio manteniendo la estética original.
+ * RackDesignerPro - Versión Corregida
+ * Se ha arreglado la función de eliminar para equipos en bandejas (no rackables).
  */
 
 export default function App() {
@@ -53,14 +53,16 @@ export default function App() {
     const uCalculadas = Math.ceil(item.altura / UNIDAD_RACK_MM);
     const nuevoItem = { 
       ...item, 
-      id: Math.random().toString(36).substr(2, 9), 
+      instanceId: Math.random().toString(36).substr(2, 9), 
       uOcupadas: uCalculadas,
       timestamp: Date.now() 
     };
     setEquipos([...equipos, nuevoItem]);
   };
 
-  const eliminarItem = (id) => setEquipos(equipos.filter(e => e.id !== id));
+  const eliminarItem = (id) => {
+    setEquipos(prev => prev.filter(e => e.instanceId !== id));
+  };
 
   const res = useMemo(() => {
     const rackablesRaw = equipos.filter(e => e.esRackable);
@@ -72,13 +74,14 @@ export default function App() {
       rackItems.push(eq);
       if (eq.requiereEscobilla) {
         numEscobillas++;
-        rackItems.push({ id: `esc-${eq.id}`, nombre: `Paso de cables (Escobilla)`, categoria: 'Pasivo', uOcupadas: 1, tipoPasivo: 'Escobilla' });
+        rackItems.push({ instanceId: `esc-${eq.instanceId}`, nombre: `Paso de cables (Escobilla)`, categoria: 'Pasivo', uOcupadas: 1, tipoPasivo: 'Escobilla' });
       }
     });
 
     let numTapasBalda = 0;
     const bloquesBaldas = [];
     let itemsPendientes = [...noRackables];
+    
     while (itemsPendientes.length > 0) {
       const actual = itemsPendientes.shift();
       if (actual.ancho === 'media') {
@@ -104,12 +107,13 @@ export default function App() {
       });
     }
 
-    const infraestructuraSuperiorU = 3; // Ventilación (1) + Termostato (1) + Panel Ciego (1)
+    const infraestructuraSuperiorU = 3; 
     const uDeEquiposTotal = rackItems.reduce((acc, item) => acc + item.uOcupadas, 0) + bloquesBaldas.reduce((acc, b) => acc + b.uTotal, 0);
     const totalUNecesariasFrontales = uDeEquiposTotal + infraestructuraSuperiorU;
     const rackRecomendado = RACKS_COMERCIALES.find(r => r >= totalUNecesariasFrontales) || 47;
     const numRegletasTraseras = Math.ceil(equipos.length / 8) || 1;
     const maxFondo = equipos.reduce((max, item) => Math.max(max, item.fondo || 0), 0);
+    
     let fondoRecomendado = 450;
     if (maxFondo + 100 > 450) fondoRecomendado = 600;
     if (maxFondo + 100 > 600) fondoRecomendado = 800;
@@ -161,7 +165,7 @@ export default function App() {
               <span className="text-xs font-bold text-orange-400">{res.consumoTotal}W</span>
             </div>
           </div>
-          <button onClick={() => setEquipos([])} className="p-2 hover:bg-white/5 rounded-full text-slate-500 hover:text-red-400">
+          <button onClick={() => setEquipos([])} className="p-2 hover:bg-white/5 rounded-full text-slate-500 hover:text-red-400 transition-colors">
             <RotateCcw size={16} />
           </button>
         </div>
@@ -175,10 +179,10 @@ export default function App() {
               <div key={cat} className="rounded-xl border border-white/5 bg-white/5 overflow-hidden">
                 <button 
                   onClick={() => setCategoriasAbiertas(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat])}
-                  className="w-full px-3 py-2.5 flex items-center justify-between hover:bg-white/5"
+                  className="w-full px-3 py-2.5 flex items-center justify-between hover:bg-white/5 transition-colors"
                 >
                   <span className="text-[10px] font-bold uppercase tracking-wider">{cat}</span>
-                  <ChevronDown size={12} className={categoriasAbiertas.includes(cat) ? 'rotate-180' : ''} />
+                  <ChevronDown size={12} className={`transition-transform duration-300 ${categoriasAbiertas.includes(cat) ? 'rotate-180' : ''}`} />
                 </button>
                 {categoriasAbiertas.includes(cat) && (
                   <div className="p-1 border-t border-white/5 bg-black/20">
@@ -232,13 +236,17 @@ export default function App() {
 
                 <div className="flex-1 mt-1 space-y-1">
                   {res.rackItems.map((eq) => (
-                    <div key={eq.id} className={`w-full ${eq.tipoPasivo === 'Escobilla' ? 'bg-slate-900 border-dashed border-slate-700' : getCategoryTheme(eq.categoria).rackColor} rounded-sm border-b border-black/40 flex items-center justify-center relative group mb-1 transition-all`} style={{ height: `${eq.uOcupadas * PIXELS_PER_U}px` }}>
+                    <div key={eq.instanceId} className={`w-full ${eq.tipoPasivo === 'Escobilla' ? 'bg-slate-900 border-dashed border-slate-700' : getCategoryTheme(eq.categoria).rackColor} rounded-sm border-b border-black/40 flex items-center justify-center relative group mb-1 transition-all`} style={{ height: `${eq.uOcupadas * PIXELS_PER_U}px` }}>
                       {eq.tipoPasivo === 'Escobilla' ? (
                         <div className="flex gap-1 opacity-40">{[...Array(20)].map((_, i) => <div key={i} className="w-px h-4 bg-slate-400 mx-0.5" />)}</div>
                       ) : (
                         <span className="font-black uppercase tracking-tight px-4 truncate text-[10px] text-white">{eq.nombre}</span>
                       )}
-                      <button onClick={() => eliminarItem(eq.id)} className="absolute right-2 opacity-0 group-hover:opacity-100 p-2 hover:text-red-400 transition-opacity"><Trash2 size={12} /></button>
+                      {eq.categoria !== 'Pasivo' && (
+                        <button onClick={() => eliminarItem(eq.instanceId)} className="absolute right-2 opacity-0 group-hover:opacity-100 p-2 text-white/50 hover:text-red-400 transition-all">
+                          <Trash2 size={12} />
+                        </button>
+                      )}
                     </div>
                   ))}
 
@@ -246,8 +254,14 @@ export default function App() {
                     <div key={`bloque-${i}`} className="mb-1 flex flex-col">
                       <div className="w-full bg-slate-800 rounded-sm border-b-4 border-black/60 flex shadow-inner relative" style={{ height: `${(bloque.uTotal - (bloque.tieneTapa ? 1 : 0)) * PIXELS_PER_U}px` }}>
                         {bloque.equipos.map((e, idx) => (
-                          <div key={idx} className="h-[85%] flex flex-col items-center justify-center m-1.5 text-center bg-white rounded shadow-xl flex-1 border-t-2 border-slate-300 overflow-hidden">
+                          <div key={e.instanceId} className="h-[90%] flex flex-col items-center justify-center m-1.5 text-center bg-white rounded shadow-xl flex-1 border-t-2 border-slate-300 overflow-hidden relative group/item">
                             <span className="font-black uppercase text-slate-900 text-[8px] px-2 leading-tight">{e.nombre}</span>
+                            <button 
+                              onClick={() => eliminarItem(e.instanceId)}
+                              className="absolute inset-0 bg-red-600/90 text-white flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity"
+                            >
+                              <Trash2 size={14} />
+                            </button>
                           </div>
                         ))}
                       </div>
