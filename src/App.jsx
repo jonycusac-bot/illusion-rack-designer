@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Plus, Trash2, RotateCcw, 
   ChevronDown, LayoutList, 
@@ -14,7 +14,11 @@ import {
   Settings,
   Volume2,
   Monitor,
-  Battery
+  Battery,
+  Package,
+  Download,
+  Save,
+  FolderOpen
 } from 'lucide-react';
 
 /**
@@ -40,6 +44,7 @@ export default function App() {
     { id: 'sonance-dsp', nombre: 'Sonance DSP 8-125', altura: 88, esRackable: true, categoria: 'Audio', consumo: 600, fondo: 425 },
     { id: 'beoamp2', nombre: 'B&O Beoamp2', altura: 44, esRackable: true, categoria: 'Audio', consumo: 300, fondo: 250 },
     { id: 'sonos-port', nombre: 'Sonos Port', altura: 44, esRackable: false, categoria: 'Audio', consumo: 10, ancho: 'media', requiereTapaCiega: true, fondo: 150 },
+    { id: 'sonos-amp', nombre: 'Sonos Amp', altura: 88, esRackable: false, categoria: 'Audio', consumo: 125, ancho: 'media', requiereTapaCiega: true, fondo: 220 },
     { id: 'matrix-audio', nombre: 'Matriz Audio 16x16', altura: 88, esRackable: true, categoria: 'Audio', consumo: 80, fondo: 350 },
     
     // --- VIDEO ---
@@ -53,10 +58,47 @@ export default function App() {
 
     // --- ENERGÍA ---
     { id: 'ups-apc', nombre: 'SAI APC Smart-UPS 1500', altura: 88, esRackable: true, categoria: 'Energía', consumo: 0, fondo: 457 },
+
+    // --- OTROS ---
+    { id: 'equipo-1u', nombre: 'Equipo 1U', altura: 44, esRackable: true, categoria: 'Otros', consumo: 50, fondo: 300 },
+    { id: 'equipo-2u', nombre: 'Equipo 2U', altura: 88, esRackable: true, categoria: 'Otros', consumo: 100, fondo: 350 },
+    { id: 'equipo-3u', nombre: 'Equipo 3U', altura: 133, esRackable: true, categoria: 'Otros', consumo: 150, fondo: 400, uOcupadas: 3 },
+    { id: 'equipo-4u', nombre: 'Equipo 4U', altura: 177, esRackable: true, categoria: 'Otros', consumo: 200, fondo: 450, uOcupadas: 4 },
   ];
 
   const [equipos, setEquipos] = useState([]);
   const [categoriasAbiertas, setCategoriasAbiertas] = useState([]);
+  const [timerAutoReplegado, setTimerAutoReplegado] = useState(null);
+
+  // Auto-replegado de pestañas después de 10 segundos
+  useEffect(() => {
+    if (categoriasAbiertas.length > 0) {
+      // Limpiar timer anterior si existe
+      if (timerAutoReplegado) {
+        clearTimeout(timerAutoReplegado);
+      }
+      
+      // Crear nuevo timer
+      const nuevoTimer = setTimeout(() => {
+        setCategoriasAbiertas([]);
+      }, 10000); // 10 segundos
+      
+      setTimerAutoReplegado(nuevoTimer);
+    }
+    
+    // Cleanup al desmontar el componente
+    return () => {
+      if (timerAutoReplegado) {
+        clearTimeout(timerAutoReplegado);
+      }
+    };
+  }, [categoriasAbiertas]);
+
+  const toggleCategoria = (cat) => {
+    setCategoriasAbiertas(prev => 
+      prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
+    );
+  };
 
   const UNIDAD_RACK_MM = 44.45;
   const PIXELS_PER_U = 32; 
@@ -68,13 +110,206 @@ export default function App() {
       ...item, 
       instanceId: Math.random().toString(36).substr(2, 9), 
       uOcupadas: uCalculadas,
-      timestamp: Date.now() 
+      timestamp: Date.now()
     };
-    setEquipos([...equipos, nuevoItem]);
+    
+    // Si es un router UniFi, añadir automáticamente un Patch Panel
+    if (item.id.includes('udm') || item.id.includes('sw-')) {
+      const patchPanel = {
+        id: 'patch-panel-auto',
+        nombre: 'Patch Panel (Auto)',
+        altura: 44,
+        esRackable: true,
+        categoria: 'Redes',
+        consumo: 0,
+        requiereEscobilla: false,
+        fondo: 200,
+        instanceId: Math.random().toString(36).substr(2, 9),
+        uOcupadas: 1,
+        timestamp: Date.now() + 1,
+        esAutomatico: true
+      };
+      setEquipos([...equipos, nuevoItem, patchPanel]);
+    } else {
+      setEquipos([...equipos, nuevoItem]);
+    }
   };
 
   const eliminarItem = (id) => {
     setEquipos(prev => prev.filter(e => e.instanceId !== id));
+  };
+
+  // Funciones para guardar y cargar proyectos
+  const guardarProyecto = () => {
+    const proyecto = {
+      equipos: equipos,
+      nombre: `Proyecto_${new Date().toLocaleDateString('es-ES').replace(/\//g, '-')}_${new Date().toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit'})}`,
+      fecha: new Date().toISOString(),
+      version: '1.0'
+    };
+    
+    const proyectosGuardados = JSON.parse(localStorage.getItem('illusion-proyectos') || '[]');
+    proyectosGuardados.push(proyecto);
+    localStorage.setItem('illusion-proyectos', JSON.stringify(proyectosGuardados));
+    
+    alert(`Proyecto guardado como: ${proyecto.nombre}`);
+  };
+
+  const cargarProyecto = (proyecto) => {
+    setEquipos(proyecto.equipos || []);
+    alert(`Proyecto "${proyecto.nombre}" cargado correctamente`);
+  };
+
+  const obtenerProyectosGuardados = () => {
+    return JSON.parse(localStorage.getItem('illusion-proyectos') || '[]');
+  };
+
+  const eliminarProyecto = (index) => {
+    const proyectos = obtenerProyectosGuardados();
+    proyectos.splice(index, 1);
+    localStorage.setItem('illusion-proyectos', JSON.stringify(proyectos));
+  };
+
+  // Función para descargar listado de materiales de rack
+  const descargarMaterialesRack = () => {
+    const fecha = new Date().toLocaleDateString('es-ES');
+    const hora = new Date().toLocaleTimeString('es-ES');
+    
+    let contenido = `
+╔══════════════════════════════════════════════════════════════════════════════════════╗
+║                           ILLUSION - MATERIALES DE RACK                             ║
+║                              LISTADO DE INFRAESTRUCTURA                             ║
+╚══════════════════════════════════════════════════════════════════════════════════════╝
+
+📅 FECHA: ${fecha}
+🕐 HORA: ${hora}
+🏢 EMPRESA: Illusion AV Solutions
+
+═══════════════════════════════════════════════════════════════════════════════════════
+
+📋 RESUMEN DEL RACK:
+═══════════════════════════════════════════════════════════════════════════════════════
+• Gabinete rack recomendado: ${res.rackRecomendado}U
+• Equipos a instalar: ${equipos.length} unidades
+• Unidades ocupadas: ${res.totalUNecesariasFrontales}U
+• Unidades libres: ${res.rackRecomendado - res.totalUNecesariasFrontales}U
+
+═══════════════════════════════════════════════════════════════════════════════════════
+🏗️ ESTRUCTURA Y GABINETE:
+═══════════════════════════════════════════════════════════════════════════════════════
+• Gabinete rack ${res.rackRecomendado}U: x1
+• Termostato (obligatorio): x1
+
+═══════════════════════════════════════════════════════════════════════════════════════
+⚡ ALIMENTACIÓN ELÉCTRICA:
+═══════════════════════════════════════════════════════════════════════════════════════
+• Regletas PDU (traseras): x${res.numRegletasTraseras}
+  └─ Cálculo: 1 regleta cada 6 equipos
+  └─ Consumo total estimado: ${res.consumoTotal}W
+
+═══════════════════════════════════════════════════════════════════════════════════════
+🔗 CONECTIVIDAD Y CABLEADO:
+═══════════════════════════════════════════════════════════════════════════════════════
+• Pasacables posteriores: x${res.pasacablesTraseros}
+• Escobillas pasacables: x${res.numEscobillas}
+• Patch Panels (automáticos): x${equipos.filter(e => e.esAutomatico).length}
+  └─ Añadidos automáticamente con routers UniFi
+
+═══════════════════════════════════════════════════════════════════════════════════════
+🛠️ ACCESORIOS Y HERRAJES:
+═══════════════════════════════════════════════════════════════════════════════════════
+• Placas ciegas: x${res.numPlacasCiegas}
+  └─ Para ventilación y espacios vacíos
+• Tornillería M6: x${res.numTornillos} tornillos
+  └─ Cálculo: 4 tornillos por equipo
+• Tuercas M6: x${res.numTornillos} tuercas
+• Arandelas M6: x${res.numTornillos * 2} arandelas
+
+═══════════════════════════════════════════════════════════════════════════════════════
+🏠 BALDAS Y SOPORTES:
+═══════════════════════════════════════════════════════════════════════════════════════`;
+
+    // Calcular baldas necesarias
+    const equiposNoRackables = equipos.filter(e => !e.esRackable);
+    const baldasNecesarias = Math.ceil(equiposNoRackables.length / 2);
+    
+    if (baldasNecesarias > 0) {
+      contenido += `
+• Baldas fijas 1U: x${baldasNecesarias}
+  └─ Para equipos no rackables (${equiposNoRackables.length} equipos)
+• Soportes para baldas: x${baldasNecesarias * 2} pares
+• Tapas ciegas para baldas: x${baldasNecesarias}`;
+    } else {
+      contenido += `
+• No se requieren baldas adicionales
+  └─ Todos los equipos son rackables`;
+    }
+
+    contenido += `
+
+═══════════════════════════════════════════════════════════════════════════════════════
+🌡️ VENTILACIÓN Y CLIMATIZACIÓN:
+═══════════════════════════════════════════════════════════════════════════════════════
+• Termostato digital: x1 (incluido)
+• Ventiladores superiores: x${res.rackRecomendado < 24 ? 1 : 2}
+  └─ Según altura del rack
+• Rejillas de ventilación: x2 (superior e inferior)
+
+═══════════════════════════════════════════════════════════════════════════════════════
+📦 RESUMEN DE CANTIDADES:
+═══════════════════════════════════════════════════════════════════════════════════════
+┌─────────────────────────────────────┬──────────┐
+│ ELEMENTO                            │ CANTIDAD │
+├─────────────────────────────────────┼──────────┤
+│ Gabinete rack ${res.rackRecomendado}U                    │    x1    │
+│ Regletas PDU                        │    x${res.numRegletasTraseras}    │
+│ Pasacables posteriores              │    x${res.pasacablesTraseros}    │
+│ Escobillas pasacables               │    x${res.numEscobillas}    │
+│ Patch Panels automáticos            │    x${equipos.filter(e => e.esAutomatico).length}    │
+│ Placas ciegas                       │    x${res.numPlacasCiegas}    │
+│ Tornillos M6                        │    x${res.numTornillos}   │
+│ Tuercas M6                          │    x${res.numTornillos}   │
+│ Arandelas M6                        │    x${res.numTornillos * 2}   │`;
+
+    if (baldasNecesarias > 0) {
+      contenido += `
+│ Baldas fijas 1U                     │    x${baldasNecesarias}    │
+│ Soportes para baldas                │    x${baldasNecesarias * 2}    │`;
+    }
+
+    contenido += `
+│ Termostato digital                  │    x1    │
+│ Ventiladores                        │    x${res.rackRecomendado < 24 ? 1 : 2}    │
+└─────────────────────────────────────┴──────────┘
+
+═══════════════════════════════════════════════════════════════════════════════════════
+📝 NOTAS PARA EL INSTALADOR:
+═══════════════════════════════════════════════════════════════════════════════════════
+• Verificar profundidad del rack según equipos a instalar
+• Los Patch Panels se calculan automáticamente con routers UniFi
+• Regletas PDU: distribuir uniformemente en la parte trasera
+• Termostato: instalar en la parte superior del rack
+• Ventiladores: según altura del rack (1 para <24U, 2 para ≥24U)
+• Tornillería: incluye tornillos, tuercas y arandelas M6
+• Placas ciegas: para ventilación y espacios no utilizados
+
+═══════════════════════════════════════════════════════════════════════════════════════
+🏢 GENERADO POR: Illusion Rack Designer Pro v1.2.0
+📧 CONTACTO: info@illusion-av.com
+🌐 WEB: www.illusion-av.com
+═══════════════════════════════════════════════════════════════════════════════════════
+`;
+
+    // Crear y descargar archivo
+    const blob = new Blob([contenido], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Illusion_Materiales_Rack_${fecha.replace(/\//g, '-')}_${hora.replace(/:/g, '-')}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const res = useMemo(() => {
@@ -165,7 +400,7 @@ export default function App() {
       rackRecomendado,
       numRegletasTraseras,
       totalUNecesariasFrontales,
-      numTornillos: Math.ceil(totalUNecesariasFrontales * 4),
+      numTornillos: equipos.length * 4,
       consumoTotal: equipos.reduce((sum, eq) => sum + (eq.consumo || 0), 0),
       numEscobillas,
       numPlacasCiegas: 1 + numTapasBalda + numTapasAutomaticas,
@@ -182,6 +417,7 @@ export default function App() {
       case 'Video': return <Monitor size={12} className="text-purple-500" />;
       case 'Cinema': return <Film size={12} className="text-rose-500" />;
       case 'Energía': return <Battery size={12} className="text-orange-500" />;
+      case 'Otros': return <Package size={12} className="text-slate-400" />;
       default: return <Server size={12} className="text-slate-400" />;
     }
   };
@@ -194,6 +430,7 @@ export default function App() {
       case 'Control': return { color: 'text-indigo-500', rackColor: 'bg-indigo-600' };
       case 'Cinema': return { color: 'text-rose-500', rackColor: 'bg-rose-700' };
       case 'Energía': return { color: 'text-orange-500', rackColor: 'bg-orange-600' };
+      case 'Otros': return { color: 'text-slate-400', rackColor: 'bg-slate-600' };
       default: return { color: 'text-slate-400', rackColor: 'bg-slate-800' };
     }
   };
@@ -220,9 +457,38 @@ export default function App() {
                  <span className="text-blue-400 uppercase tracking-tighter">PDUs: x{res.numRegletasTraseras}</span>
               </div>
            </div>
-           <button onClick={() => setEquipos([])} className="p-2 hover:bg-white/5 rounded-full text-slate-500 hover:text-red-400 transition-colors">
-            <RotateCcw size={16} />
-          </button>
+           <div className="flex items-center gap-2">
+             <button onClick={guardarProyecto} className="p-2 hover:bg-white/5 rounded-full text-slate-500 hover:text-green-400 transition-colors" title="Guardar proyecto">
+               <Save size={16} />
+             </button>
+             <div className="relative group">
+               <button className="p-2 hover:bg-white/5 rounded-full text-slate-500 hover:text-blue-400 transition-colors" title="Cargar proyecto">
+                 <FolderOpen size={16} />
+               </button>
+               <div className="absolute right-0 top-full mt-2 w-64 bg-slate-800 border border-white/10 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                 <div className="p-2 max-h-48 overflow-y-auto">
+                   {obtenerProyectosGuardados().length === 0 ? (
+                     <p className="text-slate-400 text-xs p-2">No hay proyectos guardados</p>
+                   ) : (
+                     obtenerProyectosGuardados().map((proyecto, index) => (
+                       <div key={index} className="flex items-center justify-between p-2 hover:bg-white/5 rounded text-xs">
+                         <div className="flex-1 cursor-pointer" onClick={() => cargarProyecto(proyecto)}>
+                           <div className="text-white font-medium">{proyecto.nombre}</div>
+                           <div className="text-slate-400">{new Date(proyecto.fecha).toLocaleDateString('es-ES')}</div>
+                         </div>
+                         <button onClick={() => eliminarProyecto(index)} className="text-red-400 hover:text-red-300 ml-2">
+                           <Trash2 size={12} />
+                         </button>
+                       </div>
+                     ))
+                   )}
+                 </div>
+               </div>
+             </div>
+             <button onClick={() => setEquipos([])} className="p-2 hover:bg-white/5 rounded-full text-slate-500 hover:text-red-400 transition-colors" title="Limpiar todo">
+               <RotateCcw size={16} />
+             </button>
+           </div>
         </div>
       </header>
 
@@ -233,7 +499,7 @@ export default function App() {
             {[...new Set(CATALOGO_EQUIPOS.map(i => i.categoria))].map(cat => (
               <div key={cat} className="rounded-xl border border-white/5 bg-white/5 overflow-hidden">
                 <button 
-                  onClick={() => setCategoriasAbiertas(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat])}
+                  onClick={() => toggleCategoria(cat)}
                   className="w-full px-3 py-2.5 flex items-center justify-between hover:bg-white/10 transition-colors"
                 >
                   <div className="flex items-center gap-2">
@@ -267,14 +533,17 @@ export default function App() {
             <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mt-2 border-l-2 border-indigo-500 pl-3 italic">Gabinete Illusion Recomendado</p>
           </div>
 
-          <div className="relative w-[440px] h-full bg-[#0a0a0a] border-x-[20px] border-slate-800 rounded-sm shadow-2xl flex flex-col">
+          <div className="relative w-[800px] h-full bg-[#0a0a0a] border-x-[20px] border-slate-800 rounded-sm shadow-2xl flex flex-col">
             <div className="flex-1 flex flex-col p-1 overflow-y-auto custom-scrollbar">
               {/* Infraestructura Fija Superior */}
               <div style={{ height: `${PIXELS_PER_U}px` }} className="w-full bg-black/60 border-b border-white/5 flex items-center justify-center shrink-0">
                 <div className="flex gap-1.5 opacity-20">{[...Array(14)].map((_, j) => <div key={j} className="w-1 h-3 bg-white rounded-full" />)}</div>
               </div>
-              <div style={{ height: `${PIXELS_PER_U}px` }} className="w-full bg-slate-800 border-b-2 border-black/80 flex items-center justify-around shrink-0 relative shadow-inner">
-                <span className="text-[9px] font-black text-white uppercase tracking-[0.3em]">Ventilación Forzada</span>
+              <div style={{ height: `${PIXELS_PER_U}px` }} className="w-full bg-slate-800 border-b-2 border-black/80 flex items-center justify-center shrink-0 relative shadow-inner">
+                <div className="flex items-center gap-2">
+                  <Thermometer size={12} className="text-orange-400" />
+                  <span className="text-[9px] font-black text-white uppercase tracking-[0.3em]">Termostato</span>
+                </div>
               </div>
               <div style={{ height: `${PIXELS_PER_U}px` }} className="w-full bg-[#111] border-b-2 border-black/80 flex items-center justify-center shrink-0 italic">
                 <span className="text-[8px] font-bold text-slate-700 uppercase tracking-[0.4em]">Separador Técnico</span>
@@ -349,6 +618,20 @@ export default function App() {
                 <span className="text-slate-500 font-bold uppercase text-[9px]">Escobillas</span>
                 <span className="font-black text-white">x{res.numEscobillas}</span>
              </div>
+             <div className="flex justify-between p-3 bg-white/5 rounded-xl border border-white/5">
+                <div className="flex items-center gap-2">
+                   <Settings size={14} className="text-slate-400" />
+                   <span className="text-slate-500 font-bold uppercase text-[9px]">Tornillería</span>
+                </div>
+                <span className="font-black text-white">x{res.numTornillos}</span>
+             </div>
+             <div className="flex justify-between p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
+                <div className="flex items-center gap-2">
+                   <Cable size={14} className="text-emerald-400" />
+                   <span className="text-emerald-400 font-black uppercase text-[9px]">Patch Panels (Auto)</span>
+                </div>
+                <span className="font-black text-white">x{equipos.filter(e => e.esAutomatico).length}</span>
+             </div>
           </div>
 
           <div className="mt-8 pt-8 border-t border-white/5">
@@ -372,7 +655,10 @@ export default function App() {
           </div>
 
           <div className="mt-auto pt-6">
-            <button className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-900/40 transition-all active:scale-95">Descargar Listado BOOM</button>
+            <button onClick={descargarMaterialesRack} className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-900/40 transition-all active:scale-95 flex items-center justify-center gap-2">
+              <Download size={14} />
+              Descargar Materiales de Rack
+            </button>
           </div>
         </aside>
       </main>

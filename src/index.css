@@ -249,3 +249,9 @@ html, body {
 .\[background-color\:\#020617\] { background-color: #020617; }
 .\[\#0a0a0a\] { background-color: #0a0a0a; }
 .\[\#111\] { background-color: #111; }
+
+/* Rack específico - Ancho personalizado */
+.w-\[800px\] { 
+  width: 800px !important; 
+  min-width: 800px !important;
+}
