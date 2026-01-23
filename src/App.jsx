@@ -9,7 +9,12 @@ import {
   Film,
   Cable,
   Server,
-  Zap
+  Zap,
+  Wifi,
+  Settings,
+  Volume2,
+  Monitor,
+  Battery
 } from 'lucide-react';
 
 /**
@@ -51,7 +56,7 @@ export default function App() {
   ];
 
   const [equipos, setEquipos] = useState([]);
-  const [categoriasAbiertas, setCategoriasAbiertas] = useState(['Redes', 'Control', 'Audio', 'Cinema']);
+  const [categoriasAbiertas, setCategoriasAbiertas] = useState([]);
 
   const UNIDAD_RACK_MM = 44.45;
   const PIXELS_PER_U = 32; 
@@ -169,6 +174,18 @@ export default function App() {
     };
   }, [equipos]);
 
+  const getCategoryIcon = (cat) => {
+    switch(cat) {
+      case 'Redes': return <Wifi size={12} className="text-blue-500" />;
+      case 'Control': return <Settings size={12} className="text-indigo-500" />;
+      case 'Audio': return <Volume2 size={12} className="text-emerald-500" />;
+      case 'Video': return <Monitor size={12} className="text-purple-500" />;
+      case 'Cinema': return <Film size={12} className="text-rose-500" />;
+      case 'Energía': return <Battery size={12} className="text-orange-500" />;
+      default: return <Server size={12} className="text-slate-400" />;
+    }
+  };
+
   const getCategoryTheme = (cat) => {
     switch(cat) {
       case 'Redes': return { color: 'text-blue-500', rackColor: 'bg-blue-600' };
@@ -217,23 +234,24 @@ export default function App() {
               <div key={cat} className="rounded-xl border border-white/5 bg-white/5 overflow-hidden">
                 <button 
                   onClick={() => setCategoriasAbiertas(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat])}
-                  className="w-full px-3 py-2.5 flex items-center justify-between hover:bg-white/5 transition-colors"
+                  className="w-full px-3 py-2.5 flex items-center justify-between hover:bg-white/10 transition-colors"
                 >
                   <div className="flex items-center gap-2">
-                    {cat === 'Cinema' && <Film size={12} className="text-rose-500" />}
+                    {getCategoryIcon(cat)}
                     <span className="text-[10px] font-bold uppercase tracking-wider">{cat}</span>
                   </div>
                   <ChevronDown size={12} className={`transition-transform duration-300 ${categoriasAbiertas.includes(cat) ? 'rotate-180' : ''}`} />
                 </button>
                 {categoriasAbiertas.includes(cat) && (
-                  <div className="p-1 border-t border-white/5 bg-black/20">
+                  <div className="p-2 border-t border-white/10 bg-black/30">
                     {CATALOGO_EQUIPOS.filter(i => i.categoria === cat).map(item => (
-                      <button key={item.id} onClick={() => agregarItem(item)} className="w-full p-2.5 rounded-lg hover:bg-indigo-600 group text-left flex justify-between items-center mb-0.5 transition-colors">
-                        <div className="flex flex-col">
-                           <span className="text-[11px] font-medium text-slate-300 group-hover:text-white truncate">{item.nombre}</span>
-                           <span className="text-[8px] text-slate-500 group-hover:text-indigo-200 uppercase font-bold">{item.uOcupadas}U · {item.fondo}mm</span>
+                      <button key={item.id} onClick={() => agregarItem(item)} className="w-full p-3 rounded-lg hover:bg-indigo-600/80 group text-left flex justify-between items-center mb-2 transition-all duration-200 border border-white/5 hover:border-indigo-400/50 bg-white/95 hover:bg-indigo-600 hover:shadow-lg">
+                        <div className="flex flex-col flex-1">
+                           <span className="text-[12px] font-semibold text-slate-900 group-hover:text-white truncate">{item.nombre}</span>
                         </div>
-                        <Plus size={12} className="text-indigo-400 group-hover:text-white" />
+                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 group-hover:bg-white/20 transition-colors">
+                          <Plus size={14} className="text-indigo-600 group-hover:text-white" />
+                        </div>
                       </button>
                     ))}
                   </div>

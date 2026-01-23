@@ -16,7 +16,7 @@ npm install
 npm run dev
 
 # 4. Abrir en navegador
-# http://localhost:5173/
+# http://localhost:5173/ (o el puerto que indique)
 ```
 
 ## 📋 Estado Actual (Enero 2025)
@@ -28,8 +28,21 @@ npm run dev
 - **Sistema de regletas** (1 cada 6 equipos)
 - **Gestión de ventiladores** automática
 - **Interfaz elegante** con fondo negro profesional
-- **Pestañas desplegables** para categorías
+- **Pestañas desplegables** mejoradas con iconos
 - **Panel de configuración técnica**
+
+### 🎨 **Mejoras de Interfaz (Últimas):**
+- **Categorías replegadas** al iniciar la aplicación
+- **Iconos coloridos** para cada categoría:
+  - 📶 **Redes**: Wifi (azul)
+  - ⚙️ **Control**: Settings (indigo)
+  - 🔊 **Audio**: Volume2 (verde)
+  - 📺 **Video**: Monitor (morado)
+  - 🎬 **Cinema**: Film (rosa)
+  - 🔋 **Energía**: Battery (naranja)
+- **Productos con fondo blanco** para mejor legibilidad
+- **Diseño limpio** sin información técnica innecesaria
+- **Hover effects** mejorados y sutiles
 
 ### 🎯 **Categorías de Equipos:**
 - 🌐 **Redes**: UniFi Dream Machine, Switches
@@ -47,18 +60,22 @@ npm run dev
 
 ## 📊 **Historial de Commits:**
 
-1. `e76f4d9` - 🎨 Corregir estilos CSS - Interfaz funcionando
-2. `1697834` - cambios dia 5enero
-3. `e795114` - Añadir las regletas por cada 6 equipos
-4. `c266322` - Paso de añadir ventiladores
-5. `65ec09e` - Paso 3
-6. `90f7733` - Paso 2
-7. `adc1db8` - Primera versión Diseñador Rack
+1. `PRÓXIMO` - 🎨 Mejorar UX pestañas - Iconos, diseño limpio, categorías replegadas
+2. `ef25a00` - 📝 Añadir documentación del estado del proyecto
+3. `e76f4d9` - 🎨 Corregir estilos CSS - Interfaz funcionando
+4. `1697834` - cambios dia 5enero
+5. `e795114` - Añadir las regletas por cada 6 equipos
+6. `c266322` - Paso de añadir ventiladores
+7. `65ec09e` - Paso 3
+8. `90f7733` - Paso 2
+9. `adc1db8` - Primera versión Diseñador Rack
 
 ## 🎨 **Diseño Visual:**
 - **Fondo negro elegante** (#020617)
 - **Header profesional** con métricas en tiempo real
 - **Paneles laterales** con transparencias
+- **Pestañas con iconos coloridos** y hover suave
+- **Productos con fondo blanco** para máxima legibilidad
 - **Visualización del rack** con colores por categoría
 - **Efectos hover** y transiciones suaves
 
@@ -72,4 +89,4 @@ npm run dev
 ---
 
 **✅ PROYECTO LISTO PARA PRODUCCIÓN**
-*Última actualización: Enero 2025*
+*Última actualización: Enero 2025 - Interfaz optimizada*
