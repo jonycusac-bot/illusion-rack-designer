@@ -183,7 +183,7 @@ export default function App() {
 
 📅 FECHA: ${fecha}
 🕐 HORA: ${hora}
-🏢 EMPRESA: Illusion AV Solutions
+🏢 EMPRESA: Illusion.es
 
 ═══════════════════════════════════════════════════════════════════════════════════════
 
@@ -254,6 +254,8 @@ export default function App() {
 • Ventiladores superiores: x${res.rackRecomendado < 24 ? 1 : 2}
   └─ Según altura del rack
 • Rejillas de ventilación: x2 (superior e inferior)
+• Bandejas ventilación Sonos Amp: x${res.bandejasSonosAmp || 0}
+  └─ Automáticas cuando hay 2 Sonos Amp en misma balda
 
 ═══════════════════════════════════════════════════════════════════════════════════════
 📦 RESUMEN DE CANTIDADES:
@@ -277,6 +279,11 @@ export default function App() {
 │ Soportes para baldas                │    x${baldasNecesarias * 2}    │`;
     }
 
+    if (res.bandejasSonosAmp > 0) {
+      contenido += `
+│ Bandejas ventilación Sonos Amp      │    x${res.bandejasSonosAmp}    │`;
+    }
+
     contenido += `
 │ Termostato digital                  │    x1    │
 │ Ventiladores                        │    x${res.rackRecomendado < 24 ? 1 : 2}    │
@@ -292,11 +299,12 @@ export default function App() {
 • Ventiladores: según altura del rack (1 para <24U, 2 para ≥24U)
 • Tornillería: incluye tornillos, tuercas y arandelas M6
 • Placas ciegas: para ventilación y espacios no utilizados
+• IMPORTANTE: Bandejas de ventilación van POR ARRIBA de 2 Sonos Amp
 
 ═══════════════════════════════════════════════════════════════════════════════════════
-🏢 GENERADO POR: Illusion Rack Designer Pro v1.2.0
-📧 CONTACTO: info@illusion-av.com
-🌐 WEB: www.illusion-av.com
+🏢 GENERADO POR: Illusion Rack Designer Pro v2.0.0
+📧 CONTACTO: info@e-illusion.es
+🌐 WEB: http://www.illusion.es
 ═══════════════════════════════════════════════════════════════════════════════════════
 `;
 
@@ -364,12 +372,25 @@ export default function App() {
         if (indexPareja !== -1) {
           const pareja = itemsPendientes.splice(indexPareja, 1)[0];
           const tieneTapa = actual.requiereTapaCiega || pareja.requiereTapaCiega;
+          
+          // NUEVA REGLA: Si hay dos Sonos Amp, añadir bandeja de ventilación POR ARRIBA
+          const esSonosAmp = (eq) => eq.id === 'sonos-amp';
+          const hayDosSonosAmp = esSonosAmp(actual) && esSonosAmp(pareja);
+          
           if (tieneTapa) numTapasBalda++;
-          bloquesBaldas.push({ 
+          
+          const bloque = { 
             equipos: [actual, pareja], 
-            uTotal: Math.max(actual.uOcupadas, pareja.uOcupadas) + (tieneTapa ? 1 : 0),
-            tieneTapa: tieneTapa 
-          });
+            uTotal: Math.max(actual.uOcupadas, pareja.uOcupadas) + (tieneTapa ? 1 : 0) + (hayDosSonosAmp ? 1 : 0),
+            tieneTapa: tieneTapa,
+            tieneVentilacionArriba: hayDosSonosAmp
+          };
+          
+          if (hayDosSonosAmp) {
+            numTapasBalda++; // Contar la bandeja de ventilación adicional
+          }
+          
+          bloquesBaldas.push(bloque);
           continue;
         }
       }
@@ -378,7 +399,8 @@ export default function App() {
       bloquesBaldas.push({ 
         equipos: [actual], 
         uTotal: actual.uOcupadas + (tieneTapa ? 1 : 0),
-        tieneTapa: tieneTapa 
+        tieneTapa: tieneTapa,
+        tieneVentilacionArriba: false
       });
     }
 
@@ -393,6 +415,9 @@ export default function App() {
     const rackRecomendado = RACKS_COMERCIALES.find(r => r >= totalUNecesariasFrontales) || 47;
     
     const numVentiladores = rackRecomendado < 24 ? 1 : 2;
+    
+    // Calcular bandejas de ventilación para Sonos Amp
+    const bandejasSonosAmp = bloquesBaldas.filter(bloque => bloque.tieneVentilacionArriba).length;
 
     return {
       rackItems,
@@ -405,7 +430,8 @@ export default function App() {
       numEscobillas,
       numPlacasCiegas: 1 + numTapasBalda + numTapasAutomaticas,
       pasacablesTraseros,
-      numVentiladores
+      numVentiladores,
+      bandejasSonosAmp
     };
   }, [equipos]);
 
@@ -571,7 +597,16 @@ export default function App() {
 
                 {res.bloquesBaldas.map((bloque, i) => (
                   <div key={`bloque-${i}`} className="mb-1 flex flex-col">
-                    <div className="w-full bg-slate-800 rounded-sm border-b-4 border-black/60 flex shadow-inner relative" style={{ height: `${(bloque.uTotal - (bloque.tieneTapa ? 1 : 0)) * PIXELS_PER_U}px` }}>
+                    {/* Bandeja de ventilación POR ARRIBA para dos Sonos Amp */}
+                    {bloque.tieneVentilacionArriba && (
+                      <div style={{ height: `${PIXELS_PER_U}px` }} className="w-full bg-orange-600/80 border-b-2 border-orange-400/50 flex items-center justify-center text-[7px] font-bold text-white uppercase tracking-widest mb-1">
+                        <div className="flex items-center gap-1">
+                          <Fan size={10} className="text-orange-200" />
+                          <span>Bandeja Ventilación (2x Sonos Amp)</span>
+                        </div>
+                      </div>
+                    )}
+                    <div className="w-full bg-slate-800 rounded-sm border-b-4 border-black/60 flex shadow-inner relative" style={{ height: `${(bloque.uTotal - (bloque.tieneTapa ? 1 : 0) - (bloque.tieneVentilacionArriba ? 1 : 0)) * PIXELS_PER_U}px` }}>
                       {bloque.equipos.map((e) => (
                         <div key={e.instanceId} className="h-[90%] flex flex-col items-center justify-center m-1.5 text-center bg-white rounded shadow-xl flex-1 border-t-2 border-slate-300 overflow-hidden relative group/item">
                           <span className="font-black uppercase text-slate-900 text-[8px] px-2 leading-tight">{e.nombre}</span>
