@@ -1,41 +1,59 @@
-name: Deploy Vite app to GitHub Pages
+# Importado en static-deploy.md
+# Este archivo se extrae como un archivo separado para que Renovate pueda actualizar las versiones de las acciones
+#
+#region contenido
+# Flujo de trabajo simple para desplegar contenido estático en GitHub Pages
+name: Desplegar contenido estático en Pages
 
 on:
+  # Se ejecuta cuando se hace push a la rama principal
   push:
-    branches:
-      - main
+    branches: ['main']
 
+  # Permite ejecutar este flujo de trabajo manualmente desde la pestaña de Acciones
+  workflow_dispatch:
+
+# Establece los permisos del GITHUB_TOKEN para permitir el despliegue en GitHub Pages
 permissions:
   contents: read
   pages: write
   id-token: write
 
+# Permite un solo despliegue concurrente
 concurrency:
-  group: pages
+  group: 'pages'
   cancel-in-progress: true
 
 jobs:
-  build:
+  # Trabajo único de despliegue ya que solo estamos desplegando
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/checkout@v6
+      - name: Configurar Node
+        uses: actions/setup-node@v6
         with:
-          node-version: 20
-
-      - name: Install dependencies
+          node-version: lts/*
+          cache: 'npm'
+      - name: Instalar dependencias
         run: npm ci
-
-      - name: Build
+      - name: Construir
         run: npm run build
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Configurar Pages
+        uses: actions/configure-pages@v5
+      - name: Subir artefacto
+        uses: actions/upload-pages-artifact@v4
         with:
-          path: dist
+          # Subir la carpeta dist
+          path: './dist'
+      - name: Desplegar a GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+#endregion contenido
 
       - name: Deploy to GitHub Pages
         uses: actions/deploy-pages@v4
