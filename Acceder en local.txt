@@ -1,0 +1,9 @@
+cd ruta de la carpeta raiz o sea: 
+
+
+cd C:\Users\Usuario\Desktop\illusion-rack-designer-githubcdcd
+
+npm run dev
+
+
+Abrir  http://localhost:5173
