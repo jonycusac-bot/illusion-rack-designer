@@ -623,12 +623,15 @@ export default function App() {
                       </div>
                     )}
                     <div className="w-full bg-slate-800 rounded-sm border-b-4 border-black/60 flex shadow-inner relative" style={{ height: `${(bloque.uTotal - (bloque.tieneTapa ? 1 : 0) - (bloque.tieneVentilacionArriba ? 1 : 0)) * PIXELS_PER_U}px` }}>
-                      {bloque.equipos.map((e) => (
-                        <div key={e.instanceId} className="h-[90%] flex flex-col items-center justify-center m-1.5 text-center bg-white rounded shadow-xl flex-1 border-t-2 border-slate-300 overflow-hidden relative group/item">
-                          <span className="font-black uppercase text-slate-900 text-[8px] px-2 leading-tight">{e.nombre}</span>
-                          <button onClick={() => eliminarItem(e.instanceId)} className="absolute inset-0 bg-red-600/90 text-white flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity"><Trash2 size={14} /></button>
-                        </div>
-                      ))}
+                      {bloque.equipos.map((e) => {
+                        const theme = getCategoryTheme(e.categoria);
+                        return (
+                          <div key={e.instanceId} className={`h-[90%] flex flex-col items-center justify-center m-1.5 text-center ${theme.rackColor} rounded shadow-xl flex-1 border-t-2 border-black/40 overflow-hidden relative group/item`}>
+                            <span className="font-black uppercase text-white text-[8px] px-2 leading-tight">{e.nombre}</span>
+                            <button onClick={() => eliminarItem(e.instanceId)} className="absolute inset-0 bg-red-600/90 text-white flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity"><Trash2 size={14} /></button>
+                          </div>
+                        );
+                      })}
                     </div>
                     {bloque.tieneTapa && (
                       <div style={{ height: `${PIXELS_PER_U}px` }} className="w-full bg-black/80 border-b-2 border-white/5 flex items-center justify-center text-[7px] font-bold text-slate-600 uppercase tracking-widest">Tapa Ciega Balda</div>
