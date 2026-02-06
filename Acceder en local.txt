@@ -1,7 +1,7 @@
 cd ruta de la carpeta raiz o sea: 
 
 
-cd C:\Users\Usuario\Desktop\illusion-rack-designer-githubcdcd
+cd C:\Users\Usuario\Desktop\illusion-rack-designer-github
 
 npm run dev
 

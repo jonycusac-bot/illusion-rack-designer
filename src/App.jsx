@@ -336,11 +336,11 @@ export default function App() {
       if (eq.categoria === 'Cinema') {
         numTapasAutomaticas++;
         rackItems.push({ 
-          instanceId: `ciego-cin-${eq.instanceId}`, 
-          nombre: `Panel Ciego Ventilación (Cinema)`, 
+          instanceId: `ventilacion-cin-${eq.instanceId}`, 
+          nombre: `Bandeja Ventilación (Cinema)`, 
           categoria: 'Pasivo', 
           uOcupadas: 1, 
-          tipoPasivo: 'Ciego' 
+          tipoPasivo: 'Ventilacion' 
         });
       }
 
@@ -377,17 +377,20 @@ export default function App() {
           const esSonosAmp = (eq) => eq.id === 'sonos-amp';
           const hayDosSonosAmp = esSonosAmp(actual) && esSonosAmp(pareja);
           
-          if (tieneTapa) numTapasBalda++;
+          // Si hay bandeja de ventilación, NO añadir tapa ciega (se sustituye)
+          const tapaCiegaFinal = hayDosSonosAmp ? false : tieneTapa;
+          if (tapaCiegaFinal) numTapasBalda++;
           
           const bloque = { 
             equipos: [actual, pareja], 
-            uTotal: Math.max(actual.uOcupadas, pareja.uOcupadas) + (tieneTapa ? 1 : 0) + (hayDosSonosAmp ? 1 : 0),
-            tieneTapa: tieneTapa,
+            uTotal: Math.max(actual.uOcupadas, pareja.uOcupadas) + (tapaCiegaFinal ? 1 : 0) + (hayDosSonosAmp ? 1 : 0),
+            tieneTapa: tapaCiegaFinal,
             tieneVentilacionArriba: hayDosSonosAmp
           };
           
+          // NO contar tapa ciega adicional si ya hay ventilación
           if (hayDosSonosAmp) {
-            numTapasBalda++; // Contar la bandeja de ventilación adicional
+            numTapasBalda++; // Solo contar la bandeja de ventilación
           }
           
           bloquesBaldas.push(bloque);
@@ -418,6 +421,9 @@ export default function App() {
     
     // Calcular bandejas de ventilación para Sonos Amp
     const bandejasSonosAmp = bloquesBaldas.filter(bloque => bloque.tieneVentilacionArriba).length;
+    
+    // Calcular total de bandejas de ventilación (Cinema + Sonos Amp)
+    const totalBandejasVentilacion = numTapasAutomaticas + bandejasSonosAmp;
 
     return {
       rackItems,
@@ -431,7 +437,8 @@ export default function App() {
       numPlacasCiegas: 1 + numTapasBalda + numTapasAutomaticas,
       pasacablesTraseros,
       numVentiladores,
-      bandejasSonosAmp
+      bandejasSonosAmp,
+      totalBandejasVentilacion
     };
   }, [equipos]);
 
@@ -578,8 +585,17 @@ export default function App() {
               {/* Listado dinámico de equipos */}
               <div className="flex-1 mt-1 space-y-1">
                 {res.rackItems.map((eq) => (
-                  <div key={eq.instanceId} className={`w-full ${eq.tipoPasivo === 'Escobilla' || eq.tipoPasivo === 'Ciego' ? 'bg-black/80 border-dashed border-white/10' : getCategoryTheme(eq.categoria).rackColor} rounded-sm border-b border-black/40 flex items-center justify-center relative group transition-all`} style={{ height: `${eq.uOcupadas * PIXELS_PER_U}px` }}>
-                    {eq.tipoPasivo === 'Escobilla' || eq.tipoPasivo === 'Ciego' ? (
+                  <div key={eq.instanceId} className={`w-full ${
+                    eq.tipoPasivo === 'Ventilacion' ? 'bg-orange-600/80 border-b-2 border-orange-400/50' : 
+                    eq.tipoPasivo === 'Escobilla' || eq.tipoPasivo === 'Ciego' ? 'bg-black/80 border-dashed border-white/10' : 
+                    getCategoryTheme(eq.categoria).rackColor
+                  } rounded-sm border-b border-black/40 flex items-center justify-center relative group transition-all`} style={{ height: `${eq.uOcupadas * PIXELS_PER_U}px` }}>
+                    {eq.tipoPasivo === 'Ventilacion' ? (
+                      <div className="flex items-center gap-1">
+                        <Fan size={10} className="text-orange-200" />
+                        <span className="text-[7px] font-bold text-white uppercase tracking-widest">{eq.nombre}</span>
+                      </div>
+                    ) : eq.tipoPasivo === 'Escobilla' || eq.tipoPasivo === 'Ciego' ? (
                       <span className="text-[7px] font-bold text-slate-600 uppercase tracking-widest">{eq.nombre}</span>
                     ) : (
                       <div className="flex flex-col items-center">
@@ -666,6 +682,13 @@ export default function App() {
                    <span className="text-emerald-400 font-black uppercase text-[9px]">Patch Panels (Auto)</span>
                 </div>
                 <span className="font-black text-white">x{equipos.filter(e => e.esAutomatico).length}</span>
+             </div>
+             <div className="flex justify-between p-3 bg-orange-500/10 rounded-xl border border-orange-500/20">
+                <div className="flex items-center gap-2">
+                   <Fan size={14} className="text-orange-400" />
+                   <span className="text-orange-400 font-black uppercase text-[9px]">Bandejas Ventilación</span>
+                </div>
+                <span className="font-black text-white">x{res.totalBandejasVentilacion}</span>
              </div>
           </div>
 
