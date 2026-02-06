@@ -189,15 +189,15 @@ export default function App() {
 
 📋 RESUMEN DEL RACK:
 ═══════════════════════════════════════════════════════════════════════════════════════
-• Gabinete rack recomendado: ${res.rackRecomendado}U
+• Rack recomendado: ${res.rackRecomendado}U
 • Equipos a instalar: ${equipos.length} unidades
 • Unidades ocupadas: ${res.totalUNecesariasFrontales}U
 • Unidades libres: ${res.rackRecomendado - res.totalUNecesariasFrontales}U
 
 ═══════════════════════════════════════════════════════════════════════════════════════
-🏗️ ESTRUCTURA Y GABINETE:
+🏗️ ESTRUCTURA Y RACK:
 ═══════════════════════════════════════════════════════════════════════════════════════
-• Gabinete rack ${res.rackRecomendado}U: x1
+• Rack ${res.rackRecomendado}U: x1
 • Termostato (obligatorio): x1
 
 ═══════════════════════════════════════════════════════════════════════════════════════
@@ -263,7 +263,7 @@ export default function App() {
 ┌─────────────────────────────────────┬──────────┐
 │ ELEMENTO                            │ CANTIDAD │
 ├─────────────────────────────────────┼──────────┤
-│ Gabinete rack ${res.rackRecomendado}U                    │    x1    │
+│ Rack ${res.rackRecomendado}U                    │    x1    │
 │ Regletas PDU                        │    x${res.numRegletasTraseras}    │
 │ Pasacables posteriores              │    x${res.pasacablesTraseros}    │
 │ Escobillas pasacables               │    x${res.numEscobillas}    │
@@ -458,7 +458,7 @@ export default function App() {
   const getCategoryTheme = (cat) => {
     switch(cat) {
       case 'Redes': return { color: 'text-blue-500', rackColor: 'bg-blue-600' };
-      case 'Audio': return { color: 'text-emerald-500', rackColor: 'bg-emerald-600' };
+      case 'Audio': return { color: 'text-blue-500', rackColor: 'bg-blue-600' };
       case 'Video': return { color: 'text-purple-500', rackColor: 'bg-purple-600' };
       case 'Control': return { color: 'text-indigo-500', rackColor: 'bg-indigo-600' };
       case 'Cinema': return { color: 'text-rose-500', rackColor: 'bg-rose-700' };
@@ -563,7 +563,7 @@ export default function App() {
         <section className="flex-1 bg-black relative flex items-center justify-center p-6 overflow-hidden">
           <div className="absolute top-6 left-8">
             <h2 className="text-[5rem] font-black leading-none text-white/90">{res.rackRecomendado}<span className="text-xl text-indigo-500 ml-2">U</span></h2>
-            <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mt-2 border-l-2 border-indigo-500 pl-3 italic">Gabinete Illusion Recomendado</p>
+            <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mt-2 border-l-2 border-indigo-500 pl-3 italic">Rack Illusion Recomendado</p>
           </div>
 
           <div className="relative w-[800px] h-full bg-[#0a0a0a] border-x-[20px] border-slate-800 rounded-sm shadow-2xl flex flex-col">
