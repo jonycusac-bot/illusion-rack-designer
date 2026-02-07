@@ -7,3 +7,22 @@ npm run dev
 
 
 Abrir  http://localhost:5173
+
+
+La bandeja de ventilacion cada dos sonos Amp es correcto y me gusta el logo del ventilador , pero aparte estas sumando una tapa ciega balda que no haria fata y la eliminamos ,puesto que ya que hemos añadido previamente la bandeja de ventilacion , 
+
+El llamado Panel ciego de ventilacion se substituye siempre por la unidad de ventilacion , la que tiene el logo , es la misma que hay entre los sonos Amp.
+
+Estas bandejas de ventilacion , se añadiran en una nueva pestaña en la seccion de configuracion tecnica y se iran sumando segun vamos añadiendo equipos que la precisen.
+
+
+quiero que la bandeja de ventilacion que has puesto al añadir los equipos de Cinema y las bandejas de ventilacion de los Sonos sean de igual formato,  tambien quiero que se haga una suma de ellas en tiempo real en una pestaña nueva dentro del apartado  configuracion tecnica
+
+La palabra gabinete la eliminamos y la substituimos por rack
+
+Los equipos dentro de la seccion o pestaña Audio simpre saldran en azul en el esquema de tiempo real del rack.- 
+
+Los equipos dentro de la seccion Redes saldran siempre en Azul
+
+
+
