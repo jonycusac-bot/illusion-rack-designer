@@ -457,7 +457,7 @@ export default function App() {
 
   const getCategoryTheme = (cat) => {
     switch(cat) {
-      case 'Redes': return { color: 'text-green-500', rackColor: 'bg-green-500' };
+      case 'Redes': return { color: 'text-green-400', rackColor: 'bg-green-600' };
       case 'Audio': return { color: 'text-blue-500', rackColor: 'bg-blue-600' };
       case 'Video': return { color: 'text-purple-500', rackColor: 'bg-purple-600' };
       case 'Control': return { color: 'text-indigo-500', rackColor: 'bg-indigo-600' };
@@ -476,7 +476,7 @@ export default function App() {
             <ShieldCheck className="text-white w-5 h-5" />
           </div>
           <h1 className="text-sm font-black tracking-widest uppercase italic">
-            Illusion <span className="text-slate-500 font-light">Rack Designer Pro</span>
+            Illusion <span className="text-slate-500 font-light">Rack Designer Pro v2.1</span>
           </h1>
         </div>
         <div className="flex items-center gap-8 text-[10px] font-bold">
@@ -584,12 +584,28 @@ export default function App() {
 
               {/* Listado dinámico de equipos */}
               <div className="flex-1 mt-1 space-y-1">
-                {res.rackItems.map((eq) => (
-                  <div key={eq.instanceId} className={`w-full ${
-                    eq.tipoPasivo === 'Ventilacion' ? 'bg-orange-600/80 border-b-2 border-orange-400/50' : 
-                    eq.tipoPasivo === 'Escobilla' || eq.tipoPasivo === 'Ciego' ? 'bg-black/80 border-dashed border-white/10' : 
-                    getCategoryTheme(eq.categoria).rackColor
-                  } rounded-sm border-b border-black/40 flex items-center justify-center relative group transition-all`} style={{ height: `${eq.uOcupadas * PIXELS_PER_U}px` }}>
+                {res.rackItems.map((eq) => {
+                  const backgroundColor = eq.tipoPasivo === 'Ventilacion' ? '#ea580c' :
+                                         eq.tipoPasivo === 'Escobilla' || eq.tipoPasivo === 'Ciego' ? '#1e293b' :
+                                         eq.categoria === 'Redes' ? '#16a34a' : 
+                                         eq.categoria === 'Audio' ? '#2563eb' :
+                                         eq.categoria === 'Video' ? '#9333ea' :
+                                         eq.categoria === 'Control' ? '#4f46e5' :
+                                         eq.categoria === 'Cinema' ? '#be123c' :
+                                         eq.categoria === 'Energía' ? '#ea580c' :
+                                         eq.categoria === 'Otros' ? '#475569' : '#1e293b';
+                  
+                  return (
+                  <div key={eq.instanceId} 
+                       className={`w-full ${
+                         eq.tipoPasivo === 'Ventilacion' ? 'border-b-2 border-orange-400/50' : 
+                         eq.tipoPasivo === 'Escobilla' || eq.tipoPasivo === 'Ciego' ? 'border-dashed border-white/10' : 
+                         ''
+                       } rounded-sm border-b border-black/40 flex items-center justify-center relative group transition-all`} 
+                       style={{ 
+                         height: `${eq.uOcupadas * PIXELS_PER_U}px`,
+                         backgroundColor: backgroundColor
+                       }}>
                     {eq.tipoPasivo === 'Ventilacion' ? (
                       <div className="flex items-center gap-1">
                         <Fan size={10} className="text-orange-200" />
@@ -609,7 +625,8 @@ export default function App() {
                       </button>
                     )}
                   </div>
-                ))}
+                  );
+                })}
 
                 {res.bloquesBaldas.map((bloque, i) => (
                   <div key={`bloque-${i}`} className="mb-1 flex flex-col">
@@ -624,9 +641,16 @@ export default function App() {
                     )}
                     <div className="w-full bg-slate-800 rounded-sm border-b-4 border-black/60 flex shadow-inner relative" style={{ height: `${(bloque.uTotal - (bloque.tieneTapa ? 1 : 0) - (bloque.tieneVentilacionArriba ? 1 : 0)) * PIXELS_PER_U}px` }}>
                       {bloque.equipos.map((e) => {
-                        const theme = getCategoryTheme(e.categoria);
+                        const bgColor = e.categoria === 'Redes' ? '#16a34a' : 
+                                       e.categoria === 'Audio' ? '#2563eb' :
+                                       e.categoria === 'Video' ? '#9333ea' :
+                                       e.categoria === 'Control' ? '#4f46e5' :
+                                       e.categoria === 'Cinema' ? '#be123c' :
+                                       e.categoria === 'Energía' ? '#ea580c' : '#475569';
                         return (
-                          <div key={e.instanceId} className={`h-[90%] flex flex-col items-center justify-center m-1.5 text-center ${theme.rackColor} rounded shadow-xl flex-1 border-t-2 border-black/40 overflow-hidden relative group/item`}>
+                          <div key={e.instanceId} 
+                               className="h-[90%] flex flex-col items-center justify-center m-1.5 text-center rounded shadow-xl flex-1 border-t-2 border-black/40 overflow-hidden relative group/item"
+                               style={{ backgroundColor: bgColor }}>
                             <span className="font-black uppercase text-white text-[8px] px-2 leading-tight">{e.nombre}</span>
                             <button onClick={() => eliminarItem(e.instanceId)} className="absolute inset-0 bg-red-600/90 text-white flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity"><Trash2 size={14} /></button>
                           </div>
