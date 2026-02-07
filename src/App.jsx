@@ -561,12 +561,18 @@ export default function App() {
         </aside>
 
         <section className="flex-1 bg-black relative flex items-center justify-center p-6 overflow-hidden">
-          <div className="absolute top-6 left-8">
-            <h2 className="text-[5rem] font-black leading-none text-white/90">{res.rackRecomendado}<span className="text-xl text-indigo-500 ml-2">U</span></h2>
-            <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mt-2 border-l-2 border-indigo-500 pl-3 italic">Rack Illusion Recomendado</p>
+          <div className="absolute top-6 left-8 z-10">
+            <div className="bg-gradient-to-r from-indigo-600/20 to-transparent p-4 rounded-lg backdrop-blur-sm border border-indigo-500/30">
+              <h2 className="text-[5rem] font-black leading-none text-white drop-shadow-[0_0_20px_rgba(99,102,241,0.5)]">
+                {res.rackRecomendado}<span className="text-2xl text-indigo-400 ml-2 animate-pulse">U</span>
+              </h2>
+              <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mt-2 border-l-4 border-indigo-500 pl-3 italic drop-shadow-lg">
+                Rack Illusion Recomendado
+              </p>
+            </div>
           </div>
 
-          <div className="relative w-[800px] h-full bg-[#0a0a0a] border-x-[20px] border-slate-800 rounded-sm shadow-2xl flex flex-col">
+          <div className="relative w-[600px] h-full bg-gradient-to-b from-[#0a0a0a] to-[#1a1a1a] border-x-[24px] border-slate-700 rounded-lg shadow-[0_0_60px_rgba(99,102,241,0.3)] flex flex-col ring-2 ring-indigo-500/20">
             <div className="flex-1 flex flex-col p-1 overflow-y-auto custom-scrollbar">
               {/* Infraestructura Fija Superior */}
               <div style={{ height: `${PIXELS_PER_U}px` }} className="w-full bg-black/60 border-b border-white/5 flex items-center justify-center shrink-0">
@@ -587,24 +593,24 @@ export default function App() {
                 {res.rackItems.map((eq) => {
                   const backgroundColor = eq.tipoPasivo === 'Ventilacion' ? '#ea580c' :
                                          eq.tipoPasivo === 'Escobilla' || eq.tipoPasivo === 'Ciego' ? '#1e293b' :
-                                         eq.categoria === 'Redes' ? '#16a34a' : 
+                                         eq.categoria === 'Redes' ? '#475569' : 
                                          eq.categoria === 'Audio' ? '#2563eb' :
                                          eq.categoria === 'Video' ? '#9333ea' :
                                          eq.categoria === 'Control' ? '#4f46e5' :
                                          eq.categoria === 'Cinema' ? '#be123c' :
                                          eq.categoria === 'Energía' ? '#ea580c' :
-                                         eq.categoria === 'Otros' ? '#475569' : '#1e293b';
+                                         eq.categoria === 'Otros' ? '#16a34a' : '#1e293b';
                   
                   return (
                   <div key={eq.instanceId} 
                        className={`w-full ${
-                         eq.tipoPasivo === 'Ventilacion' ? 'border-b-2 border-orange-400/50' : 
+                         eq.tipoPasivo === 'Ventilacion' ? 'bg-orange-600/80 border-b-2 border-orange-400/50' : 
                          eq.tipoPasivo === 'Escobilla' || eq.tipoPasivo === 'Ciego' ? 'border-dashed border-white/10' : 
                          ''
                        } rounded-sm border-b border-black/40 flex items-center justify-center relative group transition-all`} 
                        style={{ 
                          height: `${eq.uOcupadas * PIXELS_PER_U}px`,
-                         backgroundColor: backgroundColor
+                         backgroundColor: eq.tipoPasivo === 'Ventilacion' ? undefined : backgroundColor
                        }}>
                     {eq.tipoPasivo === 'Ventilacion' ? (
                       <div className="flex items-center gap-1">
@@ -641,12 +647,13 @@ export default function App() {
                     )}
                     <div className="w-full bg-slate-800 rounded-sm border-b-4 border-black/60 flex shadow-inner relative" style={{ height: `${(bloque.uTotal - (bloque.tieneTapa ? 1 : 0) - (bloque.tieneVentilacionArriba ? 1 : 0)) * PIXELS_PER_U}px` }}>
                       {bloque.equipos.map((e) => {
-                        const bgColor = e.categoria === 'Redes' ? '#16a34a' : 
+                        const bgColor = e.categoria === 'Redes' ? '#475569' : 
                                        e.categoria === 'Audio' ? '#2563eb' :
                                        e.categoria === 'Video' ? '#9333ea' :
                                        e.categoria === 'Control' ? '#4f46e5' :
                                        e.categoria === 'Cinema' ? '#be123c' :
-                                       e.categoria === 'Energía' ? '#ea580c' : '#475569';
+                                       e.categoria === 'Energía' ? '#ea580c' : 
+                                       e.categoria === 'Otros' ? '#16a34a' : '#475569';
                         return (
                           <div key={e.instanceId} 
                                className="h-[90%] flex flex-col items-center justify-center m-1.5 text-center rounded shadow-xl flex-1 border-t-2 border-black/40 overflow-hidden relative group/item"
@@ -748,7 +755,23 @@ export default function App() {
         </aside>
       </main>
 
-      <style dangerouslySetInnerHTML={{ __html: `.custom-scrollbar::-webkit-scrollbar { width: 4px; } .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.05); border-radius: 10px; }`}} />
+      <style dangerouslySetInnerHTML={{ __html: `
+        .custom-scrollbar::-webkit-scrollbar { 
+          width: 8px; 
+        } 
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(0,0,0,0.3);
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb { 
+          background: rgba(99,102,241,0.5);
+          border-radius: 10px;
+          border: 2px solid rgba(0,0,0,0.3);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(99,102,241,0.7);
+        }
+      `}} />
     </div>
   )
 }
