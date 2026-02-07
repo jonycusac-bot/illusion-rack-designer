@@ -457,7 +457,7 @@ export default function App() {
 
   const getCategoryTheme = (cat) => {
     switch(cat) {
-      case 'Redes': return { color: 'text-cyan-500', rackColor: 'bg-cyan-700' };
+      case 'Redes': return { color: 'text-green-500', rackColor: 'bg-green-500' };
       case 'Audio': return { color: 'text-blue-500', rackColor: 'bg-blue-600' };
       case 'Video': return { color: 'text-purple-500', rackColor: 'bg-purple-600' };
       case 'Control': return { color: 'text-indigo-500', rackColor: 'bg-indigo-600' };
