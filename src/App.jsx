@@ -106,7 +106,7 @@ export default function App() {
   };
 
   const UNIDAD_RACK_MM = 44.45;
-  const PIXELS_PER_U = 40; 
+  const PIXELS_PER_U = 50; 
   const RACKS_COMERCIALES = [4, 6, 9, 12, 15, 18, 22, 27, 32, 37, 42, 47];
 
   const agregarItem = (item) => {
@@ -577,8 +577,8 @@ export default function App() {
           </div>
         </aside>
 
-        <section className="flex-1 bg-black relative flex items-center justify-center p-6 overflow-hidden">
-          <div className="absolute top-6 left-8 z-10">
+        <section className="flex-1 bg-black relative flex items-center justify-center p-4 overflow-hidden">
+          <div className="absolute top-4 left-6 z-10">
             <div className="bg-gradient-to-r from-indigo-600/20 to-transparent p-4 rounded-lg backdrop-blur-sm border border-indigo-500/30">
               <h2 className="text-[5rem] font-black leading-none text-white drop-shadow-[0_0_20px_rgba(99,102,241,0.5)]">
                 {res.rackRecomendado}<span className="text-2xl text-indigo-400 ml-2 animate-pulse">U</span>
@@ -589,7 +589,7 @@ export default function App() {
             </div>
           </div>
 
-          <div className="relative w-[1100px] h-full bg-gradient-to-b from-[#0a0a0a] to-[#1a1a1a] border-x-[24px] border-slate-700 rounded-lg shadow-[0_0_60px_rgba(99,102,241,0.3)] flex flex-col ring-2 ring-indigo-500/20">
+          <div className="relative w-full max-w-[1400px] h-full bg-gradient-to-b from-[#0a0a0a] to-[#1a1a1a] border-x-[24px] border-slate-700 rounded-lg shadow-[0_0_60px_rgba(99,102,241,0.3)] flex flex-col ring-2 ring-indigo-500/20">
             <div className="flex-1 flex flex-col p-1 overflow-y-auto custom-scrollbar">
               {/* Infraestructura Fija Superior */}
               <div style={{ height: `${PIXELS_PER_U}px` }} className="w-full bg-black/60 border-b border-white/5 flex items-center justify-center shrink-0">
@@ -628,16 +628,16 @@ export default function App() {
                          backgroundColor: (eq.tipoPasivo === 'Ventilacion' || eq.esRejillaVentilacion) ? undefined : backgroundColor
                        }}>
                     {eq.tipoPasivo === 'Ventilacion' || eq.esRejillaVentilacion ? (
-                      <div className="flex items-center gap-1">
-                        <Fan size={12} className="text-orange-200" />
-                        <span className="text-[8px] font-bold text-white uppercase tracking-widest">{eq.nombre}</span>
+                      <div className="flex items-center gap-2">
+                        <Fan size={14} className="text-orange-200" />
+                        <span className="text-[10px] font-bold text-white uppercase tracking-widest">{eq.nombre}</span>
                       </div>
                     ) : eq.tipoPasivo === 'Escobilla' || eq.tipoPasivo === 'Ciego' ? (
-                      <span className="text-[8px] font-bold text-slate-600 uppercase tracking-widest">{eq.nombre}</span>
+                      <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">{eq.nombre}</span>
                     ) : (
                       <div className="flex flex-col items-center">
-                        <span className="font-black uppercase tracking-tight px-4 truncate text-[12px] text-white">{eq.nombre}</span>
-                        <span className="text-[8px] font-bold opacity-50 uppercase tracking-widest">{eq.categoria}</span>
+                        <span className="font-black uppercase tracking-tight px-4 truncate text-[14px] text-white">{eq.nombre}</span>
+                        <span className="text-[10px] font-bold opacity-50 uppercase tracking-widest">{eq.categoria}</span>
                       </div>
                     )}
                     {eq.categoria !== 'Pasivo' && (
@@ -653,9 +653,9 @@ export default function App() {
                   <div key={`bloque-${i}`} className="mb-1 flex flex-col">
                     {/* Rejilla de ventilación POR ARRIBA para dos Sonos Amp */}
                     {bloque.tieneVentilacionArriba && (
-                      <div style={{ height: `${PIXELS_PER_U}px` }} className="w-full bg-orange-600/80 border-b-2 border-orange-400/50 flex items-center justify-center text-[8px] font-bold text-white uppercase tracking-widest mb-1">
-                        <div className="flex items-center gap-1">
-                          <Fan size={12} className="text-orange-200" />
+                      <div style={{ height: `${PIXELS_PER_U}px` }} className="w-full bg-orange-600/80 border-b-2 border-orange-400/50 flex items-center justify-center text-[10px] font-bold text-white uppercase tracking-widest mb-1">
+                        <div className="flex items-center gap-2">
+                          <Fan size={14} className="text-orange-200" />
                           <span>Rejilla de Ventilación (2x Sonos Amp)</span>
                         </div>
                       </div>
@@ -673,14 +673,14 @@ export default function App() {
                           <div key={e.instanceId} 
                                className="h-[90%] flex flex-col items-center justify-center m-1.5 text-center rounded shadow-xl flex-1 border-t-2 border-black/40 overflow-hidden relative group/item"
                                style={{ backgroundColor: bgColor }}>
-                            <span className="font-black uppercase text-white text-[8px] px-2 leading-tight">{e.nombre}</span>
+                            <span className="font-black uppercase text-white text-[10px] px-2 leading-tight">{e.nombre}</span>
                             <button onClick={() => eliminarItem(e.instanceId)} className="absolute inset-0 bg-red-600/90 text-white flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity"><Trash2 size={14} /></button>
                           </div>
                         );
                       })}
                     </div>
                     {bloque.tieneTapa && (
-                      <div style={{ height: `${PIXELS_PER_U}px` }} className="w-full bg-black/80 border-b-2 border-white/5 flex items-center justify-center text-[7px] font-bold text-slate-600 uppercase tracking-widest">Tapa Ciega Balda</div>
+                      <div style={{ height: `${PIXELS_PER_U}px` }} className="w-full bg-black/80 border-b-2 border-white/5 flex items-center justify-center text-[9px] font-bold text-slate-600 uppercase tracking-widest">Tapa Ciega Balda</div>
                     )}
                   </div>
                 ))}
