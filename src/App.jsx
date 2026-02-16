@@ -575,20 +575,19 @@ export default function App() {
               </div>
             ))}
           </div>
+          
+          {/* Rack Recomendado - Movido aquí */}
+          <div className="mt-6 bg-gradient-to-r from-indigo-600/20 to-transparent p-4 rounded-lg backdrop-blur-sm border border-indigo-500/30">
+            <h2 className="text-[3rem] font-black leading-none text-white drop-shadow-[0_0_20px_rgba(99,102,241,0.5)]">
+              {res.rackRecomendado}<span className="text-xl text-indigo-400 ml-2 animate-pulse">U</span>
+            </h2>
+            <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mt-2 border-l-4 border-indigo-500 pl-3 italic drop-shadow-lg">
+              Rack Illusion Recomendado
+            </p>
+          </div>
         </aside>
 
         <section className="flex-1 bg-black relative flex items-center justify-center p-4 overflow-hidden">
-          <div className="absolute top-4 left-6 z-10">
-            <div className="bg-gradient-to-r from-indigo-600/20 to-transparent p-4 rounded-lg backdrop-blur-sm border border-indigo-500/30">
-              <h2 className="text-[5rem] font-black leading-none text-white drop-shadow-[0_0_20px_rgba(99,102,241,0.5)]">
-                {res.rackRecomendado}<span className="text-2xl text-indigo-400 ml-2 animate-pulse">U</span>
-              </h2>
-              <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mt-2 border-l-4 border-indigo-500 pl-3 italic drop-shadow-lg">
-                Rack Illusion Recomendado
-              </p>
-            </div>
-          </div>
-
           <div className="relative w-full max-w-[1400px] h-full bg-gradient-to-b from-[#0a0a0a] to-[#1a1a1a] border-x-[24px] border-slate-700 rounded-lg shadow-[0_0_60px_rgba(99,102,241,0.3)] flex flex-col ring-2 ring-indigo-500/20">
             <div className="flex-1 flex flex-col p-1 overflow-y-auto custom-scrollbar">
               {/* Infraestructura Fija Superior */}
