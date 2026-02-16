@@ -64,6 +64,11 @@ export default function App() {
     { id: 'equipo-2u', nombre: 'Equipo 2U', altura: 88, esRackable: true, categoria: 'Otros', consumo: 100, fondo: 350 },
     { id: 'equipo-3u', nombre: 'Equipo 3U', altura: 133, esRackable: true, categoria: 'Otros', consumo: 150, fondo: 400, uOcupadas: 3 },
     { id: 'equipo-4u', nombre: 'Equipo 4U', altura: 177, esRackable: true, categoria: 'Otros', consumo: 200, fondo: 450, uOcupadas: 4 },
+
+    // --- ACCESORIOS ---
+    { id: 'placa-ciega-1u', nombre: 'Placa Ciega 1U', altura: 44, esRackable: true, categoria: 'Accesorios', consumo: 0, fondo: 0, esAccesorio: true },
+    { id: 'placa-ciega-2u', nombre: 'Placa Ciega 2U', altura: 88, esRackable: true, categoria: 'Accesorios', consumo: 0, fondo: 0, uOcupadas: 2, esAccesorio: true },
+    { id: 'rejilla-ventilacion-1u', nombre: 'Rejilla de Ventilación 1U', altura: 44, esRackable: true, categoria: 'Accesorios', consumo: 0, fondo: 0, esAccesorio: true, esRejillaVentilacion: true },
   ];
 
   const [equipos, setEquipos] = useState([]);
@@ -254,7 +259,7 @@ export default function App() {
 • Ventiladores superiores: x${res.rackRecomendado < 24 ? 1 : 2}
   └─ Según altura del rack
 • Rejillas de ventilación: x2 (superior e inferior)
-• Bandejas ventilación Sonos Amp: x${res.bandejasSonosAmp || 0}
+• Rejillas ventilación automáticas: x${res.bandejasSonosAmp || 0}
   └─ Automáticas cuando hay 2 Sonos Amp en misma balda
 
 ═══════════════════════════════════════════════════════════════════════════════════════
@@ -281,7 +286,7 @@ export default function App() {
 
     if (res.bandejasSonosAmp > 0) {
       contenido += `
-│ Bandejas ventilación Sonos Amp      │    x${res.bandejasSonosAmp}    │`;
+│ Rejillas ventilación automáticas    │    x${res.bandejasSonosAmp}    │`;
     }
 
     contenido += `
@@ -331,13 +336,16 @@ export default function App() {
 
     // Lógica para rackables
     rackablesRaw.forEach(eq => {
-      pasacablesTraseros++; 
+      // Los accesorios NO suman pasacables traseros
+      if (eq.categoria !== 'Accesorios') {
+        pasacablesTraseros++; 
+      }
       
       if (eq.categoria === 'Cinema') {
         numTapasAutomaticas++;
         rackItems.push({ 
           instanceId: `ventilacion-cin-${eq.instanceId}`, 
-          nombre: `Bandeja Ventilación (Cinema)`, 
+          nombre: `Rejilla de Ventilación (Cinema)`, 
           categoria: 'Pasivo', 
           uOcupadas: 1, 
           tipoPasivo: 'Ventilacion' 
@@ -373,7 +381,7 @@ export default function App() {
           const pareja = itemsPendientes.splice(indexPareja, 1)[0];
           const tieneTapa = actual.requiereTapaCiega || pareja.requiereTapaCiega;
           
-          // NUEVA REGLA: Si hay dos Sonos Amp, añadir bandeja de ventilación POR ARRIBA
+          // NUEVA REGLA: Si hay dos Sonos Amp, añadir rejilla de ventilación POR ARRIBA
           const esSonosAmp = (eq) => eq.id === 'sonos-amp';
           const hayDosSonosAmp = esSonosAmp(actual) && esSonosAmp(pareja);
           
@@ -407,7 +415,7 @@ export default function App() {
       });
     }
 
-    const infraestructuraSuperiorU = 3; 
+    const infraestructuraSuperiorU = 2; 
     const uDeEquiposTotal = rackItems.reduce((acc, item) => acc + item.uOcupadas, 0) + bloquesBaldas.reduce((acc, b) => acc + b.uTotal, 0);
     
     // Regletas: 1 cada 6 equipos totales
@@ -422,8 +430,16 @@ export default function App() {
     // Calcular bandejas de ventilación para Sonos Amp
     const bandejasSonosAmp = bloquesBaldas.filter(bloque => bloque.tieneVentilacionArriba).length;
     
-    // Calcular total de bandejas de ventilación (Cinema + Sonos Amp)
-    const totalBandejasVentilacion = numTapasAutomaticas + bandejasSonosAmp;
+    // Calcular rejillas de ventilación manuales de accesorios
+    const rejillasVentilacionManuales = equipos.filter(e => e.id === 'rejilla-ventilacion-1u').length;
+    
+    // Calcular total de rejillas de ventilación (Cinema + Sonos Amp + Manuales)
+    const totalBandejasVentilacion = numTapasAutomaticas + bandejasSonosAmp + rejillasVentilacionManuales;
+    
+    // Calcular placas ciegas de accesorios (1U y 2U)
+    const placasCiegasAccesorios = equipos.filter(e => 
+      e.id === 'placa-ciega-1u' || e.id === 'placa-ciega-2u'
+    ).length;
 
     return {
       rackItems,
@@ -434,7 +450,7 @@ export default function App() {
       numTornillos: equipos.length * 4,
       consumoTotal: equipos.reduce((sum, eq) => sum + (eq.consumo || 0), 0),
       numEscobillas,
-      numPlacasCiegas: 1 + numTapasBalda + numTapasAutomaticas,
+      numPlacasCiegas: 1 + numTapasBalda + numTapasAutomaticas + placasCiegasAccesorios,
       pasacablesTraseros,
       numVentiladores,
       bandejasSonosAmp,
@@ -451,6 +467,7 @@ export default function App() {
       case 'Cinema': return <Film size={12} className="text-rose-500" />;
       case 'Energía': return <Battery size={12} className="text-orange-500" />;
       case 'Otros': return <Package size={12} className="text-slate-400" />;
+      case 'Accesorios': return <LayoutList size={12} className="text-cyan-500" />;
       default: return <Server size={12} className="text-slate-400" />;
     }
   };
@@ -572,7 +589,7 @@ export default function App() {
             </div>
           </div>
 
-          <div className="relative w-[600px] h-full bg-gradient-to-b from-[#0a0a0a] to-[#1a1a1a] border-x-[24px] border-slate-700 rounded-lg shadow-[0_0_60px_rgba(99,102,241,0.3)] flex flex-col ring-2 ring-indigo-500/20">
+          <div className="relative w-[700px] h-full bg-gradient-to-b from-[#0a0a0a] to-[#1a1a1a] border-x-[24px] border-slate-700 rounded-lg shadow-[0_0_60px_rgba(99,102,241,0.3)] flex flex-col ring-2 ring-indigo-500/20">
             <div className="flex-1 flex flex-col p-1 overflow-y-auto custom-scrollbar">
               {/* Infraestructura Fija Superior */}
               <div style={{ height: `${PIXELS_PER_U}px` }} className="w-full bg-black/60 border-b border-white/5 flex items-center justify-center shrink-0">
@@ -584,14 +601,11 @@ export default function App() {
                   <span className="text-[9px] font-black text-white uppercase tracking-[0.3em]">Termostato</span>
                 </div>
               </div>
-              <div style={{ height: `${PIXELS_PER_U}px` }} className="w-full bg-[#111] border-b-2 border-black/80 flex items-center justify-center shrink-0 italic">
-                <span className="text-[8px] font-bold text-slate-700 uppercase tracking-[0.4em]">Separador Técnico</span>
-              </div>
 
               {/* Listado dinámico de equipos */}
               <div className="flex-1 mt-1 space-y-1">
                 {res.rackItems.map((eq) => {
-                  const backgroundColor = eq.tipoPasivo === 'Ventilacion' ? '#ea580c' :
+                  const backgroundColor = eq.tipoPasivo === 'Ventilacion' || eq.esRejillaVentilacion ? '#ea580c' :
                                          eq.tipoPasivo === 'Escobilla' || eq.tipoPasivo === 'Ciego' ? '#1e293b' :
                                          eq.categoria === 'Redes' ? '#475569' : 
                                          eq.categoria === 'Audio' ? '#2563eb' :
@@ -599,20 +613,21 @@ export default function App() {
                                          eq.categoria === 'Control' ? '#4f46e5' :
                                          eq.categoria === 'Cinema' ? '#be123c' :
                                          eq.categoria === 'Energía' ? '#ea580c' :
-                                         eq.categoria === 'Otros' ? '#16a34a' : '#1e293b';
+                                         eq.categoria === 'Otros' ? '#16a34a' :
+                                         eq.categoria === 'Accesorios' ? '#0891b2' : '#1e293b';
                   
                   return (
                   <div key={eq.instanceId} 
                        className={`w-full ${
-                         eq.tipoPasivo === 'Ventilacion' ? 'bg-orange-600/80 border-b-2 border-orange-400/50' : 
+                         eq.tipoPasivo === 'Ventilacion' || eq.esRejillaVentilacion ? 'bg-orange-600/80 border-b-2 border-orange-400/50' : 
                          eq.tipoPasivo === 'Escobilla' || eq.tipoPasivo === 'Ciego' ? 'border-dashed border-white/10' : 
                          ''
                        } rounded-sm border-b border-black/40 flex items-center justify-center relative group transition-all`} 
                        style={{ 
                          height: `${eq.uOcupadas * PIXELS_PER_U}px`,
-                         backgroundColor: eq.tipoPasivo === 'Ventilacion' ? undefined : backgroundColor
+                         backgroundColor: (eq.tipoPasivo === 'Ventilacion' || eq.esRejillaVentilacion) ? undefined : backgroundColor
                        }}>
-                    {eq.tipoPasivo === 'Ventilacion' ? (
+                    {eq.tipoPasivo === 'Ventilacion' || eq.esRejillaVentilacion ? (
                       <div className="flex items-center gap-1">
                         <Fan size={10} className="text-orange-200" />
                         <span className="text-[7px] font-bold text-white uppercase tracking-widest">{eq.nombre}</span>
@@ -636,12 +651,12 @@ export default function App() {
 
                 {res.bloquesBaldas.map((bloque, i) => (
                   <div key={`bloque-${i}`} className="mb-1 flex flex-col">
-                    {/* Bandeja de ventilación POR ARRIBA para dos Sonos Amp */}
+                    {/* Rejilla de ventilación POR ARRIBA para dos Sonos Amp */}
                     {bloque.tieneVentilacionArriba && (
                       <div style={{ height: `${PIXELS_PER_U}px` }} className="w-full bg-orange-600/80 border-b-2 border-orange-400/50 flex items-center justify-center text-[7px] font-bold text-white uppercase tracking-widest mb-1">
                         <div className="flex items-center gap-1">
                           <Fan size={10} className="text-orange-200" />
-                          <span>Bandeja Ventilación (2x Sonos Amp)</span>
+                          <span>Rejilla de Ventilación (2x Sonos Amp)</span>
                         </div>
                       </div>
                     )}
@@ -720,7 +735,7 @@ export default function App() {
              <div className="flex justify-between p-3 bg-orange-500/10 rounded-xl border border-orange-500/20">
                 <div className="flex items-center gap-2">
                    <Fan size={14} className="text-orange-400" />
-                   <span className="text-orange-400 font-black uppercase text-[9px]">Bandejas Ventilación</span>
+                   <span className="text-orange-400 font-black uppercase text-[9px]">Rejillas Ventilación</span>
                 </div>
                 <span className="font-black text-white">x{res.totalBandejasVentilacion}</span>
              </div>

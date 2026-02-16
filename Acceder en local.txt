@@ -22,7 +22,12 @@ La palabra gabinete la eliminamos y la substituimos por rack
 
 Los equipos dentro de la seccion o pestaña Audio simpre saldran en azul en el esquema de tiempo real del rack.- 
 
-Los equipos dentro de la seccion Redes saldran siempre en Azul
+Los equipos dentro de la seccion Redes saldran con el fondo gris en el diseño del rack en tiempo real.
+
+Quiero poder ver mi pagina en github , añade lo necesario para ello o dime consejos si no se ve
+
+
+
 
 
 
