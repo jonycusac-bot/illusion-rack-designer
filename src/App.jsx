@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { 
   Plus, Trash2, RotateCcw, 
   ChevronDown, LayoutList, 
@@ -41,7 +41,7 @@ export default function App() {
     
     // --- AUDIO ---
     { id: 'beocore', nombre: 'BeoCore (B&O)', altura: 44, esRackable: false, categoria: 'Audio', consumo: 50, fondo: 310, ancho: 'media', requiereTapaCiega: true },
-    { id: 'sonance-dsp', nombre: 'Sonance DSP 8-125', altura: 88, esRackable: true, categoria: 'Audio', consumo: 600, fondo: 425 },
+    { id: 'sonance-dsp', nombre: 'Sonance DSP 8-125', altura: 44, esRackable: true, categoria: 'Audio', consumo: 600, fondo: 425, requiereEscobilla: true },
     { id: 'beoamp2', nombre: 'B&O Beoamp2', altura: 44, esRackable: true, categoria: 'Audio', consumo: 300, fondo: 250 },
     { id: 'sonos-port', nombre: 'Sonos Port', altura: 44, esRackable: false, categoria: 'Audio', consumo: 10, ancho: 'media', requiereTapaCiega: true, fondo: 150 },
     { id: 'sonos-amp', nombre: 'Sonos Amp', altura: 88, esRackable: false, categoria: 'Audio', consumo: 125, ancho: 'media', requiereTapaCiega: true, fondo: 220 },
@@ -50,6 +50,7 @@ export default function App() {
     // --- VIDEO ---
     { id: 'apple-tv', nombre: 'Apple TV 4K', altura: 35, esRackable: false, categoria: 'Video', consumo: 6, requiereTapaCiega: true, ancho: 'media', fondo: 93 },
     { id: 'kaleidescape', nombre: 'Kaleidescape Strato', altura: 44, esRackable: true, categoria: 'Video', consumo: 30, fondo: 250 },
+    { id: 'receptor-sat', nombre: 'Receptor Sat', altura: 44, esRackable: false, categoria: 'Video', consumo: 15, ancho: 'media', requiereTapaCiega: true, fondo: 150 },
     
     // --- CINEMA ---
     { id: 'marantz-av', nombre: 'Marantz AV Processor', altura: 177, esRackable: true, categoria: 'Cinema', consumo: 100, fondo: 411, uOcupadas: 4 },
@@ -68,12 +69,17 @@ export default function App() {
     // --- ACCESORIOS ---
     { id: 'placa-ciega-1u', nombre: 'Placa Ciega 1U', altura: 44, esRackable: true, categoria: 'Accesorios', consumo: 0, fondo: 0, esAccesorio: true },
     { id: 'placa-ciega-2u', nombre: 'Placa Ciega 2U', altura: 88, esRackable: true, categoria: 'Accesorios', consumo: 0, fondo: 0, uOcupadas: 2, esAccesorio: true },
-    { id: 'rejilla-ventilacion-1u', nombre: 'Rejilla de Ventilación 1U', altura: 44, esRackable: true, categoria: 'Accesorios', consumo: 0, fondo: 0, esAccesorio: true, esRejillaVentilacion: true },
+    { id: 'escobilla-acc', nombre: 'Escobilla', altura: 44, esRackable: true, categoria: 'Accesorios', consumo: 0, fondo: 0, esAccesorio: true, esEscobillaMaual: true },
   ];
 
   const [equipos, setEquipos] = useState([]);
   const [categoriasAbiertas, setCategoriasAbiertas] = useState([]);
   const [timerAutoReplegado, setTimerAutoReplegado] = useState(null);
+
+  // Drag & drop state
+  const dragIndexRef = useRef(null);
+  const [dragOverIndex, setDragOverIndex] = useState(null);
+  const [draggingIndex, setDraggingIndex] = useState(null);
 
   // Auto-replegado de pestañas después de 10 segundos
   useEffect(() => {
@@ -142,6 +148,48 @@ export default function App() {
 
   const eliminarItem = (id) => {
     setEquipos(prev => prev.filter(e => e.instanceId !== id));
+  };
+
+  // Drag & drop handlers para reordenar equipos en el rack
+  const handleDragStart = (e, index) => {
+    dragIndexRef.current = index;
+    setDraggingIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragEnd = (e) => {
+    dragIndexRef.current = null;
+    setDraggingIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragIndexRef.current !== null && dragIndexRef.current !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = (e, dropIndex) => {
+    e.preventDefault();
+    const fromIndex = dragIndexRef.current;
+    if (fromIndex === null || fromIndex === dropIndex) {
+      setDragOverIndex(null);
+      return;
+    }
+    setEquipos(prev => {
+      const updated = [...prev];
+      const [moved] = updated.splice(fromIndex, 1);
+      updated.splice(dropIndex, 0, moved);
+      return updated;
+    });
+    dragIndexRef.current = null;
+    setDragOverIndex(null);
   };
 
   // Funciones para guardar y cargar proyectos
@@ -326,97 +374,111 @@ export default function App() {
   };
 
   const res = useMemo(() => {
-    const rackablesRaw = equipos.filter(e => e.esRackable);
-    const noRackables = equipos.filter(e => !e.esRackable);
-
     let numEscobillas = 0;
     let numTapasAutomaticas = 0;
+    let numTapasBalda = 0;
     let pasacablesTraseros = 0;
     const rackItems = [];
+    const bloquesBaldas = [];
 
-    // Lógica para rackables
-    rackablesRaw.forEach(eq => {
-      // Los accesorios NO suman pasacables traseros
-      if (eq.categoria !== 'Accesorios') {
-        pasacablesTraseros++; 
+    // Procesamos equipos EN ORDEN DE INSERCIÓN
+    // Los no-rackables de ancho 'media' se van acumulando hasta tener pareja
+    const pendientesMedia = [];
+
+    const procesarNoRackable = (eq) => {
+      pasacablesTraseros++;
+      if (eq.ancho === 'media') {
+        const indexPareja = pendientesMedia.findIndex(e => e.ancho === 'media');
+        if (indexPareja !== -1) {
+          // Tenemos pareja: formamos bloque
+          const pareja = pendientesMedia.splice(indexPareja, 1)[0];
+          const tieneTapa = eq.requiereTapaCiega || pareja.requiereTapaCiega;
+          const esSonosAmp = (e) => e.id === 'sonos-amp';
+          const hayDosSonosAmp = esSonosAmp(eq) && esSonosAmp(pareja);
+          const tapaCiegaFinal = hayDosSonosAmp ? false : tieneTapa;
+          if (tapaCiegaFinal) numTapasBalda++;
+          if (hayDosSonosAmp) numTapasBalda++;
+          const bloque = {
+            equipos: [pareja, eq],
+            uTotal: Math.max(eq.uOcupadas, pareja.uOcupadas) + (tapaCiegaFinal ? 1 : 0) + (hayDosSonosAmp ? 1 : 0),
+            tieneTapa: false,
+            tieneTapaArriba: tapaCiegaFinal,
+            tieneVentilacionArriba: hayDosSonosAmp
+          };
+          bloquesBaldas.push(bloque);
+          rackItems.push({ __esBloque: true, bloque });
+        } else {
+          // Sin pareja aún: lo dejamos pendiente
+          pendientesMedia.push(eq);
+        }
+      } else {
+        // Ancho completo: balda individual inmediata
+        const tieneTapa = eq.requiereTapaCiega;
+        if (tieneTapa) numTapasBalda++;
+        const bloque = {
+          equipos: [eq],
+          uTotal: eq.uOcupadas + (tieneTapa ? 1 : 0),
+          tieneTapa: false,
+          tieneTapaArriba: tieneTapa,
+          tieneVentilacionArriba: false
+        };
+        bloquesBaldas.push(bloque);
+        rackItems.push({ __esBloque: true, bloque });
       }
-      
-      if (eq.categoria === 'Cinema') {
-        numTapasAutomaticas++;
-        rackItems.push({ 
-          instanceId: `ventilacion-cin-${eq.instanceId}`, 
-          nombre: `Rejilla de Ventilación (Cinema)`, 
-          categoria: 'Pasivo', 
-          uOcupadas: 1, 
-          tipoPasivo: 'Ventilacion' 
-        });
-      }
+    };
 
-      rackItems.push(eq);
-
-      if (eq.requiereEscobilla) {
-        numEscobillas++;
-        rackItems.push({ 
-          instanceId: `esc-${eq.instanceId}`, 
-          nombre: `Paso de cables (Escobilla)`, 
-          categoria: 'Pasivo', 
-          uOcupadas: 1, 
-          tipoPasivo: 'Escobilla' 
-        });
+    equipos.forEach(eq => {
+      if (eq.esRackable) {
+        // Rackable: va directo al rack
+        if (eq.categoria !== 'Accesorios') pasacablesTraseros++;
+        if (eq.categoria === 'Cinema') {
+          numTapasAutomaticas++;
+          rackItems.push({
+            instanceId: `ventilacion-cin-${eq.instanceId}`,
+            nombre: `Rejilla de Ventilación (Cinema)`,
+            categoria: 'Pasivo',
+            uOcupadas: 1,
+            tipoPasivo: 'Ventilacion'
+          });
+        }
+        if (eq.requiereEscobilla) {
+          const esRedes = eq.categoria === 'Redes';
+          if (esRedes) numEscobillas++;
+          rackItems.push({
+            instanceId: `esc-${eq.instanceId}`,
+            nombre: `Escobilla Pasacables`,
+            categoria: 'Pasivo',
+            uOcupadas: 1,
+            tipoPasivo: 'Escobilla',
+            esEscobilla: esRedes
+          });
+        }
+        rackItems.push(eq);
+      } else {
+        procesarNoRackable(eq);
       }
     });
 
-    // Lógica para no rackables (Baldas)
-    let numTapasBalda = 0;
-    const bloquesBaldas = [];
-    let itemsPendientes = [...noRackables];
-    
-    while (itemsPendientes.length > 0) {
-      pasacablesTraseros++;
-      const actual = itemsPendientes.shift();
-      
-      if (actual.ancho === 'media') {
-        const indexPareja = itemsPendientes.findIndex(e => e.ancho === 'media');
-        if (indexPareja !== -1) {
-          const pareja = itemsPendientes.splice(indexPareja, 1)[0];
-          const tieneTapa = actual.requiereTapaCiega || pareja.requiereTapaCiega;
-          
-          // NUEVA REGLA: Si hay dos Sonos Amp, añadir rejilla de ventilación POR ARRIBA
-          const esSonosAmp = (eq) => eq.id === 'sonos-amp';
-          const hayDosSonosAmp = esSonosAmp(actual) && esSonosAmp(pareja);
-          
-          // Si hay bandeja de ventilación, NO añadir tapa ciega (se sustituye)
-          const tapaCiegaFinal = hayDosSonosAmp ? false : tieneTapa;
-          if (tapaCiegaFinal) numTapasBalda++;
-          
-          const bloque = { 
-            equipos: [actual, pareja], 
-            uTotal: Math.max(actual.uOcupadas, pareja.uOcupadas) + (tapaCiegaFinal ? 1 : 0) + (hayDosSonosAmp ? 1 : 0),
-            tieneTapa: tapaCiegaFinal,
-            tieneVentilacionArriba: hayDosSonosAmp
-          };
-          
-          // NO contar tapa ciega adicional si ya hay ventilación
-          if (hayDosSonosAmp) {
-            numTapasBalda++; // Solo contar la bandeja de ventilación
-          }
-          
-          bloquesBaldas.push(bloque);
-          continue;
-        }
-      }
-      const tieneTapa = actual.requiereTapaCiega;
+    // Equipos 'media' que quedaron sin pareja: baldas individuales
+    pendientesMedia.forEach(eq => {
+      const tieneTapa = eq.requiereTapaCiega;
       if (tieneTapa) numTapasBalda++;
-      bloquesBaldas.push({ 
-        equipos: [actual], 
-        uTotal: actual.uOcupadas + (tieneTapa ? 1 : 0),
-        tieneTapa: tieneTapa,
+      const bloque = {
+        equipos: [eq],
+        uTotal: eq.uOcupadas + (tieneTapa ? 1 : 0),
+        tieneTapa: false,
+        tieneTapaArriba: tieneTapa,
         tieneVentilacionArriba: false
-      });
-    }
+      };
+      bloquesBaldas.push(bloque);
+      rackItems.push({ __esBloque: true, bloque });
+    });
 
-    const infraestructuraSuperiorU = 2; 
-    const uDeEquiposTotal = rackItems.reduce((acc, item) => acc + item.uOcupadas, 0) + bloquesBaldas.reduce((acc, b) => acc + b.uTotal, 0);
+    const infraestructuraSuperiorU = 1;
+    const uDeEquiposTotal = rackItems.reduce((acc, item) => {
+      if (item.__esBloque) return acc + item.bloque.uTotal;
+      return acc + (item.uOcupadas || 0);
+    }, 0);
     
     // Regletas: 1 cada 6 equipos totales
     const numEquiposTotal = equipos.length;
@@ -430,16 +492,25 @@ export default function App() {
     // Calcular bandejas de ventilación para Sonos Amp
     const bandejasSonosAmp = bloquesBaldas.filter(bloque => bloque.tieneVentilacionArriba).length;
     
-    // Calcular rejillas de ventilación manuales de accesorios
-    const rejillasVentilacionManuales = equipos.filter(e => e.id === 'rejilla-ventilacion-1u').length;
-    
-    // Calcular total de rejillas de ventilación (Cinema + Sonos Amp + Manuales)
-    const totalBandejasVentilacion = numTapasAutomaticas + bandejasSonosAmp + rejillasVentilacionManuales;
+    // Calcular escobillas manuales añadidas desde Accesorios
+    const escobillasAccesorios = equipos.filter(e => e.id === 'escobilla-acc').length;
+
+    // Calcular total de rejillas de ventilación (Cinema + Sonos Amp)
+    const totalBandejasVentilacion = numTapasAutomaticas + bandejasSonosAmp;
     
     // Calcular placas ciegas de accesorios (1U y 2U)
     const placasCiegasAccesorios = equipos.filter(e => 
       e.id === 'placa-ciega-1u' || e.id === 'placa-ciega-2u'
     ).length;
+
+    // Calcular baldas 1U (automáticas con Sonos Amp, Sonos Port, Crestron RMC4, Beoliving, BeoCore, Apple TV)
+    const esBaldaLigera = (eq) => ['sonos-amp', 'sonos-port', 'crestron-rmc4', 'beoliving', 'beocore', 'apple-tv', 'receptor-sat'].includes(eq.id);
+    const numBaldas1U = bloquesBaldas.filter(bloque =>
+      bloque.equipos.some(e => esBaldaLigera(e))
+    ).length;
+
+    // Calcular baldas reforzadas (1 por cada equipo de Cinema)
+    const numBaldasReforzadas = equipos.filter(e => e.categoria === 'Cinema').length;
 
     return {
       rackItems,
@@ -449,12 +520,14 @@ export default function App() {
       totalUNecesariasFrontales,
       numTornillos: equipos.length * 4,
       consumoTotal: equipos.reduce((sum, eq) => sum + (eq.consumo || 0), 0),
-      numEscobillas,
-      numPlacasCiegas: 1 + numTapasBalda + numTapasAutomaticas + placasCiegasAccesorios,
+      numEscobillas: numEscobillas + escobillasAccesorios,
+      numPlacasCiegas: numTapasBalda + numTapasAutomaticas + placasCiegasAccesorios,
       pasacablesTraseros,
       numVentiladores,
       bandejasSonosAmp,
-      totalBandejasVentilacion
+      totalBandejasVentilacion,
+      numBaldas1U,
+      numBaldasReforzadas
     };
   }, [equipos]);
 
@@ -543,7 +616,7 @@ export default function App() {
       </header>
 
       <main className="flex-1 flex overflow-hidden">
-        <aside className="w-72 bg-slate-900/20 border-r border-white/5 p-4 overflow-y-auto shrink-0 custom-scrollbar">
+        <aside className="w-[410px] bg-slate-900/20 border-r border-white/5 p-4 overflow-y-auto shrink-0 custom-scrollbar">
           <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-4">Librería Illusion</p>
           <div className="space-y-2">
             {[...new Set(CATALOGO_EQUIPOS.map(i => i.categoria))].map(cat => (
@@ -587,108 +660,157 @@ export default function App() {
           </div>
         </aside>
 
-        <section className="flex-1 bg-black relative flex items-center justify-center p-4 overflow-hidden">
-          <div className="relative w-full max-w-[1400px] h-full bg-gradient-to-b from-[#0a0a0a] to-[#1a1a1a] border-x-[24px] border-slate-700 rounded-lg shadow-[0_0_60px_rgba(99,102,241,0.3)] flex flex-col ring-2 ring-indigo-500/20">
+        <section className="max-w-[450px] flex-1 bg-black relative flex items-center justify-center p-4 overflow-hidden">
+          <div className="relative w-full max-w-[400px] h-full bg-gradient-to-b from-[#0a0a0a] to-[#1a1a1a] border-x-[24px] border-slate-700 rounded-lg shadow-[0_0_60px_rgba(99,102,241,0.3)] flex flex-col ring-2 ring-indigo-500/20">
             <div className="flex-1 flex flex-col p-1 overflow-y-auto custom-scrollbar">
               {/* Infraestructura Fija Superior */}
-              <div style={{ height: `${PIXELS_PER_U}px` }} className="w-full bg-black/60 border-b border-white/5 flex items-center justify-center shrink-0">
-                <div className="flex gap-1.5 opacity-20">{[...Array(14)].map((_, j) => <div key={j} className="w-1 h-3 bg-white rounded-full" />)}</div>
+              <div style={{ height: `${PIXELS_PER_U}px` }} className="w-full bg-black/60 border-b border-white/5 flex items-center justify-center gap-3 shrink-0">
+                <div className="flex gap-1 opacity-30">{[...Array(8)].map((_, j) => <div key={j} className="w-1 h-3 bg-white rounded-full" />)}</div>
+                <Fan size={15} className="text-white/50" />
+                <span className="text-[13px] font-black text-white/50 uppercase tracking-[0.25em]">Ventiladores</span>
+                <div className="flex gap-1 opacity-30">{[...Array(8)].map((_, j) => <div key={j} className="w-1 h-3 bg-white rounded-full" />)}</div>
               </div>
               <div style={{ height: `${PIXELS_PER_U}px` }} className="w-full bg-slate-800 border-b-2 border-black/80 flex items-center justify-center shrink-0 relative shadow-inner">
                 <div className="flex items-center gap-2">
                   <Thermometer size={12} className="text-orange-400" />
-                  <span className="text-[9px] font-black text-white uppercase tracking-[0.3em]">Termostato</span>
+                  <span className="text-[12px] font-black text-white uppercase tracking-[0.3em]">Termostato</span>
                 </div>
               </div>
 
-              {/* Listado dinámico de equipos */}
+                {/* Listado dinámico de equipos en orden de inserción */}
               <div className="flex-1 mt-1 space-y-1">
-                {res.rackItems.map((eq) => {
-                  const backgroundColor = eq.tipoPasivo === 'Ventilacion' || eq.esRejillaVentilacion ? '#ea580c' :
-                                         eq.tipoPasivo === 'Escobilla' || eq.tipoPasivo === 'Ciego' ? '#1e293b' :
-                                         eq.categoria === 'Redes' ? '#475569' : 
+                {res.rackItems.map((item, idx) => {
+
+                  // ── BLOQUE DE BALDA (no-rackable) ──────────────────────
+                  if (item.__esBloque) {
+                    const bloque = item.bloque;
+                    return (
+                      <div key={`bloque-${idx}`} className="flex flex-col">
+                        {bloque.tieneVentilacionArriba && (
+                          <div style={{ height: `${PIXELS_PER_U}px` }} className="w-full bg-black border-b-2 border-white/10 flex items-center justify-center text-[10px] font-bold text-white uppercase tracking-widest mb-1">
+                            PLACA CIEGA 1U
+                          </div>
+                        )}
+                        {bloque.tieneTapaArriba && (
+                          <div style={{ height: `${PIXELS_PER_U}px` }} className="w-full bg-black border-b-2 border-white/10 flex items-center justify-center text-[10px] font-bold text-white uppercase tracking-widest mb-1">
+                            PLACA CIEGA 1U
+                          </div>
+                        )}
+                        <div className="w-full bg-slate-800 rounded-sm border-b-4 border-black/60 flex shadow-inner relative"
+                             style={{ height: `${(bloque.uTotal - (bloque.tieneTapaArriba ? 1 : 0) - (bloque.tieneVentilacionArriba ? 1 : 0)) * PIXELS_PER_U}px` }}>
+                          {bloque.equipos.map((e) => {
+                            const equipoRealIndex = equipos.findIndex(eq => eq.instanceId === e.instanceId);
+                            const isDraggable = equipoRealIndex !== -1;
+                            const isDragOver = isDraggable && dragOverIndex === equipoRealIndex;
+                            const bgColor = e.categoria === 'Redes' ? '#475569' :
+                                           e.categoria === 'Audio' ? '#2563eb' :
+                                           e.categoria === 'Video' ? '#9333ea' :
+                                           e.categoria === 'Control' ? '#4f46e5' :
+                                           e.categoria === 'Cinema' ? '#be123c' :
+                                           e.categoria === 'Energía' ? '#ea580c' :
+                                           e.categoria === 'Otros' ? '#16a34a' : '#475569';
+                            return (
+                              <div key={e.instanceId}
+                                   draggable={isDraggable}
+                                   onDragStart={isDraggable ? (ev) => handleDragStart(ev, equipoRealIndex) : undefined}
+                                   onDragEnd={isDraggable ? handleDragEnd : undefined}
+                                   onDragOver={isDraggable ? (ev) => handleDragOver(ev, equipoRealIndex) : undefined}
+                                   onDragLeave={isDraggable ? handleDragLeave : undefined}
+                                   onDrop={isDraggable ? (ev) => handleDrop(ev, equipoRealIndex) : undefined}
+                                   className={`h-[90%] flex flex-row items-center m-1.5 rounded shadow-xl flex-1 border-t-2 border-black/40 overflow-hidden relative group/item${
+                                     isDraggable ? ' cursor-grab active:cursor-grabbing' : ''
+                                   }${isDragOver ? ' ring-2 ring-indigo-400 ring-inset brightness-125' : ''}`}
+                                   style={{
+                                     backgroundColor: bgColor,
+                                     opacity: isDraggable && draggingIndex === equipoRealIndex ? 0.35 : 1,
+                                   }}>
+                                {isDraggable && <div className="w-4 shrink-0" />}
+                                <span className="flex-1 font-black uppercase text-white text-[11px] px-1 leading-tight text-center">{e.nombre}</span>
+                                {isDraggable && (
+                                  <span className="w-4 shrink-0 text-center text-white/25 group-hover/item:text-white/60 transition-colors select-none text-[13px] leading-none pointer-events-none">⠿</span>
+                                )}
+                                <button onClick={() => eliminarItem(e.instanceId)} className="absolute inset-0 bg-red-600/90 text-white flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity"><Trash2 size={14} /></button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        {bloque.tieneTapa && (
+                          <div style={{ height: `${PIXELS_PER_U}px` }} className="w-full bg-black border-b-2 border-white/10 flex items-center justify-center text-[10px] font-bold text-white uppercase tracking-widest">PLACA CIEGA 1U</div>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  // ── EQUIPO RACKABLE ────────────────────────────────────
+                  const eq = item;
+                  const equipoRealIndex = eq.tipoPasivo ? null : equipos.findIndex(e => e.instanceId === eq.instanceId);
+                  const isDraggable = equipoRealIndex !== null && equipoRealIndex !== -1;
+                  const isDragOver = isDraggable && dragOverIndex === equipoRealIndex;
+                  const backgroundColor = eq.tipoPasivo === 'Ventilacion' || eq.esRejillaVentilacion ? '#000000' :
+                                         eq.tipoPasivo === 'Escobilla' || eq.tipoPasivo === 'Ciego' ? '#000000' :
+                                         eq.esAccesorio ? '#000000' :
+                                         eq.categoria === 'Redes' ? '#475569' :
                                          eq.categoria === 'Audio' ? '#2563eb' :
                                          eq.categoria === 'Video' ? '#9333ea' :
                                          eq.categoria === 'Control' ? '#4f46e5' :
                                          eq.categoria === 'Cinema' ? '#be123c' :
                                          eq.categoria === 'Energía' ? '#ea580c' :
                                          eq.categoria === 'Otros' ? '#16a34a' :
-                                         eq.categoria === 'Accesorios' ? '#0891b2' : '#1e293b';
-                  
+                                         eq.categoria === 'Accesorios' ? '#000000' : '#1e293b';
                   return (
-                  <div key={eq.instanceId} 
-                       className={`w-full ${
-                         eq.tipoPasivo === 'Ventilacion' || eq.esRejillaVentilacion ? 'bg-orange-600/80 border-b-2 border-orange-400/50' : 
-                         eq.tipoPasivo === 'Escobilla' || eq.tipoPasivo === 'Ciego' ? 'border-dashed border-white/10' : 
-                         ''
-                       } rounded-sm border-b border-black/40 flex items-center justify-center relative group transition-all`} 
-                       style={{ 
-                         height: `${eq.uOcupadas * PIXELS_PER_U}px`,
-                         backgroundColor: (eq.tipoPasivo === 'Ventilacion' || eq.esRejillaVentilacion) ? undefined : backgroundColor
-                       }}>
-                    {eq.tipoPasivo === 'Ventilacion' || eq.esRejillaVentilacion ? (
-                      <div className="flex items-center gap-2">
-                        <Fan size={14} className="text-orange-200" />
-                        <span className="text-[10px] font-bold text-white uppercase tracking-widest">{eq.nombre}</span>
+                    <div key={eq.instanceId}
+                         draggable={isDraggable}
+                         onDragStart={isDraggable ? (e) => handleDragStart(e, equipoRealIndex) : undefined}
+                         onDragEnd={isDraggable ? handleDragEnd : undefined}
+                         onDragOver={isDraggable ? (e) => handleDragOver(e, equipoRealIndex) : undefined}
+                         onDragLeave={isDraggable ? handleDragLeave : undefined}
+                         onDrop={isDraggable ? (e) => handleDrop(e, equipoRealIndex) : undefined}
+                         className={`w-full rounded-sm border-b border-black/40 flex items-center relative group transition-all${
+                           isDraggable ? ' cursor-grab active:cursor-grabbing' : ''
+                         }${isDragOver ? ' ring-2 ring-indigo-400 ring-inset brightness-125' : ''}`}
+                         style={{
+                           height: `${eq.uOcupadas * PIXELS_PER_U}px`,
+                           backgroundColor,
+                           opacity: isDraggable && draggingIndex === equipoRealIndex ? 0.35 : 1,
+                         }}>
+                      {isDraggable && <div className="w-8 shrink-0" />}
+                      <div className="flex-1 flex items-center justify-center overflow-hidden">
+                        {eq.tipoPasivo === 'Ventilacion' || eq.esRejillaVentilacion ? (
+                          <span className="text-[10px] font-bold text-white uppercase tracking-widest">PLACA CIEGA 1U</span>
+                        ) : eq.tipoPasivo === 'Escobilla' || eq.tipoPasivo === 'Ciego' ? (
+                          <span className="text-[10px] font-bold text-white uppercase tracking-widest">
+                            {eq.esEscobilla ? 'ESCOBILLA PASACABLES' : 'PLACA CIEGA 1U'}
+                          </span>
+                        ) : eq.categoria === 'Accesorios' ? (
+                          <span className="text-[10px] font-bold text-white uppercase tracking-widest">
+                            {eq.id === 'placa-ciega-2u' ? 'PLACA CIEGA 2U' : eq.id === 'escobilla-acc' ? 'ESCOBILLA PASACABLES' : 'PLACA CIEGA 1U'}
+                          </span>
+                        ) : (
+                          <div className="flex flex-col items-center">
+                            <span className="font-black uppercase tracking-tight px-4 truncate text-[14px] text-white">{eq.nombre}</span>
+                            <span className="text-[10px] font-bold opacity-50 uppercase tracking-widest">{eq.categoria}</span>
+                          </div>
+                        )}
                       </div>
-                    ) : eq.tipoPasivo === 'Escobilla' || eq.tipoPasivo === 'Ciego' ? (
-                      <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">{eq.nombre}</span>
-                    ) : (
-                      <div className="flex flex-col items-center">
-                        <span className="font-black uppercase tracking-tight px-4 truncate text-[14px] text-white">{eq.nombre}</span>
-                        <span className="text-[10px] font-bold opacity-50 uppercase tracking-widest">{eq.categoria}</span>
+                      <div className="w-8 shrink-0 flex items-center justify-center">
+                        {isDraggable && (
+                          <span className="text-white/25 group-hover:text-white/60 transition-colors select-none text-[16px] leading-none pointer-events-none">⠿</span>
+                        )}
                       </div>
-                    )}
-                    {eq.categoria !== 'Pasivo' && (
-                      <button onClick={() => eliminarItem(eq.instanceId)} className="absolute right-2 opacity-0 group-hover:opacity-100 p-2 text-white/50 hover:text-red-400 transition-all">
-                        <Trash2 size={12} />
-                      </button>
-                    )}
-                  </div>
+                      {eq.categoria !== 'Pasivo' && (
+                        <button onClick={() => eliminarItem(eq.instanceId)} className="absolute right-2 opacity-0 group-hover:opacity-100 p-2 text-white/50 hover:text-red-400 transition-all">
+                          <Trash2 size={12} />
+                        </button>
+                      )}
+                    </div>
                   );
                 })}
-
-                {res.bloquesBaldas.map((bloque, i) => (
-                  <div key={`bloque-${i}`} className="mb-1 flex flex-col">
-                    {/* Rejilla de ventilación POR ARRIBA para dos Sonos Amp */}
-                    {bloque.tieneVentilacionArriba && (
-                      <div style={{ height: `${PIXELS_PER_U}px` }} className="w-full bg-orange-600/80 border-b-2 border-orange-400/50 flex items-center justify-center text-[10px] font-bold text-white uppercase tracking-widest mb-1">
-                        <div className="flex items-center gap-2">
-                          <Fan size={14} className="text-orange-200" />
-                          <span>Rejilla de Ventilación (2x Sonos Amp)</span>
-                        </div>
-                      </div>
-                    )}
-                    <div className="w-full bg-slate-800 rounded-sm border-b-4 border-black/60 flex shadow-inner relative" style={{ height: `${(bloque.uTotal - (bloque.tieneTapa ? 1 : 0) - (bloque.tieneVentilacionArriba ? 1 : 0)) * PIXELS_PER_U}px` }}>
-                      {bloque.equipos.map((e) => {
-                        const bgColor = e.categoria === 'Redes' ? '#475569' : 
-                                       e.categoria === 'Audio' ? '#2563eb' :
-                                       e.categoria === 'Video' ? '#9333ea' :
-                                       e.categoria === 'Control' ? '#4f46e5' :
-                                       e.categoria === 'Cinema' ? '#be123c' :
-                                       e.categoria === 'Energía' ? '#ea580c' : 
-                                       e.categoria === 'Otros' ? '#16a34a' : '#475569';
-                        return (
-                          <div key={e.instanceId} 
-                               className="h-[90%] flex flex-col items-center justify-center m-1.5 text-center rounded shadow-xl flex-1 border-t-2 border-black/40 overflow-hidden relative group/item"
-                               style={{ backgroundColor: bgColor }}>
-                            <span className="font-black uppercase text-white text-[10px] px-2 leading-tight">{e.nombre}</span>
-                            <button onClick={() => eliminarItem(e.instanceId)} className="absolute inset-0 bg-red-600/90 text-white flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity"><Trash2 size={14} /></button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    {bloque.tieneTapa && (
-                      <div style={{ height: `${PIXELS_PER_U}px` }} className="w-full bg-black/80 border-b-2 border-white/5 flex items-center justify-center text-[9px] font-bold text-slate-600 uppercase tracking-widest">Tapa Ciega Balda</div>
-                    )}
-                  </div>
-                ))}
               </div>
             </div>
           </div>
         </section>
 
-        <aside className="w-80 bg-slate-900/40 border-l border-white/5 flex flex-col shrink-0 p-6 overflow-y-auto custom-scrollbar text-[11px]">
+        <aside className="w-[410px] bg-slate-900/40 border-l border-white/5 flex flex-col shrink-0 p-6 overflow-y-auto custom-scrollbar text-[11px]">
           <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-6 italic">Configuración Técnica</p>
           <div className="space-y-3">
              <div className="flex justify-between p-3 bg-white/5 rounded-xl border border-white/5">
@@ -716,6 +838,20 @@ export default function App() {
              <div className="flex justify-between p-3 bg-white/5 rounded-xl border border-white/5">
                 <span className="text-slate-500 font-bold uppercase text-[9px]">Escobillas</span>
                 <span className="font-black text-white">x{res.numEscobillas}</span>
+             </div>
+             <div className="flex justify-between p-3 bg-amber-500/10 rounded-xl border border-amber-500/20">
+                <div className="flex items-center gap-2">
+                   <LayoutList size={14} className="text-amber-400" />
+                   <span className="text-amber-400 font-black uppercase text-[9px]">Baldas 1U</span>
+                </div>
+                <span className="font-black text-white">x{res.numBaldas1U}</span>
+             </div>
+             <div className="flex justify-between p-3 bg-amber-500/10 rounded-xl border border-amber-500/20">
+                <div className="flex items-center gap-2">
+                   <LayoutList size={14} className="text-amber-600" />
+                   <span className="text-amber-600 font-black uppercase text-[9px]">Balda Reforzada</span>
+                </div>
+                <span className="font-black text-white">x{res.numBaldasReforzadas}</span>
              </div>
              <div className="flex justify-between p-3 bg-white/5 rounded-xl border border-white/5">
                 <div className="flex items-center gap-2">
