@@ -24,7 +24,7 @@ import {
 /**
  * RackDesignerPro - Versión Cinema & Gestión de Cables
  * Ajuste: Sustitución de Lutron/KNX por Crestron RMC4 en Control.
- * Lógica PDU: 1 cada 6 equipos totales.
+ * Lógica PDU: 1 por cada 3.500W de consumo o 1 cada 6 equipos (el mayor).
  */
 
 export default function App() {
@@ -53,9 +53,9 @@ export default function App() {
     { id: 'receptor-sat', nombre: 'Receptor Sat', altura: 44, esRackable: false, categoria: 'Video', consumo: 15, ancho: 'media', requiereTapaCiega: true, fondo: 150 },
     
     // --- CINEMA ---
-    { id: 'marantz-av', nombre: 'Marantz AV Processor', altura: 177, esRackable: true, categoria: 'Cinema', consumo: 100, fondo: 411, uOcupadas: 4 },
-    { id: 'integra-drx', nombre: 'Integra DRX Series', altura: 177, esRackable: true, categoria: 'Cinema', consumo: 110, fondo: 390, uOcupadas: 4 },
-    { id: 'audiocontrol-av', nombre: 'AudioControl Maestro', altura: 177, esRackable: true, categoria: 'Cinema', consumo: 120, fondo: 420, uOcupadas: 4 },
+    { id: 'marantz-av', nombre: 'Marantz AV Processor', altura: 177, esRackable: true, categoria: 'Cinema', consumo: 800, fondo: 411, uOcupadas: 4 },
+    { id: 'integra-drx', nombre: 'Integra DRX Series', altura: 177, esRackable: true, categoria: 'Cinema', consumo: 850, fondo: 390, uOcupadas: 4 },
+    { id: 'audiocontrol-av', nombre: 'AudioControl Maestro', altura: 177, esRackable: true, categoria: 'Cinema', consumo: 850, fondo: 420, uOcupadas: 4 },
 
     // --- ENERGÍA ---
     { id: 'ups-apc', nombre: 'SAI APC Smart-UPS 1500', altura: 88, esRackable: true, categoria: 'Energía', consumo: 0, fondo: 457 },
@@ -243,7 +243,9 @@ export default function App() {
   const descargarMaterialesRack = () => {
     const fecha = new Date().toLocaleDateString('es-ES');
     const hora = new Date().toLocaleTimeString('es-ES');
-    
+    const equiposNoRackables = equipos.filter(e => !e.esRackable);
+    const baldasNecesarias = Math.ceil(equiposNoRackables.length / 2);
+
     let contenido = `
 ╔══════════════════════════════════════════════════════════════════════════════════════╗
 ║                           ILLUSION - MATERIALES DE RACK                             ║
@@ -255,7 +257,6 @@ export default function App() {
 🏢 EMPRESA: Illusion.es
 
 ═══════════════════════════════════════════════════════════════════════════════════════
-
 📋 RESUMEN DEL RACK:
 ═══════════════════════════════════════════════════════════════════════════════════════
 • Rack recomendado: ${res.rackRecomendado}U
@@ -273,8 +274,14 @@ export default function App() {
 ⚡ ALIMENTACIÓN ELÉCTRICA:
 ═══════════════════════════════════════════════════════════════════════════════════════
 • Regletas PDU (traseras): x${res.numRegletasTraseras}
-  └─ Cálculo: 1 regleta cada 6 equipos
+  └─ Cálculo: 1 PDU por cada 3.500W o 1 cada 6 equipos (el mayor)
   └─ Consumo total estimado: ${res.consumoTotal}W
+
+• Instalación eléctrica necesaria: x${res.numLineasElectricas} línea${res.numLineasElectricas > 1 ? 's' : ''}
+  └─ Cable 2,5 mm²: x${res.numLineasElectricas}
+  └─ Magnetotérmicos 16A: x${res.numLineasElectricas}
+  └─ Diferenciales 40A / 30mA: x${res.numLineasElectricas}
+  └─ Consumo total del rack: ${res.consumoTotal}W (máx. 3.680W por línea)
 
 ═══════════════════════════════════════════════════════════════════════════════════════
 🔗 CONECTIVIDAD Y CABLEADO:
@@ -287,27 +294,18 @@ export default function App() {
 ═══════════════════════════════════════════════════════════════════════════════════════
 🛠️ ACCESORIOS Y HERRAJES:
 ═══════════════════════════════════════════════════════════════════════════════════════
-• Placas ciegas: x${res.numPlacasCiegas}
-  └─ Para ventilación y espacios vacíos
 • Tornillería M6: x${res.numTornillos} tornillos
   └─ Cálculo: 4 tornillos por equipo
-• Tuercas M6: x${res.numTornillos} tuercas
-• Arandelas M6: x${res.numTornillos * 2} arandelas
 
 ═══════════════════════════════════════════════════════════════════════════════════════
 🏠 BALDAS Y SOPORTES:
 ═══════════════════════════════════════════════════════════════════════════════════════`;
 
-    // Calcular baldas necesarias
-    const equiposNoRackables = equipos.filter(e => !e.esRackable);
-    const baldasNecesarias = Math.ceil(equiposNoRackables.length / 2);
-    
     if (baldasNecesarias > 0) {
       contenido += `
-• Baldas fijas 1U: x${baldasNecesarias}
-  └─ Para equipos no rackables (${equiposNoRackables.length} equipos)
-• Soportes para baldas: x${baldasNecesarias * 2} pares
-• Tapas ciegas para baldas: x${baldasNecesarias}`;
+• Baldas 1U: x${res.numBaldas1U}
+• Baldas reforzadas: x${res.numBaldasReforzadas}
+  └─ Para equipos no rackables (${equiposNoRackables.length} equipos)`;
     } else {
       contenido += `
 • No se requieren baldas adicionales
@@ -322,9 +320,6 @@ export default function App() {
 • Termostato digital: x1 (incluido)
 • Ventiladores superiores: x${res.rackRecomendado < 24 ? 1 : 2}
   └─ Según altura del rack
-• Rejillas de ventilación: x2 (superior e inferior)
-• Rejillas ventilación automáticas: x${res.bandejasSonosAmp || 0}
-  └─ Automáticas cuando hay 2 Sonos Amp en misma balda
 
 ═══════════════════════════════════════════════════════════════════════════════════════
 📦 RESUMEN DE CANTIDADES:
@@ -334,23 +329,21 @@ export default function App() {
 ├─────────────────────────────────────┼──────────┤
 │ Rack ${res.rackRecomendado}U                    │    x1    │
 │ Regletas PDU                        │    x${res.numRegletasTraseras}    │
+│ Líneas eléctricas 2,5 mm²           │    x${res.numLineasElectricas}    │
+│ Magnetotérmicos 16A                 │    x${res.numLineasElectricas}    │
+│ Diferenciales 40A/30mA              │    x${res.numLineasElectricas}    │
 │ Pasacables posteriores              │    x${res.pasacablesTraseros}    │
 │ Escobillas pasacables               │    x${res.numEscobillas}    │
 │ Patch Panels automáticos            │    x${equipos.filter(e => e.esAutomatico).length}    │
-│ Placas ciegas                       │    x${res.numPlacasCiegas}    │
-│ Tornillos M6                        │    x${res.numTornillos}   │
-│ Tuercas M6                          │    x${res.numTornillos}   │
-│ Arandelas M6                        │    x${res.numTornillos * 2}   │`;
+│ Tornillos M6                        │    x${res.numTornillos}   │`;
 
-    if (baldasNecesarias > 0) {
+    if (res.numBaldas1U > 0) {
       contenido += `
-│ Baldas fijas 1U                     │    x${baldasNecesarias}    │
-│ Soportes para baldas                │    x${baldasNecesarias * 2}    │`;
+│ Baldas 1U                           │    x${res.numBaldas1U}    │`;
     }
-
-    if (res.bandejasSonosAmp > 0) {
+    if (res.numBaldasReforzadas > 0) {
       contenido += `
-│ Rejillas ventilación automáticas    │    x${res.bandejasSonosAmp}    │`;
+│ Baldas reforzadas                   │    x${res.numBaldasReforzadas}    │`;
     }
 
     contenido += `
@@ -366,9 +359,7 @@ export default function App() {
 • Regletas PDU: distribuir uniformemente en la parte trasera
 • Termostato: instalar en la parte superior del rack
 • Ventiladores: según altura del rack (1 para <24U, 2 para ≥24U)
-• Tornillería: incluye tornillos, tuercas y arandelas M6
-• Placas ciegas: para ventilación y espacios no utilizados
-• IMPORTANTE: Bandejas de ventilación van POR ARRIBA de 2 Sonos Amp
+• Consumo total: ${res.consumoTotal}W — requiere ${res.numLineasElectricas} línea${res.numLineasElectricas > 1 ? 's' : ''} eléctrica${res.numLineasElectricas > 1 ? 's' : ''} de 2,5 mm²
 
 ═══════════════════════════════════════════════════════════════════════════════════════
 🏢 GENERADO POR: Illusion Rack Designer Pro v2.0.0
@@ -377,7 +368,6 @@ export default function App() {
 ═══════════════════════════════════════════════════════════════════════════════════════
 `;
 
-    // Crear y descargar archivo
     const blob = new Blob([contenido], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -402,11 +392,11 @@ export default function App() {
     const pendientesMedia = [];
 
     const procesarNoRackable = (eq) => {
-      pasacablesTraseros++;
       if (eq.ancho === 'media') {
         const indexPareja = pendientesMedia.findIndex(e => e.ancho === 'media');
         if (indexPareja !== -1) {
-          // Tenemos pareja: formamos bloque
+          // Tenemos pareja: 1 solo pasacable por los dos
+          pasacablesTraseros++;
           const pareja = pendientesMedia.splice(indexPareja, 1)[0];
           const tieneTapa = eq.requiereTapaCiega || pareja.requiereTapaCiega;
           const esSonosAmp = (e) => e.id === 'sonos-amp';
@@ -424,11 +414,12 @@ export default function App() {
           bloquesBaldas.push(bloque);
           rackItems.push({ __esBloque: true, bloque });
         } else {
-          // Sin pareja aún: lo dejamos pendiente
+          // Sin pareja aún: pendiente, el pasacable se suma cuando forme bloque
           pendientesMedia.push(eq);
         }
       } else {
-        // Ancho completo: balda individual inmediata
+        // Ancho completo: balda individual, 1 pasacable
+        pasacablesTraseros++;
         const tieneTapa = eq.requiereTapaCiega;
         if (tieneTapa) numTapasBalda++;
         const bloque = {
@@ -477,6 +468,7 @@ export default function App() {
 
     // Equipos 'media' que quedaron sin pareja: baldas individuales
     pendientesMedia.forEach(eq => {
+      pasacablesTraseros++;
       const tieneTapa = eq.requiereTapaCiega;
       if (tieneTapa) numTapasBalda++;
       const bloque = {
@@ -496,9 +488,10 @@ export default function App() {
       return acc + (item.uOcupadas || 0);
     }, 0);
     
-    // Regletas: 1 cada 6 equipos totales
+    // Regletas PDU: 1 por cada 3.500W de consumo (máximo por PDU)
+    const consumoTotalCalc = equipos.reduce((sum, eq) => sum + (eq.consumo || 0), 0);
     const numEquiposTotal = equipos.length;
-    const numRegletasTraseras = numEquiposTotal === 0 ? 0 : Math.ceil(numEquiposTotal / 6);
+    const numRegletasTraseras = consumoTotalCalc === 0 ? (numEquiposTotal === 0 ? 0 : Math.ceil(numEquiposTotal / 6)) : Math.max(Math.ceil(consumoTotalCalc / 3500), Math.ceil(numEquiposTotal / 6));
     
     const totalUNecesariasFrontales = uDeEquiposTotal + infraestructuraSuperiorU;
     const rackRecomendado = RACKS_COMERCIALES.find(r => r >= totalUNecesariasFrontales) || 47;
@@ -536,6 +529,7 @@ export default function App() {
       totalUNecesariasFrontales,
       numTornillos: equipos.length * 4,
       consumoTotal: equipos.reduce((sum, eq) => sum + (eq.consumo || 0), 0),
+      numLineasElectricas: Math.max(1, Math.ceil(equipos.reduce((sum, eq) => sum + (eq.consumo || 0), 0) / 3680)),
       numEscobillas: numEscobillas + escobillasAccesorios,
       numPlacasCiegas: numTapasBalda + numTapasAutomaticas + placasCiegasAccesorios,
       pasacablesTraseros,
@@ -711,13 +705,13 @@ export default function App() {
                     return (
                       <div key={`bloque-${idx}`} className="flex flex-col">
                         {bloque.tieneVentilacionArriba && (
-                          <div style={{ height: `${PIXELS_PER_U}px` }} className="w-full bg-black border-b-2 border-white/10 flex items-center justify-center text-[10px] font-bold text-white uppercase tracking-widest mb-1">
-                            PLACA CIEGA 1U
+                          <div style={{ height: `${PIXELS_PER_U}px` }} className="w-full bg-black border-b-2 border-white/10 flex items-center justify-center gap-2 text-[10px] font-bold text-white uppercase tracking-widest mb-1">
+                            <Fan size={11} className="text-white/40 shrink-0" />PLACA CIEGA 1U
                           </div>
                         )}
                         {bloque.tieneTapaArriba && (
-                          <div style={{ height: `${PIXELS_PER_U}px` }} className="w-full bg-black border-b-2 border-white/10 flex items-center justify-center text-[10px] font-bold text-white uppercase tracking-widest mb-1">
-                            PLACA CIEGA 1U
+                          <div style={{ height: `${PIXELS_PER_U}px` }} className="w-full bg-black border-b-2 border-white/10 flex items-center justify-center gap-2 text-[10px] font-bold text-white uppercase tracking-widest mb-1">
+                            <Fan size={11} className="text-white/40 shrink-0" />PLACA CIEGA 1U
                           </div>
                         )}
                         <div className="w-full bg-slate-800 rounded-sm border-b-4 border-black/60 flex shadow-inner relative"
@@ -774,7 +768,9 @@ export default function App() {
                           })}
                         </div>
                         {bloque.tieneTapa && (
-                          <div style={{ height: `${PIXELS_PER_U}px` }} className="w-full bg-black border-b-2 border-white/10 flex items-center justify-center text-[10px] font-bold text-white uppercase tracking-widest">PLACA CIEGA 1U</div>
+                          <div style={{ height: `${PIXELS_PER_U}px` }} className="w-full bg-black border-b-2 border-white/10 flex items-center justify-center gap-2 text-[10px] font-bold text-white uppercase tracking-widest">
+                            <Fan size={11} className="text-white/40 shrink-0" />PLACA CIEGA 1U
+                          </div>
                         )}
                       </div>
                     );
@@ -815,15 +811,24 @@ export default function App() {
                       {isDraggable && <div className="w-8 shrink-0" />}
                       <div className="flex-1 flex items-center justify-center overflow-hidden">
                         {eq.tipoPasivo === 'Ventilacion' || eq.esRejillaVentilacion ? (
-                          <span className="text-[10px] font-bold text-white uppercase tracking-widest">PLACA CIEGA 1U</span>
+                          <div className="flex items-center gap-2">
+                            <Fan size={11} className="text-white/40 shrink-0" />
+                            <span className="text-[10px] font-bold text-white uppercase tracking-widest">PLACA CIEGA 1U</span>
+                          </div>
                         ) : eq.tipoPasivo === 'Escobilla' || eq.tipoPasivo === 'Ciego' ? (
-                          <span className="text-[10px] font-bold text-white uppercase tracking-widest">
-                            {eq.esEscobilla ? 'ESCOBILLA PASACABLES' : 'PLACA CIEGA 1U'}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            {!eq.esEscobilla && <Fan size={11} className="text-white/40 shrink-0" />}
+                            <span className="text-[10px] font-bold text-white uppercase tracking-widest">
+                              {eq.esEscobilla ? 'ESCOBILLA PASACABLES' : 'PLACA CIEGA 1U'}
+                            </span>
+                          </div>
                         ) : eq.categoria === 'Accesorios' ? (
-                          <span className="text-[10px] font-bold text-white uppercase tracking-widest">
-                            {eq.id === 'placa-ciega-2u' ? 'PLACA CIEGA 2U' : eq.id === 'escobilla-acc' ? 'ESCOBILLA PASACABLES' : 'PLACA CIEGA 1U'}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            {eq.id !== 'escobilla-acc' && <Fan size={11} className="text-white/40 shrink-0" />}
+                            <span className="text-[10px] font-bold text-white uppercase tracking-widest">
+                              {eq.id === 'placa-ciega-2u' ? 'PLACA CIEGA 2U' : eq.id === 'escobilla-acc' ? 'ESCOBILLA PASACABLES' : 'PLACA CIEGA 1U'}
+                            </span>
+                          </div>
                         ) : (
                           <div className="flex flex-col items-center">
                             <span className="font-black uppercase tracking-tight px-4 truncate text-[14px] text-white">{eq.nombre}</span>
@@ -868,42 +873,51 @@ export default function App() {
           <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-6 italic">Configuración Técnica</p>
           <div className="space-y-3">
              <div className="flex justify-between p-3 bg-white/5 rounded-xl border border-white/5">
-                <span className="text-slate-500 font-bold uppercase text-[9px]">U Frontales Ocupadas</span>
+                <div className="flex items-center gap-2">
+                   <LayoutList size={14} className="text-slate-400" />
+                   <span className="text-slate-500 font-bold uppercase text-[9px]">U Frontales Ocupadas</span>
+                </div>
                 <span className="font-black text-white">{res.totalUNecesariasFrontales} U</span>
              </div>
-             <div className="flex justify-between p-3 bg-white/5 rounded-xl border border-white/5 group hover:border-blue-500/30 transition-colors">
+             <div className="flex justify-between p-3 bg-white/5 rounded-xl border border-white/5">
                 <div className="flex items-center gap-2">
-                   <Zap size={14} className="text-blue-400" />
+                   <Zap size={14} className="text-slate-400" />
                    <span className="text-slate-500 font-bold uppercase text-[9px]">Regletas (Traseras)</span>
                 </div>
                 <span className="font-black text-white">x{res.numRegletasTraseras}</span>
              </div>
-             <div className="flex justify-between p-3 bg-indigo-500/10 rounded-xl border border-indigo-500/20">
+             <div className="flex justify-between p-3 bg-white/5 rounded-xl border border-white/5">
                 <div className="flex items-center gap-2">
-                   <Cable size={14} className="text-indigo-400" />
-                   <span className="text-indigo-400 font-black uppercase text-[9px]">Pasacables (Posterior)</span>
+                   <Cable size={14} className="text-slate-400" />
+                   <span className="text-slate-500 font-bold uppercase text-[9px]">Pasacables (Posterior)</span>
                 </div>
                 <span className="font-black text-white">x{res.pasacablesTraseros}</span>
              </div>
              <div className="flex justify-between p-3 bg-white/5 rounded-xl border border-white/5">
-                <span className="text-slate-500 font-bold uppercase text-[9px]">Placas Ciegas</span>
+                <div className="flex items-center gap-2">
+                   <Fan size={14} className="text-slate-400" />
+                   <span className="text-slate-500 font-bold uppercase text-[9px]">Placas Ciegas</span>
+                </div>
                 <span className="font-black text-white">x{res.numPlacasCiegas}</span>
              </div>
              <div className="flex justify-between p-3 bg-white/5 rounded-xl border border-white/5">
-                <span className="text-slate-500 font-bold uppercase text-[9px]">Escobillas</span>
+                <div className="flex items-center gap-2">
+                   <Cable size={14} className="text-slate-400" />
+                   <span className="text-slate-500 font-bold uppercase text-[9px]">Escobillas</span>
+                </div>
                 <span className="font-black text-white">x{res.numEscobillas}</span>
              </div>
-             <div className="flex justify-between p-3 bg-amber-500/10 rounded-xl border border-amber-500/20">
+             <div className="flex justify-between p-3 bg-white/5 rounded-xl border border-white/5">
                 <div className="flex items-center gap-2">
-                   <LayoutList size={14} className="text-amber-400" />
-                   <span className="text-amber-400 font-black uppercase text-[9px]">Baldas 1U</span>
+                   <LayoutList size={14} className="text-slate-400" />
+                   <span className="text-slate-500 font-bold uppercase text-[9px]">Baldas 1U</span>
                 </div>
                 <span className="font-black text-white">x{res.numBaldas1U}</span>
              </div>
-             <div className="flex justify-between p-3 bg-amber-500/10 rounded-xl border border-amber-500/20">
+             <div className="flex justify-between p-3 bg-white/5 rounded-xl border border-white/5">
                 <div className="flex items-center gap-2">
-                   <LayoutList size={14} className="text-amber-600" />
-                   <span className="text-amber-600 font-black uppercase text-[9px]">Balda Reforzada</span>
+                   <LayoutList size={14} className="text-slate-400" />
+                   <span className="text-slate-500 font-bold uppercase text-[9px]">Balda Reforzada</span>
                 </div>
                 <span className="font-black text-white">x{res.numBaldasReforzadas}</span>
              </div>
@@ -914,19 +928,38 @@ export default function App() {
                 </div>
                 <span className="font-black text-white">x{res.numTornillos}</span>
              </div>
-             <div className="flex justify-between p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
+             <div className="flex justify-between p-3 bg-white/5 rounded-xl border border-white/5">
                 <div className="flex items-center gap-2">
-                   <Cable size={14} className="text-emerald-400" />
-                   <span className="text-emerald-400 font-black uppercase text-[9px]">Patch Panels (Auto)</span>
+                   <Cable size={14} className="text-slate-400" />
+                   <span className="text-slate-500 font-bold uppercase text-[9px]">Patch Panels (Auto)</span>
                 </div>
                 <span className="font-black text-white">x{equipos.filter(e => e.esAutomatico).length}</span>
              </div>
-             <div className="flex justify-between p-3 bg-orange-500/10 rounded-xl border border-orange-500/20">
-                <div className="flex items-center gap-2">
-                   <Fan size={14} className="text-orange-400" />
-                   <span className="text-orange-400 font-black uppercase text-[9px]">Rejillas Ventilación</span>
+          </div>
+
+          <div className="mt-6">
+             <div className="flex flex-col p-3 bg-yellow-500/10 rounded-xl border border-yellow-500/30">
+                <div className="flex justify-between items-center mb-2">
+                   <div className="flex items-center gap-2">
+                      <Zap size={14} className="text-yellow-400" />
+                      <span className="text-yellow-400 font-black uppercase text-[9px]">Instalación Eléctrica</span>
+                   </div>
+                   <span className="font-black text-yellow-300/80 text-[8px]">{res.consumoTotal}W total</span>
                 </div>
-                <span className="font-black text-white">x{res.totalBandejasVentilacion}</span>
+                <div className="text-[8px] text-yellow-400/80 space-y-1 pl-1">
+                   <div className="flex justify-between">
+                      <span>Líneas de 2,5 mm²</span>
+                      <span className="font-black text-white">x{res.numLineasElectricas}</span>
+                   </div>
+                   <div className="flex justify-between">
+                      <span>Magnetotérmicos 16A</span>
+                      <span className="font-black text-white">x{res.numLineasElectricas}</span>
+                   </div>
+                   <div className="flex justify-between">
+                      <span>Diferenciales 40A / 30mA</span>
+                      <span className="font-black text-white">x{res.numLineasElectricas}</span>
+                   </div>
+                </div>
              </div>
           </div>
 
