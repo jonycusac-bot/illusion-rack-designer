@@ -192,20 +192,36 @@ export default function App() {
     setDragOverIndex(null);
   };
 
+  const moverEquipo = (index, direccion) => {
+    const nuevoIndex = index + direccion;
+    if (nuevoIndex < 0 || nuevoIndex >= equipos.length) return;
+    setEquipos(prev => {
+      const updated = [...prev];
+      const [moved] = updated.splice(index, 1);
+      updated.splice(nuevoIndex, 0, moved);
+      return updated;
+    });
+  };
+
   // Funciones para guardar y cargar proyectos
   const guardarProyecto = () => {
+    const nombreSugerido = `Proyecto_${new Date().toLocaleDateString('es-ES').replace(/\//g, '-')}`;
+    const nombre = window.prompt('Nombre del proyecto:', nombreSugerido);
+    if (nombre === null) return; // cancelado
+    const nombreFinal = nombre.trim() || nombreSugerido;
+
     const proyecto = {
       equipos: equipos,
-      nombre: `Proyecto_${new Date().toLocaleDateString('es-ES').replace(/\//g, '-')}_${new Date().toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit'})}`,
+      nombre: nombreFinal,
       fecha: new Date().toISOString(),
       version: '1.0'
     };
-    
+
     const proyectosGuardados = JSON.parse(localStorage.getItem('illusion-proyectos') || '[]');
     proyectosGuardados.push(proyecto);
     localStorage.setItem('illusion-proyectos', JSON.stringify(proyectosGuardados));
-    
-    alert(`Proyecto guardado como: ${proyecto.nombre}`);
+
+    alert(`Proyecto guardado como: ${nombreFinal}`);
   };
 
   const cargarProyecto = (proyecto) => {
@@ -559,47 +575,50 @@ export default function App() {
   };
 
   return (
-    <div className="h-screen bg-[#020617] text-slate-100 flex flex-col overflow-hidden font-sans">
-      <header className="h-14 flex items-center justify-between px-8 bg-slate-900/80 border-b border-white/10 backdrop-blur-xl shrink-0">
+    <div className="h-screen text-slate-100 flex flex-col overflow-hidden font-sans" style={{ backgroundColor: 'var(--bg-app)' }}>
+      <header className="h-14 flex items-center justify-between px-8 border-b shrink-0"
+              style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border)' }}>
         <div className="flex items-center gap-3">
-          <div className="bg-indigo-600 p-1.5 rounded-lg shadow-lg shadow-indigo-500/20">
+          <div className="p-1.5 rounded-lg" style={{ backgroundColor: 'var(--accent)' }}>
             <ShieldCheck className="text-white w-5 h-5" />
           </div>
-          <h1 className="text-sm font-black tracking-widest uppercase italic">
-            Illusion <span className="text-slate-500 font-light">Rack Designer Pro v2.1</span>
+          <h1 style={{ fontSize: 'var(--font-brand)', fontWeight: 500, letterSpacing: '0.5px' }}>
+            Illusion <span style={{ color: 'var(--text-muted)', fontWeight: 300 }}>Rack Designer Pro v2.1</span>
           </h1>
         </div>
-        <div className="flex items-center gap-8 text-[10px] font-bold">
+        <div className="flex items-center gap-8" style={{ fontSize: '10px', fontWeight: 700 }}>
            <div className="flex gap-6">
               <div className="flex items-center gap-2">
-                 <Thermometer size={14} className="text-orange-400" />
-                 <span className="text-orange-400 uppercase tracking-tighter">Consumo: {res.consumoTotal}W</span>
+                 <Thermometer size={14} style={{ color: 'var(--warning)' }} />
+                 <span className="uppercase tracking-tighter" style={{ color: 'var(--warning)' }}>Consumo: {res.consumoTotal}W</span>
               </div>
               <div className="flex items-center gap-2">
-                 <Zap size={14} className="text-blue-400" />
-                 <span className="text-blue-400 uppercase tracking-tighter">PDUs: x{res.numRegletasTraseras}</span>
+                 <Zap size={14} style={{ color: 'var(--accent-light)' }} />
+                 <span className="uppercase tracking-tighter" style={{ color: 'var(--accent-light)' }}>PDUs: x{res.numRegletasTraseras}</span>
               </div>
            </div>
            <div className="flex items-center gap-2">
-             <button onClick={guardarProyecto} className="p-2 hover:bg-white/5 rounded-full text-slate-500 hover:text-green-400 transition-colors" title="Guardar proyecto">
+             <button onClick={guardarProyecto} className="p-2 rounded-full transition-colors" style={{ color: 'var(--text-muted)' }} title="Guardar proyecto"
+               onMouseEnter={e => e.currentTarget.style.color='#4ade80'} onMouseLeave={e => e.currentTarget.style.color='var(--text-muted)'}>
                <Save size={16} />
              </button>
              <div className="relative group">
-               <button className="p-2 hover:bg-white/5 rounded-full text-slate-500 hover:text-blue-400 transition-colors" title="Cargar proyecto">
+               <button className="p-2 rounded-full transition-colors" style={{ color: 'var(--text-muted)' }} title="Cargar proyecto">
                  <FolderOpen size={16} />
                </button>
-               <div className="absolute right-0 top-full mt-2 w-64 bg-slate-800 border border-white/10 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+               <div className="absolute right-0 top-full mt-2 w-64 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 border"
+                    style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border)' }}>
                  <div className="p-2 max-h-48 overflow-y-auto">
                    {obtenerProyectosGuardados().length === 0 ? (
-                     <p className="text-slate-400 text-xs p-2">No hay proyectos guardados</p>
+                     <p className="text-xs p-2" style={{ color: 'var(--text-secondary)' }}>No hay proyectos guardados</p>
                    ) : (
                      obtenerProyectosGuardados().map((proyecto, index) => (
                        <div key={index} className="flex items-center justify-between p-2 hover:bg-white/5 rounded text-xs">
                          <div className="flex-1 cursor-pointer" onClick={() => cargarProyecto(proyecto)}>
-                           <div className="text-white font-medium">{proyecto.nombre}</div>
-                           <div className="text-slate-400">{new Date(proyecto.fecha).toLocaleDateString('es-ES')}</div>
+                           <div className="font-medium" style={{ color: 'var(--text-primary)' }}>{proyecto.nombre}</div>
+                           <div style={{ color: 'var(--text-secondary)' }}>{new Date(proyecto.fecha).toLocaleDateString('es-ES')}</div>
                          </div>
-                         <button onClick={() => eliminarProyecto(index)} className="text-red-400 hover:text-red-300 ml-2">
+                         <button onClick={() => eliminarProyecto(index)} className="ml-2" style={{ color: 'var(--text-secondary)' }}>
                            <Trash2 size={12} />
                          </button>
                        </div>
@@ -608,7 +627,8 @@ export default function App() {
                  </div>
                </div>
              </div>
-             <button onClick={() => setEquipos([])} className="p-2 hover:bg-white/5 rounded-full text-slate-500 hover:text-red-400 transition-colors" title="Limpiar todo">
+             <button onClick={() => setEquipos([])} className="p-2 rounded-full transition-colors" style={{ color: 'var(--text-muted)' }} title="Limpiar todo"
+               onMouseEnter={e => e.currentTarget.style.color='#f87171'} onMouseLeave={e => e.currentTarget.style.color='var(--text-muted)'}>
                <RotateCcw size={16} />
              </button>
            </div>
@@ -616,30 +636,32 @@ export default function App() {
       </header>
 
       <main className="flex-1 flex overflow-hidden">
-        <aside className="w-[410px] bg-slate-900/20 border-r border-white/5 p-4 overflow-y-auto shrink-0 custom-scrollbar">
-          <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-4">Librería Illusion</p>
+        <aside className="w-[410px] border-r p-4 overflow-y-auto shrink-0 custom-scrollbar" style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border)' }}>
+          <p className="text-[9px] font-black uppercase tracking-widest mb-4" style={{ color: 'var(--text-muted)' }}>Librería Illusion</p>
           <div className="space-y-2">
             {[...new Set(CATALOGO_EQUIPOS.map(i => i.categoria))].map(cat => (
-              <div key={cat} className="rounded-xl border border-white/5 bg-white/5 overflow-hidden">
-                <button 
+              <div key={cat} className="rounded-lg overflow-hidden border" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--bg-highlight)' }}>
+                <button
                   onClick={() => toggleCategoria(cat)}
-                  className="w-full px-3 py-2.5 flex items-center justify-between hover:bg-white/10 transition-colors"
+                  className="w-full px-3 py-2.5 flex items-center justify-between transition-colors hover:bg-white/5"
                 >
                   <div className="flex items-center gap-2">
                     {getCategoryIcon(cat)}
-                    <span className="text-[10px] font-bold uppercase tracking-wider">{cat}</span>
+                    <span className="font-bold uppercase tracking-wider" style={{ fontSize: 'var(--font-label)', color: 'var(--text-secondary)' }}>{cat}</span>
                   </div>
-                  <ChevronDown size={12} className={`transition-transform duration-300 ${categoriasAbiertas.includes(cat) ? 'rotate-180' : ''}`} />
+                  <ChevronDown size={12} style={{ color: 'var(--text-muted)' }} className={`transition-transform duration-300 ${categoriasAbiertas.includes(cat) ? 'rotate-180' : ''}`} />
                 </button>
                 {categoriasAbiertas.includes(cat) && (
-                  <div className="p-2 border-t border-white/10 bg-black/30">
+                  <div className="p-2 border-t" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--bg-app)' }}>
                     {CATALOGO_EQUIPOS.filter(i => i.categoria === cat).map(item => (
-                      <button key={item.id} onClick={() => agregarItem(item)} className="w-full p-3 rounded-lg hover:bg-indigo-600/80 group text-left flex justify-between items-center mb-2 transition-all duration-200 border border-white/5 hover:border-indigo-400/50 bg-white/95 hover:bg-indigo-600 hover:shadow-lg">
-                        <div className="flex flex-col flex-1">
-                           <span className="text-[12px] font-semibold text-slate-900 group-hover:text-white truncate">{item.nombre}</span>
-                        </div>
-                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 group-hover:bg-white/20 transition-colors">
-                          <Plus size={14} className="text-indigo-600 group-hover:text-white" />
+                      <button key={item.id} onClick={() => agregarItem(item)}
+                        className="w-full p-3 rounded-lg group text-left flex justify-between items-center mb-2 transition-all duration-200 border hover:shadow-lg"
+                        style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border)' }}
+                        onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'var(--accent)'; e.currentTarget.style.borderColor = 'var(--accent)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'var(--bg-panel)'; e.currentTarget.style.borderColor = 'var(--border)'; }}>
+                        <span className="font-semibold truncate" style={{ fontSize: 'var(--font-rack)', color: 'var(--text-primary)' }}>{item.nombre}</span>
+                        <div className="flex items-center justify-center w-7 h-7 rounded-full flex-shrink-0 ml-2" style={{ backgroundColor: 'rgba(58,62,224,0.15)' }}>
+                          <Plus size={13} style={{ color: 'var(--accent-light)' }} />
                         </div>
                       </button>
                     ))}
@@ -648,32 +670,34 @@ export default function App() {
               </div>
             ))}
           </div>
-          
-          {/* Rack Recomendado - Movido aquí */}
-          <div className="mt-6 bg-gradient-to-r from-indigo-600/20 to-transparent p-4 rounded-lg backdrop-blur-sm border border-indigo-500/30">
-            <h2 className="text-[3rem] font-black leading-none text-white drop-shadow-[0_0_20px_rgba(99,102,241,0.5)]">
-              {res.rackRecomendado}<span className="text-xl text-indigo-400 ml-2 animate-pulse">U</span>
+
+          {/* Rack Recomendado */}
+          <div className="mt-6 p-4 rounded-lg border" style={{ backgroundColor: 'var(--bg-highlight)', borderColor: 'var(--border-active)', borderLeftWidth: '3px' }}>
+            <h2 className="leading-none font-black" style={{ fontSize: '3rem', color: 'var(--text-primary)' }}>
+              {res.rackRecomendado}<span className="text-xl ml-2" style={{ color: 'var(--accent-light)' }}>U</span>
             </h2>
-            <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mt-2 border-l-4 border-indigo-500 pl-3 italic drop-shadow-lg">
+            <p className="font-black uppercase tracking-widest mt-2 pl-3" style={{ fontSize: '9px', color: 'var(--accent-light)', borderLeft: '3px solid var(--accent)' }}>
               Rack Illusion Recomendado
             </p>
           </div>
         </aside>
 
-        <section className="max-w-[450px] flex-1 bg-black relative flex items-center justify-center p-4 overflow-hidden">
-          <div className="relative w-full max-w-[400px] h-full bg-gradient-to-b from-[#0a0a0a] to-[#1a1a1a] border-x-[24px] border-slate-700 rounded-lg shadow-[0_0_60px_rgba(99,102,241,0.3)] flex flex-col ring-2 ring-indigo-500/20">
+        <section className="max-w-[450px] flex-1 relative flex items-center justify-center p-4 overflow-hidden" style={{ backgroundColor: 'var(--bg-app)' }}>
+          <div className="relative w-full max-w-[400px] h-full flex flex-col rounded-lg border-x-[24px]"
+               style={{ backgroundColor: 'var(--bg-rack)', borderColor: '#2a2d35', boxShadow: '0 0 40px rgba(58,62,224,0.15)', outline: '1px solid var(--border)' }}>
             <div className="flex-1 flex flex-col p-1 overflow-y-auto custom-scrollbar">
-              {/* Infraestructura Fija Superior */}
-              <div style={{ height: `${PIXELS_PER_U}px` }} className="w-full bg-black/60 border-b border-white/5 flex items-center justify-center gap-3 shrink-0">
-                <div className="flex gap-1 opacity-30">{[...Array(8)].map((_, j) => <div key={j} className="w-1 h-3 bg-white rounded-full" />)}</div>
-                <Fan size={15} className="text-white/50" />
-                <span className="text-[13px] font-black text-white/50 uppercase tracking-[0.25em]">Ventiladores</span>
-                <div className="flex gap-1 opacity-30">{[...Array(8)].map((_, j) => <div key={j} className="w-1 h-3 bg-white rounded-full" />)}</div>
+              {/* Ventiladores */}
+              <div style={{ height: `${PIXELS_PER_U}px`, borderBottom: '1px solid var(--border)' }} className="w-full flex items-center justify-center gap-3 shrink-0">
+                <div className="flex gap-1 opacity-20">{[...Array(8)].map((_, j) => <div key={j} className="w-1 h-3 bg-white rounded-full" />)}</div>
+                <Fan size={14} style={{ color: 'var(--text-disabled)' }} />
+                <span className="uppercase" style={{ fontSize: 'var(--font-label)', letterSpacing: '2px', color: 'var(--text-disabled)', fontWeight: 700 }}>Ventiladores</span>
+                <div className="flex gap-1 opacity-20">{[...Array(8)].map((_, j) => <div key={j} className="w-1 h-3 bg-white rounded-full" />)}</div>
               </div>
-              <div style={{ height: `${PIXELS_PER_U}px` }} className="w-full bg-slate-800 border-b-2 border-black/80 flex items-center justify-center shrink-0 relative shadow-inner">
+              {/* Termostato */}
+              <div style={{ height: `${PIXELS_PER_U}px`, backgroundColor: 'var(--neutral-bg)', borderBottom: '2px solid var(--border)' }} className="w-full flex items-center justify-center shrink-0">
                 <div className="flex items-center gap-2">
-                  <Thermometer size={12} className="text-orange-400" />
-                  <span className="text-[12px] font-black text-white uppercase tracking-[0.3em]">Termostato</span>
+                  <Thermometer size={12} style={{ color: 'var(--warning)' }} />
+                  <span className="uppercase" style={{ fontSize: 'var(--font-label)', letterSpacing: '3px', color: 'var(--neutral-text)', fontWeight: 700 }}>Termostato</span>
                 </div>
               </div>
 
@@ -727,7 +751,22 @@ export default function App() {
                                 {isDraggable && <div className="w-4 shrink-0" />}
                                 <span className="flex-1 font-black uppercase text-white text-[11px] px-1 leading-tight text-center">{e.nombre}</span>
                                 {isDraggable && (
-                                  <span className="w-4 shrink-0 text-center text-white/25 group-hover/item:text-white/60 transition-colors select-none text-[13px] leading-none pointer-events-none">⠿</span>
+                                  <div className="w-4 shrink-0 flex flex-col items-center justify-center gap-0.5">
+                                    <button
+                                      onClick={() => moverEquipo(equipoRealIndex, -1)}
+                                      disabled={equipoRealIndex === 0}
+                                      className="opacity-0 group-hover/item:opacity-100 transition-all disabled:opacity-10 disabled:cursor-not-allowed"
+                                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.5)', fontSize: '8px', lineHeight: 1, padding: '1px 3px' }}>
+                                      ▲
+                                    </button>
+                                    <button
+                                      onClick={() => moverEquipo(equipoRealIndex, 1)}
+                                      disabled={equipoRealIndex === equipos.length - 1}
+                                      className="opacity-0 group-hover/item:opacity-100 transition-all disabled:opacity-10 disabled:cursor-not-allowed"
+                                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.5)', fontSize: '8px', lineHeight: 1, padding: '1px 3px' }}>
+                                      ▼
+                                    </button>
+                                  </div>
                                 )}
                                 <button onClick={() => eliminarItem(e.instanceId)} className="absolute inset-0 bg-red-600/90 text-white flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity"><Trash2 size={14} /></button>
                               </div>
@@ -792,13 +831,28 @@ export default function App() {
                           </div>
                         )}
                       </div>
-                      <div className="w-8 shrink-0 flex items-center justify-center">
+                      <div className="w-8 shrink-0 flex flex-col items-center justify-center gap-0.5">
                         {isDraggable && (
-                          <span className="text-white/25 group-hover:text-white/60 transition-colors select-none text-[16px] leading-none pointer-events-none">⠿</span>
+                          <>
+                            <button
+                              onClick={() => moverEquipo(equipoRealIndex, -1)}
+                              disabled={equipoRealIndex === 0}
+                              className="opacity-0 group-hover:opacity-100 transition-all disabled:opacity-10 disabled:cursor-not-allowed"
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.5)', fontSize: '9px', lineHeight: 1, padding: '2px 4px' }}>
+                              ▲
+                            </button>
+                            <button
+                              onClick={() => moverEquipo(equipoRealIndex, 1)}
+                              disabled={equipoRealIndex === equipos.length - 1}
+                              className="opacity-0 group-hover:opacity-100 transition-all disabled:opacity-10 disabled:cursor-not-allowed"
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.5)', fontSize: '9px', lineHeight: 1, padding: '2px 4px' }}>
+                              ▼
+                            </button>
+                          </>
                         )}
                       </div>
                       {eq.categoria !== 'Pasivo' && (
-                        <button onClick={() => eliminarItem(eq.instanceId)} className="absolute right-2 opacity-0 group-hover:opacity-100 p-2 text-white/50 hover:text-red-400 transition-all">
+                        <button onClick={() => eliminarItem(eq.instanceId)} className="absolute left-2 opacity-0 group-hover:opacity-100 p-2 text-white/50 hover:text-red-400 transition-all">
                           <Trash2 size={12} />
                         </button>
                       )}
@@ -874,26 +928,6 @@ export default function App() {
                 </div>
                 <span className="font-black text-white">x{res.totalBandejasVentilacion}</span>
              </div>
-          </div>
-
-          <div className="mt-8 pt-8 border-t border-white/5">
-            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-4 italic">Resumen Activos</p>
-            <div className="space-y-2">
-               <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                     <Server size={14} className="text-emerald-500" />
-                     <span className="font-bold text-slate-300">Equipos Totales</span>
-                  </div>
-                  <span className="text-xs font-black text-emerald-500">x{equipos.length}</span>
-               </div>
-               <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                     <Film size={14} className="text-rose-500" />
-                     <span className="font-bold text-slate-300">Cinema Reference</span>
-                  </div>
-                  <span className="text-xs font-black text-rose-500">x{equipos.filter(e => e.categoria === 'Cinema').length}</span>
-               </div>
-            </div>
           </div>
 
           <div className="mt-auto pt-6">

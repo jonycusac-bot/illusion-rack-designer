@@ -1,3 +1,38 @@
+/* ── DESIGN TOKENS ─────────────────────────────────────── */
+:root {
+  /* Fondos */
+  --bg-app:        #050607;
+  --bg-panel:      #14161a;
+  --bg-highlight:  #14161f;
+  --bg-rack:       #0a0a0a;
+
+  /* Bordes */
+  --border:        #24262b;
+  --border-active: #3a3ee0;
+
+  /* Acento */
+  --accent:        #3a3ee0;
+  --accent-light:  #e0e1fc;
+
+  /* Texto */
+  --text-primary:   #ffffff;
+  --text-secondary: #8a8d94;
+  --text-muted:     #5c5f66;
+  --text-disabled:  #4d5058;
+
+  /* Semánticos */
+  --warning:       #e0993f;
+  --neutral-bg:    #33363d;
+  --neutral-text:  #c4c6cc;
+
+  /* Tipografía */
+  --font-brand:    15px;
+  --font-label:    11px;
+  --font-value:    22px;
+  --font-rack:     12px;
+  --font-help:     12px;
+}
+
 /* Reset y base */
 * {
   margin: 0;
@@ -8,8 +43,8 @@
 html, body {
   height: 100%;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background-color: #020617;
-  color: #f1f5f9;
+  background-color: var(--bg-app);
+  color: var(--text-primary);
   overflow: hidden;
 }
 
