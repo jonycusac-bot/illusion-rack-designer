@@ -731,13 +731,21 @@ export default function App() {
                style={{ backgroundColor: 'var(--bg-rack)', borderColor: '#2a2d35', boxShadow: '0 0 40px rgba(58,62,224,0.15)', outline: '1px solid var(--border)' }}>
             <div className="flex-1 flex flex-col p-1 overflow-y-auto custom-scrollbar">
               {/* Ventiladores */}
-              <div style={{ height: `${PIXELS_PER_U}px`, borderBottom: '1px solid var(--border)' }} className="w-full flex items-center justify-center gap-3 shrink-0">
-                <div className="flex gap-1 opacity-20">{[...Array(8)].map((_, j) => <div key={j} className="w-1 h-3 bg-white rounded-full" />)}</div>
-                <div className="fan-spinning">
-                  <Fan size={16} style={{ color: '#ffffff' }} />
+              <div style={{ 
+                height: `${PIXELS_PER_U}px`, 
+                borderBottom: '1px solid var(--border)',
+                background: 'linear-gradient(90deg, rgba(59, 130, 246, 0.08) 0%, rgba(96, 165, 250, 0.15) 50%, rgba(59, 130, 246, 0.08) 100%)'
+              }} className="w-full flex items-center justify-center gap-3 shrink-0">
+                <div className="flex gap-1">{[...Array(8)].map((_, j) => (
+                  <div key={j} className="w-1 h-3 bg-blue-400 rounded-full" style={{ opacity: 0.3 + (j * 0.08) }} />
+                ))}</div>
+                <div className="fan-animated">
+                  <Fan size={18} />
                 </div>
-                <span className="uppercase" style={{ fontSize: '13px', letterSpacing: '2px', color: '#ffffff', fontWeight: 700 }}>Ventiladores</span>
-                <div className="flex gap-1 opacity-20">{[...Array(8)].map((_, j) => <div key={j} className="w-1 h-3 bg-white rounded-full" />)}</div>
+                <span className="uppercase" style={{ fontSize: '13px', letterSpacing: '2px', color: '#60a5fa', fontWeight: 700 }}>Ventiladores</span>
+                <div className="flex gap-1">{[...Array(8)].map((_, j) => (
+                  <div key={j} className="w-1 h-3 bg-blue-400 rounded-full" style={{ opacity: 0.3 + ((7 - j) * 0.08) }} />
+                ))}</div>
               </div>
               {/* Termostato */}
               <div style={{ height: `${PIXELS_PER_U}px`, backgroundColor: 'var(--neutral-bg)', borderBottom: '2px solid var(--border)' }} className="w-full flex items-center justify-center shrink-0">
