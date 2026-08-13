@@ -731,10 +731,10 @@ export default function App() {
             <div className="flex-1 flex flex-col p-1 overflow-y-auto custom-scrollbar">
               {/* Ventiladores */}
               <div style={{ height: `${PIXELS_PER_U}px`, borderBottom: '1px solid var(--border)' }} className="w-full flex items-center justify-center gap-3 shrink-0">
-                <div className="flex gap-1">{[...Array(8)].map((_, j) => <div key={j} className="w-1 h-3 bg-white rounded-full fan-blade" />)}</div>
-                <Fan size={16} style={{ color: '#ffffff' }} />
+                <div className="flex gap-1 opacity-20">{[...Array(8)].map((_, j) => <div key={j} className="w-1 h-3 bg-white rounded-full" />)}</div>
+                <Fan size={16} style={{ color: '#ffffff' }} className="fan-spinning" />
                 <span className="uppercase" style={{ fontSize: '13px', letterSpacing: '2px', color: '#ffffff', fontWeight: 700 }}>Ventiladores</span>
-                <div className="flex gap-1">{[...Array(8)].map((_, j) => <div key={j} className="w-1 h-3 bg-white rounded-full fan-blade" />)}</div>
+                <div className="flex gap-1 opacity-20">{[...Array(8)].map((_, j) => <div key={j} className="w-1 h-3 bg-white rounded-full" />)}</div>
               </div>
               {/* Termostato */}
               <div style={{ height: `${PIXELS_PER_U}px`, backgroundColor: 'var(--neutral-bg)', borderBottom: '2px solid var(--border)' }} className="w-full flex items-center justify-center shrink-0">

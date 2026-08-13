@@ -4,26 +4,19 @@
   padding: 1rem;
 }
 
-/* Animación de ventilador - líneas girando */
-@keyframes fan-spin {
-  0% { opacity: 0.2; }
-  12.5% { opacity: 1; }
-  25% { opacity: 0.2; }
-  100% { opacity: 0.2; }
+/* Animación de ventilador - icono girando */
+@keyframes fan-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-.fan-blade {
-  animation: fan-spin 1.2s infinite;
+.fan-spinning {
+  animation: fan-rotate 2s linear infinite;
 }
-
-.fan-blade:nth-child(1) { animation-delay: 0s; }
-.fan-blade:nth-child(2) { animation-delay: 0.15s; }
-.fan-blade:nth-child(3) { animation-delay: 0.3s; }
-.fan-blade:nth-child(4) { animation-delay: 0.45s; }
-.fan-blade:nth-child(5) { animation-delay: 0.6s; }
-.fan-blade:nth-child(6) { animation-delay: 0.75s; }
-.fan-blade:nth-child(7) { animation-delay: 0.9s; }
-.fan-blade:nth-child(8) { animation-delay: 1.05s; }
 
 .logo {
   height: 6em;
