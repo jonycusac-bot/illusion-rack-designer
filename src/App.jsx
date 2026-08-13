@@ -65,6 +65,7 @@ export default function App() {
     { id: 'equipo-2u', nombre: 'Equipo 2U', altura: 88, esRackable: true, categoria: 'Otros', consumo: 100, fondo: 350 },
     { id: 'equipo-3u', nombre: 'Equipo 3U', altura: 133, esRackable: true, categoria: 'Otros', consumo: 150, fondo: 400, uOcupadas: 3 },
     { id: 'equipo-4u', nombre: 'Equipo 4U', altura: 177, esRackable: true, categoria: 'Otros', consumo: 200, fondo: 450, uOcupadas: 4 },
+    { id: 'equipo-media-balda', nombre: 'Equipo Media Balda', altura: 44, esRackable: false, categoria: 'Otros', consumo: 25, ancho: 'media', requiereTapaCiega: true, fondo: 150 },
 
     // --- ACCESORIOS ---
     { id: 'placa-ciega-1u', nombre: 'Placa Ciega 1U', altura: 44, esRackable: true, categoria: 'Accesorios', consumo: 0, fondo: 0, esAccesorio: true },
