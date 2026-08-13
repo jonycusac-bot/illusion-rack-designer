@@ -732,7 +732,9 @@ export default function App() {
               {/* Ventiladores */}
               <div style={{ height: `${PIXELS_PER_U}px`, borderBottom: '1px solid var(--border)' }} className="w-full flex items-center justify-center gap-3 shrink-0">
                 <div className="flex gap-1 opacity-20">{[...Array(8)].map((_, j) => <div key={j} className="w-1 h-3 bg-white rounded-full" />)}</div>
-                <Fan size={16} style={{ color: '#ffffff' }} className="fan-spinning" />
+                <div className="fan-spinning">
+                  <Fan size={16} style={{ color: '#ffffff' }} />
+                </div>
                 <span className="uppercase" style={{ fontSize: '13px', letterSpacing: '2px', color: '#ffffff', fontWeight: 700 }}>Ventiladores</span>
                 <div className="flex gap-1 opacity-20">{[...Array(8)].map((_, j) => <div key={j} className="w-1 h-3 bg-white rounded-full" />)}</div>
               </div>
