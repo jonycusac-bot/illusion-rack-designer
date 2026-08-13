@@ -739,9 +739,9 @@ export default function App() {
                 <div className="flex gap-1">{[...Array(8)].map((_, j) => (
                   <div key={j} className="w-1 h-3 bg-blue-400 rounded-full" style={{ opacity: 0.3 + (j * 0.08) }} />
                 ))}</div>
-                <div className="fan-animated">
+                <span className="fan-spin" style={{ color: '#60a5fa', display: 'inline-block' }}>
                   <Fan size={18} />
-                </div>
+                </span>
                 <span className="uppercase" style={{ fontSize: '13px', letterSpacing: '2px', color: '#60a5fa', fontWeight: 700 }}>Ventiladores</span>
                 <div className="flex gap-1">{[...Array(8)].map((_, j) => (
                   <div key={j} className="w-1 h-3 bg-blue-400 rounded-full" style={{ opacity: 0.3 + ((7 - j) * 0.08) }} />

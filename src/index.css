@@ -290,3 +290,18 @@ html, body {
   width: 800px !important; 
   min-width: 800px !important;
 }
+
+/* Animación del ventilador */
+@keyframes fanSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.fan-spin {
+  animation: fanSpin 2s linear infinite;
+  display: inline-block;
+}
