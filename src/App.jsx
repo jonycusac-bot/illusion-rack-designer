@@ -626,7 +626,7 @@ export default function App() {
             <ShieldCheck className="text-white w-5 h-5" />
           </div>
           <h1 style={{ fontSize: 'var(--font-brand)', fontWeight: 500, letterSpacing: '0.5px' }}>
-            Illusion <span style={{ color: 'var(--text-muted)', fontWeight: 300 }}>Rack Designer Pro v2.1</span>
+            Illusion <span style={{ color: '#e0e1e6', fontWeight: 300 }}>Rack Designer Pro v2.1</span>
           </h1>
         </div>
         <div className="flex items-center gap-8" style={{ fontSize: '10px', fontWeight: 700 }}>
