@@ -631,9 +631,9 @@ export default function App() {
         </div>
         <div className="flex items-center gap-8" style={{ fontSize: '10px', fontWeight: 700 }}>
            <div className="flex gap-6">
-              <div className="flex items-center gap-2">
-                 <Thermometer size={14} style={{ color: 'var(--warning)' }} />
-                 <span className="uppercase tracking-tighter" style={{ color: 'var(--warning)' }}>Consumo: {res.consumoTotal}W</span>
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ backgroundColor: 'rgba(224, 153, 63, 0.15)' }}>
+                 <Zap size={16} style={{ color: '#fbbf24' }} />
+                 <span className="uppercase tracking-tight font-extrabold" style={{ color: '#fbbf24', fontSize: '12px' }}>Consumo: {res.consumoTotal}W</span>
               </div>
               <div className="flex items-center gap-2">
                  <Zap size={14} style={{ color: 'var(--accent-light)' }} />
