@@ -3,10 +3,16 @@ cd ruta de la carpeta raiz o sea:
 
 cd C:\Users\Usuario\Desktop\illusion-rack-designer-github
 
+
 npm run dev
 
 
 Abrir  http://localhost:5173
+---------------------------------------------------
+cd C:\Users\Usuario\Desktop\illusion-rack-designer-github
+Claude
+
+git add + git commit + git push
 
 
 La bandeja de ventilacion cada dos sonos Amp es correcto y me gusta el logo del ventilador , pero aparte estas sumando una tapa ciega balda que no haria fata y la eliminamos ,puesto que ya que hemos añadido previamente la bandeja de ventilacion , 
@@ -39,6 +45,14 @@ Poder guardar los proyectos en el disco duro -
 
 
 Listado en Bloc de notas : quitar arandelas y tuercas , solo dejar tornillos.
+
+cd "C:\Users\Usuario\Desktop\illusion-rack-designer-github"
+"C:\Program Files\Git\cmd\git.exe" config user.email "illusion@e-illusion.es"
+"C:\Program Files\Git\cmd\git.exe" config user.name "Illusion"
+"C:\Program Files\Git\cmd\git.exe" add src/App.jsx
+"C:\Program Files\Git\cmd\git.exe" commit -m "feat: drag&drop, placas ciegas unificadas, orden insercion, baldas 1U/reforzada, calculo rack U corregido"
+"C:\Program Files\Git\cmd\git.exe" push origin Racks-1
+
 
 
 
