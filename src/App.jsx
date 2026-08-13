@@ -32,8 +32,8 @@ export default function App() {
     // --- REDES ---
     { id: 'udm-pro', nombre: 'UniFi Dream Machine Pro', altura: 44, esRackable: true, categoria: 'Redes', consumo: 33, requiereEscobilla: true, fondo: 285 },
     { id: 'sw-pro-48', nombre: 'UniFi Switch Pro 48 PoE', altura: 44, esRackable: true, categoria: 'Redes', consumo: 600, requiereEscobilla: true, fondo: 400 },
-    { id: 'sw-ent-24', nombre: 'UniFi Enterprise 24', altura: 44, esRackable: true, categoria: 'Redes', consumo: 400, requiereEscobilla: true, fondo: 320 },
-    { id: 'unifi-router-compact', nombre: 'UniFi Router Compact', altura: 44, esRackable: false, categoria: 'Redes', consumo: 15, ancho: 'media', requiereTapaCiega: true, fondo: 150 },
+    { id: 'sw-ent-24', nombre: 'UniFi Enterprise 24', altura: 44, esRackable: true, categoria: 'Redes', consumo: 450, requiereEscobilla: true, fondo: 320 },
+    { id: 'unifi-router-compact', nombre: 'UniFi Router Compact', altura: 44, esRackable: false, categoria: 'Redes', consumo: 200, ancho: 'media', requiereTapaCiega: true, fondo: 150 },
     
     // --- CONTROL ---
     { id: 'crestron-cp4', nombre: 'Crestron CP4 Control System', altura: 44, esRackable: true, categoria: 'Control', consumo: 15, fondo: 170 },
@@ -45,7 +45,7 @@ export default function App() {
     { id: 'sonance-dsp', nombre: 'Sonance DSP 8-125', altura: 44, esRackable: true, categoria: 'Audio', consumo: 600, fondo: 425, requiereEscobilla: true },
     { id: 'beoamp2', nombre: 'B&O Beoamp2', altura: 44, esRackable: true, categoria: 'Audio', consumo: 300, fondo: 250 },
     { id: 'sonos-port', nombre: 'Sonos Port', altura: 44, esRackable: false, categoria: 'Audio', consumo: 10, ancho: 'media', requiereTapaCiega: true, fondo: 150 },
-    { id: 'sonos-amp', nombre: 'Sonos Amp', altura: 88, esRackable: false, categoria: 'Audio', consumo: 125, ancho: 'media', requiereTapaCiega: true, fondo: 220 },
+    { id: 'sonos-amp', nombre: 'Sonos Amp', altura: 88, esRackable: false, categoria: 'Audio', consumo: 100, ancho: 'media', requiereTapaCiega: true, fondo: 220 },
     { id: 'matrix-audio', nombre: 'Matriz Audio 16x16', altura: 88, esRackable: true, categoria: 'Audio', consumo: 80, fondo: 350 },
     
     // --- VIDEO ---
