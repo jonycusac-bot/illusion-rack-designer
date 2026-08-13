@@ -18,7 +18,8 @@ import {
   Package,
   Download,
   Save,
-  FolderOpen
+  FolderOpen,
+  PlugZap
 } from 'lucide-react';
 
 /**
@@ -636,7 +637,7 @@ export default function App() {
                  <span className="uppercase tracking-tight font-extrabold" style={{ color: '#fbbf24', fontSize: '12px' }}>Consumo: {res.consumoTotal}W</span>
               </div>
               <div className="flex items-center gap-2">
-                 <Zap size={14} style={{ color: 'var(--accent-light)' }} />
+                 <PlugZap size={14} style={{ color: 'var(--accent-light)' }} />
                  <span className="uppercase tracking-tighter" style={{ color: 'var(--accent-light)' }}>PDUs: x{res.numRegletasTraseras}</span>
               </div>
            </div>
