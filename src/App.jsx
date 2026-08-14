@@ -548,6 +548,19 @@ export default function App() {
     
     const numVentiladores = rackRecomendado < 24 ? 1 : 2;
     
+    // Añadir ventilador adicional en medio del rack si supera 24U
+    if (rackRecomendado >= 24 && rackItems.length > 0) {
+      const mitadRack = Math.floor(rackItems.length / 2);
+      const ventiladorAdicional = {
+        instanceId: 'ventilador-adicional-auto',
+        nombre: 'Ventilador Adicional 1U',
+        categoria: 'Ventilacion',
+        uOcupadas: 1,
+        esVentiladorAdicional: true
+      };
+      rackItems.splice(mitadRack, 0, ventiladorAdicional);
+    }
+    
     // Calcular bandejas de ventilación para Sonos Amp
     const bandejasSonosAmp = bloquesBaldas.filter(bloque => bloque.tieneVentilacionArriba).length;
     
@@ -832,6 +845,30 @@ export default function App() {
                             <Fan size={11} className="text-white/40 shrink-0" />PLACA CIEGA 1U
                           </div>
                         )}
+                      </div>
+                    );
+                  }
+
+                  // ── VENTILADOR ADICIONAL (automático en racks >24U) ────
+                  if (item.esVentiladorAdicional) {
+                    return (
+                      <div key={item.instanceId} 
+                           style={{ 
+                             height: `${PIXELS_PER_U}px`,
+                             background: 'linear-gradient(90deg, rgba(59, 130, 246, 0.08) 0%, rgba(96, 165, 250, 0.15) 50%, rgba(59, 130, 246, 0.08) 100%)',
+                             borderBottom: '1px solid var(--border)'
+                           }} 
+                           className="w-full flex items-center justify-center gap-3">
+                        <div className="flex gap-1">{[...Array(8)].map((_, j) => (
+                          <div key={j} className="w-1 h-3 bg-blue-400 rounded-full" style={{ opacity: 0.3 + (j * 0.08) }} />
+                        ))}</div>
+                        <span className="fan-spin" style={{ color: '#60a5fa', display: 'inline-block' }}>
+                          <Fan size={18} />
+                        </span>
+                        <span className="uppercase" style={{ fontSize: '13px', letterSpacing: '2px', color: '#60a5fa', fontWeight: 700 }}>Ventilador</span>
+                        <div className="flex gap-1">{[...Array(8)].map((_, j) => (
+                          <div key={j} className="w-1 h-3 bg-blue-400 rounded-full" style={{ opacity: 0.3 + ((7 - j) * 0.08) }} />
+                        ))}</div>
                       </div>
                     );
                   }
