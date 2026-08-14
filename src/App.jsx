@@ -368,8 +368,9 @@ export default function App() {
 🌡️ VENTILACIÓN Y CLIMATIZACIÓN:
 ═══════════════════════════════════════════════════════════════════════════════════════
 • Termostato digital: x1 (incluido)
-• Ventiladores superiores: x${res.rackRecomendado < 24 ? 1 : 2}
-  └─ Según altura del rack
+• Ventilador superior: x1${res.rackRecomendado >= 24 ? `
+• Ventilador intermedio: x1` : ''}
+  └─ ${res.rackRecomendado < 24 ? 'Rack menor a 24U: solo ventilador superior' : 'Rack ≥24U: ventilador superior + intermedio'}
 
 ═══════════════════════════════════════════════════════════════════════════════════════
 📦 RESUMEN DE CANTIDADES:
@@ -398,7 +399,14 @@ export default function App() {
 
     contenido += `
 │ Termostato digital                  │    x1    │
-│ Ventiladores                        │    x${res.rackRecomendado < 24 ? 1 : 2}    │
+│ Ventilador superior                 │    x1    │`;
+    
+    if (res.rackRecomendado >= 24) {
+      contenido += `
+│ Ventilador intermedio               │    x1    │`;
+    }
+
+    contenido += `
 └─────────────────────────────────────┴──────────┘
 
 ═══════════════════════════════════════════════════════════════════════════════════════
@@ -408,11 +416,12 @@ export default function App() {
 • Los Patch Panels se calculan automáticamente con routers UniFi
 • Regletas PDU: distribuir uniformemente en la parte trasera
 • Termostato: instalar en la parte superior del rack
-• Ventiladores: según altura del rack (1 para <24U, 2 para ≥24U)
+• Ventiladores: rack <24U solo superior, rack ≥24U superior + intermedio
 • Consumo total: ${res.consumoTotal}W — requiere ${res.numLineasElectricas} línea${res.numLineasElectricas > 1 ? 's' : ''} eléctrica${res.numLineasElectricas > 1 ? 's' : ''} de 2,5 mm²
 
 ═══════════════════════════════════════════════════════════════════════════════════════
 🏢 GENERADO POR: Illusion Rack Designer Pro v2.0.0
+
 📧 CONTACTO: info@e-illusion.es
 🌐 WEB: http://www.illusion.es
 ═══════════════════════════════════════════════════════════════════════════════════════
