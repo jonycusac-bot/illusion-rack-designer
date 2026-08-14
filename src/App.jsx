@@ -930,68 +930,68 @@ export default function App() {
         </section>
 
         <aside className="w-[410px] bg-slate-900/40 border-l border-white/5 flex flex-col shrink-0 p-6 overflow-y-auto custom-scrollbar text-[11px]">
-          <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-6 italic">Configuración Técnica</p>
+          <p className="text-[11px] font-black text-slate-300 uppercase tracking-widest mb-6">Configuración Técnica</p>
           <div className="space-y-3">
              <div className="flex justify-between p-3 bg-white/5 rounded-xl border border-white/5">
                 <div className="flex items-center gap-2">
-                   <LayoutList size={14} className="text-slate-400" />
-                   <span className="text-slate-500 font-bold uppercase text-[9px]">U Frontales Ocupadas</span>
+                   <LayoutList size={14} className="text-slate-300" />
+                   <span className="text-slate-200 font-bold uppercase text-[10px]">U Frontales Ocupadas</span>
                 </div>
                 <span className="font-black text-white">{res.totalUNecesariasFrontales} U</span>
              </div>
              <div className="flex justify-between p-3 bg-white/5 rounded-xl border border-white/5">
                 <div className="flex items-center gap-2">
-                   <Zap size={14} className="text-slate-400" />
-                   <span className="text-slate-500 font-bold uppercase text-[9px]">Regletas (Traseras)</span>
+                   <Zap size={14} className="text-slate-300" />
+                   <span className="text-slate-200 font-bold uppercase text-[10px]">Regletas (Traseras)</span>
                 </div>
                 <span className="font-black text-white">x{res.numRegletasTraseras}</span>
              </div>
              <div className="flex justify-between p-3 bg-white/5 rounded-xl border border-white/5">
                 <div className="flex items-center gap-2">
-                   <Cable size={14} className="text-slate-400" />
-                   <span className="text-slate-500 font-bold uppercase text-[9px]">Pasacables (Posterior)</span>
+                   <Cable size={14} className="text-slate-300" />
+                   <span className="text-slate-200 font-bold uppercase text-[10px]">Pasacables (Posterior)</span>
                 </div>
                 <span className="font-black text-white">x{res.pasacablesTraseros}</span>
              </div>
              <div className="flex justify-between p-3 bg-white/5 rounded-xl border border-white/5">
                 <div className="flex items-center gap-2">
-                   <Fan size={14} className="text-slate-400" />
-                   <span className="text-slate-500 font-bold uppercase text-[9px]">Placas Ciegas</span>
+                   <Fan size={14} className="text-slate-300" />
+                   <span className="text-slate-200 font-bold uppercase text-[10px]">Placas Ciegas</span>
                 </div>
                 <span className="font-black text-white">x{res.numPlacasCiegas}</span>
              </div>
              <div className="flex justify-between p-3 bg-white/5 rounded-xl border border-white/5">
                 <div className="flex items-center gap-2">
-                   <Cable size={14} className="text-slate-400" />
-                   <span className="text-slate-500 font-bold uppercase text-[9px]">Escobillas</span>
+                   <Cable size={14} className="text-slate-300" />
+                   <span className="text-slate-200 font-bold uppercase text-[10px]">Escobillas</span>
                 </div>
                 <span className="font-black text-white">x{res.numEscobillas}</span>
              </div>
              <div className="flex justify-between p-3 bg-white/5 rounded-xl border border-white/5">
                 <div className="flex items-center gap-2">
-                   <LayoutList size={14} className="text-slate-400" />
-                   <span className="text-slate-500 font-bold uppercase text-[9px]">Baldas 1U</span>
+                   <LayoutList size={14} className="text-slate-300" />
+                   <span className="text-slate-200 font-bold uppercase text-[10px]">Baldas 1U</span>
                 </div>
                 <span className="font-black text-white">x{res.numBaldas1U}</span>
              </div>
              <div className="flex justify-between p-3 bg-white/5 rounded-xl border border-white/5">
                 <div className="flex items-center gap-2">
-                   <LayoutList size={14} className="text-slate-400" />
-                   <span className="text-slate-500 font-bold uppercase text-[9px]">Balda Reforzada</span>
+                   <LayoutList size={14} className="text-slate-300" />
+                   <span className="text-slate-200 font-bold uppercase text-[10px]">Balda Reforzada</span>
                 </div>
                 <span className="font-black text-white">x{res.numBaldasReforzadas}</span>
              </div>
              <div className="flex justify-between p-3 bg-white/5 rounded-xl border border-white/5">
                 <div className="flex items-center gap-2">
-                   <Settings size={14} className="text-slate-400" />
-                   <span className="text-slate-500 font-bold uppercase text-[9px]">Tornillería</span>
+                   <Settings size={14} className="text-slate-300" />
+                   <span className="text-slate-200 font-bold uppercase text-[10px]">Tornillería</span>
                 </div>
                 <span className="font-black text-white">x{res.numTornillos}</span>
              </div>
              <div className="flex justify-between p-3 bg-white/5 rounded-xl border border-white/5">
                 <div className="flex items-center gap-2">
-                   <Cable size={14} className="text-slate-400" />
-                   <span className="text-slate-500 font-bold uppercase text-[9px]">Patch Panels (Auto)</span>
+                   <Cable size={14} className="text-slate-300" />
+                   <span className="text-slate-200 font-bold uppercase text-[10px]">Patch Panels (Auto)</span>
                 </div>
                 <span className="font-black text-white">x{equipos.filter(e => e.esAutomatico).length}</span>
              </div>
