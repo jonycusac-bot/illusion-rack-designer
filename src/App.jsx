@@ -375,39 +375,39 @@ export default function App() {
 ═══════════════════════════════════════════════════════════════════════════════════════
 📦 RESUMEN DE CANTIDADES:
 ═══════════════════════════════════════════════════════════════════════════════════════
-┌─────────────────────────────────────┬──────────┐
-│ ELEMENTO                            │ CANTIDAD │
-├─────────────────────────────────────┼──────────┤
-│ Rack ${res.rackRecomendado}U                    │    x1    │
-│ Regletas PDU                        │    x${res.numRegletasTraseras}    │
-│ Líneas eléctricas 2,5 mm²           │    x${res.numLineasElectricas}    │
-│ Magnetotérmicos 16A                 │    x${res.numLineasElectricas}    │
-│ Diferenciales 40A/30mA              │    x${res.numLineasElectricas}    │
-│ Pasacables posteriores              │    x${res.pasacablesTraseros}    │
-│ Escobillas pasacables               │    x${res.numEscobillas}    │
-│ Patch Panels automáticos            │    x${equipos.filter(e => e.esAutomatico).length}    │
-│ Tornillos M6                        │    x${res.numTornillos}   │`;
+┌─────────────────────────────────────┬──────────┬──────────────┐
+│ ELEMENTO                            │ CANTIDAD │ CÓDIGO ODDO  │
+├─────────────────────────────────────┼──────────┼──────────────┤
+│ Rack ${res.rackRecomendado}U                         │    x1    │    xxxxx     │
+│ Regletas PDU                        │    x${res.numRegletasTraseras}    │    xxxxx     │
+│ Líneas eléctricas 2,5 mm²           │    x${res.numLineasElectricas}    │    xxxxx     │
+│ Magnetotérmicos 16A                 │    x${res.numLineasElectricas}    │    xxxxx     │
+│ Diferenciales 40A/30mA              │    x${res.numLineasElectricas}    │    xxxxx     │
+│ Pasacables posteriores              │    x${res.pasacablesTraseros}    │    xxxxx     │
+│ Escobillas pasacables               │    x${res.numEscobillas}    │    xxxxx     │
+│ Patch Panels automáticos            │    x${equipos.filter(e => e.esAutomatico).length}    │    xxxxx     │
+│ Tornillos M6                        │    x${res.numTornillos}   │    xxxxx     │`;
 
     if (res.numBaldas1U > 0) {
       contenido += `
-│ Baldas 1U                           │    x${res.numBaldas1U}    │`;
+│ Baldas 1U                           │    x${res.numBaldas1U}    │    xxxxx     │`;
     }
     if (res.numBaldasReforzadas > 0) {
       contenido += `
-│ Baldas reforzadas                   │    x${res.numBaldasReforzadas}    │`;
+│ Baldas reforzadas                   │    x${res.numBaldasReforzadas}    │    xxxxx     │`;
     }
 
     contenido += `
-│ Termostato digital                  │    x1    │
-│ Ventilador superior                 │    x1    │`;
+│ Termostato digital                  │    x1    │    xxxxx     │
+│ Ventilador superior                 │    x1    │    xxxxx     │`;
     
     if (res.rackRecomendado >= 24) {
       contenido += `
-│ Ventilador intermedio               │    x1    │`;
+│ Ventilador intermedio               │    x1    │    xxxxx     │`;
     }
 
     contenido += `
-└─────────────────────────────────────┴──────────┘
+└─────────────────────────────────────┴──────────┴──────────────┘
 
 ═══════════════════════════════════════════════════════════════════════════════════════
 📝 NOTAS PARA EL INSTALADOR:
