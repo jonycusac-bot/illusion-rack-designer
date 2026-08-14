@@ -955,7 +955,7 @@ export default function App() {
              </div>
              <div className="flex justify-between p-3 bg-white/5 rounded-xl border border-white/5">
                 <div className="flex items-center gap-2">
-                   <Fan size={14} className="text-slate-300" />
+                   <LayoutList size={14} className="text-slate-300" />
                    <span className="text-slate-200 font-bold uppercase text-[10px]">Placas Ciegas</span>
                 </div>
                 <span className="font-black text-white">x{res.numPlacasCiegas}</span>
