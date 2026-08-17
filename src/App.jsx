@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Plus, Trash2, RotateCcw, 
   ChevronDown, LayoutList, 
@@ -19,8 +19,152 @@ import {
   Download,
   Save,
   FolderOpen,
-  PlugZap
+  FileText,
+  X,
+  Check,
+  Edit3,
+  BookOpen,
+  ArrowRight,
+  ArrowLeft,
+  Sparkles,
+  HelpCircle,
+  CheckCircle2,
+  Layers,
+  ArrowUpDown
 } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+
+// Icono Enchufe / Toma Schuko Redondeada (Estilo Flaticon 62931)
+const RoundedSocketIcon = ({ size = 15, className = "text-indigo-400" }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <circle cx="12" cy="12" r="9.5" />
+    <circle cx="8.5" cy="12" r="1.5" fill="currentColor" stroke="none" />
+    <circle cx="15.5" cy="12" r="1.5" fill="currentColor" stroke="none" />
+    <path d="M12 2.5v2.5M12 19v2.5" strokeWidth="2.2" />
+  </svg>
+);
+
+const EscobaIcon = ({ size = 15, className = "" }) => (
+  <svg 
+    width={size} 
+    height={size} 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    className={className}
+  >
+    {/* Mango de la escobilla / Brush handle */}
+    <path d="M19 4L13 10" />
+    <path d="M16 2L22 8" />
+    {/* Base y cabezal del cepillo */}
+    <path d="M8 12L15 15L12 18L5 15Z" fill="currentColor" fillOpacity="0.25" />
+    {/* Cerdas densas / Brush bristles */}
+    <path d="M6 16L3 21" />
+    <path d="M8 16.5L6 22" />
+    <path d="M10 17L9 22" />
+    <path d="M12 17.5L12 22" />
+    <path d="M14 16.5L15 21" />
+  </svg>
+);
+
+// ── LOGOS DE MARCA VECTORIALES EN MINIATURA ──────────────────────
+const BrandLogo = ({ brand, size = 12, className = "" }) => {
+  if (!brand) return null;
+  const b = brand.toLowerCase();
+  
+  // LOGO APPLE
+  if (b.includes('apple')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 170 170" fill="currentColor" className={`shrink-0 ${className}`}>
+        <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.7-3.04-7.6-7.8-11.71-14.28-5.44-8.68-9.74-18.91-12.91-30.68-3.16-11.77-4.75-23.01-4.75-33.72 0-14.54 3.73-26.65 11.2-36.34 7.46-9.69 16.9-14.65 28.32-14.88 4.9.11 10.1 1.25 15.6 3.42 5.51 2.18 9.38 3.32 11.63 3.44 1.9-.23 5.92-1.42 12.06-3.56 6.13-2.14 11.39-3.08 15.77-2.82 12.2.65 21.84 5.38 28.91 14.2-10.66 6.42-15.88 15.4-15.66 26.94.22 9.03 3.65 16.57 10.3 22.61 6.64 6.04 14.57 9.4 23.77 10.08-2.28 6.74-4.89 13.54-7.83 20.41zM119.22 31.84c0-7.39 2.67-14.25 8.01-20.59 5.34-6.33 11.96-10.23 19.86-11.7.98 7.39-1.47 14.47-7.35 21.24-5.88 6.78-12.72 10.46-20.52 11.05z" />
+      </svg>
+    );
+  }
+
+  // LOGO UNIFI
+  if (b.includes('unifi') || b.includes('ubiquiti')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={`shrink-0 ${className}`}>
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 15c-2.76 0-5-2.24-5-5V7h2.5v5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V7H17v5c0 2.76-2.24 5-5 5z" />
+      </svg>
+    );
+  }
+
+  // LOGO BANG & OLUFSEN (B&O)
+  if (b.includes('b&o') || b.includes('beo') || b.includes('bang')) {
+    return (
+      <span className={`inline-flex items-center justify-center font-black tracking-tight text-[8px] px-1 py-0.2 rounded bg-white/20 text-white shrink-0 leading-none ${className}`}>
+        B&amp;O
+      </span>
+    );
+  }
+
+  // LOGO SONOS
+  if (b.includes('sonos')) {
+    return (
+      <span className={`inline-flex items-center justify-center font-black tracking-wider text-[7px] px-1 py-0.2 rounded bg-white/20 text-white shrink-0 leading-none ${className}`}>
+        SONOS
+      </span>
+    );
+  }
+
+  // LOGO CRESTRON
+  if (b.includes('crestron')) {
+    return (
+      <span className={`inline-flex items-center justify-center font-black tracking-wider text-[7px] px-1 py-0.2 rounded bg-white/20 text-white shrink-0 leading-none ${className}`}>
+        CRESTRON
+      </span>
+    );
+  }
+
+  // LOGO D-LINK
+  if (b.includes('d-link') || b.includes('dlink')) {
+    return (
+      <span className={`inline-flex items-center justify-center font-black tracking-tight text-[7px] px-1 py-0.2 rounded bg-emerald-500/20 text-emerald-300 shrink-0 leading-none border border-emerald-500/30 ${className}`}>
+        D-Link
+      </span>
+    );
+  }
+
+  // LOGO TP-LINK
+  if (b.includes('tp-link') || b.includes('tplink')) {
+    return (
+      <span className={`inline-flex items-center justify-center font-black tracking-tight text-[7px] px-1 py-0.2 rounded bg-cyan-500/20 text-cyan-300 shrink-0 leading-none border border-cyan-500/30 ${className}`}>
+        TP-Link
+      </span>
+    );
+  }
+
+  return null;
+};
+
+// Función auxiliar para detectar la marca según el nombre o id
+const getBrandForEquipment = (item) => {
+  if (!item) return null;
+  const str = `${item.id || ''} ${item.nombre || ''}`.toLowerCase();
+  if (str.includes('apple') || str.includes('appletv')) return 'apple';
+  if (str.includes('unifi') || str.includes('ubiquiti')) return 'unifi';
+  if (str.includes('b&o') || str.includes('beo') || str.includes('bang')) return 'b&o';
+  if (str.includes('sonos')) return 'sonos';
+  if (str.includes('crestron')) return 'crestron';
+  if (str.includes('dlink') || str.includes('d-link')) return 'd-link';
+  if (str.includes('tplink') || str.includes('tp-link')) return 'tp-link';
+  return null;
+};
 
 /**
  * RackDesignerPro - Versión Cinema & Gestión de Cables
@@ -28,57 +172,513 @@ import {
  * Lógica PDU: 1 por cada 3.500W de consumo o 1 cada 6 equipos (el mayor).
  */
 
+const CATALOGO_EQUIPOS = [
+  // --- REDES ---
+  { id: 'udm-pro', nombre: 'UniFi Dream Machine Pro', altura: 44, esRackable: true, categoria: 'Redes', consumo: 33, requiereEscobilla: true, fondo: 285 },
+  { id: 'sw-pro-48', nombre: 'UniFi Switch Pro 48 PoE', altura: 44, esRackable: true, categoria: 'Redes', consumo: 600, requiereEscobilla: true, fondo: 400 },
+  { id: 'sw-ent-24', nombre: 'UniFi Enterprise 24', altura: 44, esRackable: true, categoria: 'Redes', consumo: 450, requiereEscobilla: true, fondo: 320 },
+  { id: 'unifi-router-compact', nombre: 'UniFi Router Compact', altura: 44, esRackable: false, categoria: 'Redes', consumo: 200, ancho: 'media', requiereTapaCiega: true, fondo: 150 },
+  { id: 'switch-8p-dlink', nombre: 'Switch 8p D-Link', altura: 44, esRackable: false, categoria: 'Redes', consumo: 10, ancho: 'media', requiereTapaCiega: true, fondo: 120 },
+  
+  // --- CONTROL ---
+  { id: 'crestron-cp4', nombre: 'Crestron CP4', altura: 44, esRackable: true, categoria: 'Control', consumo: 15, fondo: 170 },
+  { id: 'crestron-rmc4', nombre: 'Crestron RMC4', altura: 44, esRackable: false, categoria: 'Control', consumo: 10, ancho: 'media', requiereTapaCiega: true, fondo: 120 },
+  { id: 'beoliving', nombre: 'Beoliving Intelligence', altura: 44, esRackable: false, categoria: 'Control', consumo: 20, ancho: 'media', requiereTapaCiega: true, fondo: 200 },
+  
+  // --- AUDIO (Ordenado Alfabéticamente) ---
+  { id: 'beoamp2', nombre: 'B&O Beoamp2', altura: 44, esRackable: true, categoria: 'Audio', consumo: 300, fondo: 250 },
+  { id: 'beocore', nombre: 'BeoCore (B&O)', altura: 44, esRackable: false, categoria: 'Audio', consumo: 50, fondo: 310, ancho: 'media', requiereTapaCiega: true },
+  { id: 'matrix-audio', nombre: 'Matriz Audio 16x16', altura: 88, esRackable: true, categoria: 'Audio', consumo: 80, fondo: 350 },
+  { id: 'sonance-dsp', nombre: 'Sonance DSP 8-125', altura: 44, esRackable: true, categoria: 'Audio', consumo: 600, fondo: 425, requiereEscobilla: true },
+  { id: 'sonos-amp', nombre: 'Sonos Amp', altura: 88, esRackable: false, categoria: 'Audio', consumo: 100, ancho: 'media', requiereTapaCiega: true, fondo: 220 },
+  { id: 'sonos-amp-multi', nombre: 'Sonos Amp Multi', altura: 88, esRackable: true, categoria: 'Audio', consumo: 200, fondo: 220, uOcupadas: 2 },
+  { id: 'sonos-port', nombre: 'Sonos Port', altura: 44, esRackable: false, categoria: 'Audio', consumo: 10, ancho: 'media', requiereTapaCiega: true, fondo: 150 },
+  
+  // --- VIDEO ---
+  { id: 'apple-tv', nombre: 'Apple TV 4K', altura: 35, esRackable: false, categoria: 'Video', consumo: 6, requiereTapaCiega: true, ancho: 'media', fondo: 93 },
+  { id: 'kaleidescape', nombre: 'Kaleidescape Strato', altura: 44, esRackable: true, categoria: 'Video', consumo: 30, fondo: 250 },
+  { id: 'receptor-sat', nombre: 'Receptor Sat', altura: 44, esRackable: false, categoria: 'Video', consumo: 15, ancho: 'media', requiereTapaCiega: true, fondo: 150 },
+  
+  // --- CINEMA ---
+  { id: 'marantz-av', nombre: 'Marantz AV Processor', altura: 177, esRackable: true, categoria: 'Cinema', consumo: 800, fondo: 411, uOcupadas: 4 },
+  { id: 'integra-drx', nombre: 'Integra DRX Series', altura: 177, esRackable: true, categoria: 'Cinema', consumo: 850, fondo: 390, uOcupadas: 4 },
+  { id: 'audiocontrol-av', nombre: 'AudioControl Maestro', altura: 177, esRackable: true, categoria: 'Cinema', consumo: 850, fondo: 420, uOcupadas: 4 },
+
+  // --- ENERGÍA ---
+  { id: 'ups-apc', nombre: 'SAI APC Smart-UPS 1500', altura: 88, esRackable: true, categoria: 'Energía', consumo: 0, fondo: 457 },
+
+  // --- OTROS ---
+  { id: 'equipo-1u', nombre: 'Equipo 1U', altura: 44, esRackable: true, categoria: 'Otros', consumo: 50, fondo: 300 },
+  { id: 'equipo-2u', nombre: 'Equipo 2U', altura: 88, esRackable: true, categoria: 'Otros', consumo: 100, fondo: 350 },
+  { id: 'equipo-3u', nombre: 'Equipo 3U', altura: 133, esRackable: true, categoria: 'Otros', consumo: 150, fondo: 400, uOcupadas: 3 },
+  { id: 'equipo-4u', nombre: 'Equipo 4U', altura: 177, esRackable: true, categoria: 'Otros', consumo: 200, fondo: 450, uOcupadas: 4 },
+  { id: 'equipo-media-balda', nombre: 'Equipo Media Balda', altura: 44, esRackable: false, categoria: 'Otros', consumo: 25, ancho: 'media', requiereTapaCiega: true, fondo: 150 },
+
+  // --- ACCESORIOS ---
+  { id: 'placa-ciega-1u', nombre: 'Placa Ciega 1U', altura: 44, esRackable: true, categoria: 'Accesorios', consumo: 0, fondo: 0, esAccesorio: true },
+  { id: 'placa-ciega-2u', nombre: 'Placa Ciega 2U', altura: 88, esRackable: true, categoria: 'Accesorios', consumo: 0, fondo: 0, uOcupadas: 2, esAccesorio: true },
+  { id: 'escobilla-acc', nombre: 'Escobilla', altura: 44, esRackable: true, categoria: 'Accesorios', consumo: 0, fondo: 0, esAccesorio: true, esEscobillaMaual: true },
+  { id: 'pasacables-acc', nombre: 'Pasacables', altura: 44, esRackable: true, categoria: 'Accesorios', consumo: 0, fondo: 100, esAccesorio: true },
+  { id: 'regleta-acc', nombre: 'Regleta de conexión', altura: 44, esRackable: true, categoria: 'Accesorios', consumo: 0, fondo: 150, esAccesorio: true },
+];
+
+const UNIDAD_RACK_MM = 44.45;
+const PIXELS_PER_U = 50; 
+// Modelos oficiales de rack marca Excell: 9U, 15U, 20U, 24U, 33U, 42U y 47U
+const RACKS_COMERCIALES = [9, 15, 20, 24, 33, 42, 47];
+
+const PASOS_GUIA = [
+  {
+    id: 'pestanas',
+    titulo: 'Pestañas y Categorías',
+    icono: LayoutList,
+    color: '#38bdf8',
+    badge: '1. Catálogo',
+    subtitulo: 'Explora y filtra equipos organizados por familias de sistemas',
+    descripcion: 'La barra lateral izquierda contiene el catálogo técnico de equipos Illusion organizados en 8 pestañas especializadas.',
+    puntos: [
+      'Haz clic sobre cualquier pestaña (Redes, Control, Audio, Video, Cinema, Energía, Otros, Accesorios) para desplegar u ocultar sus componentes.',
+      'Los equipos se ordenan de forma alfabética para facilitar una búsqueda instantánea.',
+      'Sistema de Auto-replegado: Las categorías se repliegan automáticamente tras unos segundos de inactividad para mantener la interfaz siempre limpia y optimizada.'
+    ],
+    ejemplo: 'Redes (UniFi, D-Link, Routers), Control (Crestron, Lutron), Audio (Sonos Amp, B&O, Triad), Video (Apple TV, Matrices), Cinema (Marantz, Integra), Accesorios (Pasacables, Regletas, Escobillas).'
+  },
+  {
+    id: 'anadir',
+    titulo: 'Cómo Añadir Equipos',
+    icono: Plus,
+    color: '#4ade80',
+    badge: '2. Inserción',
+    subtitulo: 'Monta equipos en el rack con 1 solo clic y agrupación automática',
+    descripcion: 'Añadir elementos al bastidor es inmediato y cuenta con algoritmos de posicionamiento profesional.',
+    puntos: [
+      'Haz clic en el botón circular con el icono "+" o sobre la tarjeta del equipo en la librería.',
+      'Auto-agrupación de Media Balda (1/2 U): Equipos compactos como Sonos Amp, UniFi Router Compact o Switch 8p D-Link se emparejan automáticamente de 2 en 2 en bandejas 1U.',
+      'Ventilación Superior Automática: El sistema inserta rejillas de ventilación de 1U sobre las bandejas térmicas de Sonos Amp.',
+      'Feedback Acústico: Cada equipo añadido reproduce un tono ascendente de confirmación.'
+    ],
+    ejemplo: 'Al pulsar sobre "Sonos Amp", si ya hay uno solo en balda, el nuevo se colocará a su derecha ocupando la misma unidad 1U.'
+  },
+  {
+    id: 'reordenar',
+    titulo: 'Desplazar Equipos (Arriba / Abajo)',
+    icono: ArrowUpDown,
+    color: '#818cf8',
+    badge: '3. Reordenación',
+    subtitulo: 'Ajusta la posición de tus equipos y ventilación intermedia',
+    descripcion: 'Puedes reubicar la altura de cualquier equipo y ventilador intermedio en el rack:',
+    puntos: [
+      'Método 1 (Botones de Flechas ▲ / ▼): Pasa el ratón (hover) sobre cualquier equipo o usa las flechas del Ventilador Intermedio para subir o bajar su posición en el bastidor.',
+      'Método 2 (Arrastrar y Soltar / Drag & Drop): Haz clic sostenido sobre cualquier equipo y arrástralo verticalmente a la posición deseada.',
+      'La escala métrica en U (de 1U a 47U) se renumera al vuelo asegurando coherencia visual.'
+    ],
+    ejemplo: 'Usa las flechas para desplazar el ventilador intermedio justo encima o debajo de los equipos que mayor calor disipan.'
+  },
+  {
+    id: 'eliminar',
+    titulo: 'Eliminar y Reiniciar',
+    icono: Trash2,
+    color: '#f87171',
+    badge: '4. Gestión',
+    subtitulo: 'Retira elementos individuales o vacía el rack por completo',
+    descripcion: 'Gestiona la retirada de componentes con total seguridad y rapidez:',
+    puntos: [
+      'Eliminación individual: Pasa el cursor sobre el equipo que deseas retirar en el rack y pulsa el icono de papelera roja.',
+      'Sonido de borrado: Escucharás un suave tono descendente confirmando la extracción del equipo.',
+      'Reiniciar Rack (↺): Pulsa el botón de reinicio en la barra superior para limpiar todos los equipos y comenzar un nuevo diseño desde cero.'
+    ],
+    ejemplo: 'Al borrar un equipo de una balda doble, la balda se reorganiza automáticamente o se libera la unidad U.'
+  },
+  {
+    id: 'guardar',
+    titulo: 'Guardar y Cargar Proyectos',
+    icono: Save,
+    color: '#fbbf24',
+    badge: '5. Proyectos',
+    subtitulo: 'Asigna nombres y almacena múltiples configuraciones de rack',
+    descripcion: 'Todos tus diseños se guardan de forma permanente en la memoria de tu navegador:',
+    puntos: [
+      'Nombrar y Guardar: Haz clic en el nombre del proyecto en la barra superior o en el botón de guardar (💾).',
+      'Escribe el nombre de tu instalación (ej: "Rack Villa Sol", "Rack Principal 42U") y pulsa "Guardar Proyecto".',
+      'Cargar Proyectos: Pasa el ratón por el icono de carpeta (📂) para desplegar el historial de proyectos guardados y abrirlos al instante.'
+    ],
+    ejemplo: 'El nombre asignado se imprimirá como encabezado oficial en el informe PDF de materiales.'
+  },
+  {
+    id: 'descargar',
+    titulo: 'Descargar Lista de Materiales (PDF)',
+    icono: Download,
+    color: '#a855f7',
+    badge: '6. Informe Oficial',
+    subtitulo: 'Genera el informe técnico de ingeniería para instaladores y clientes',
+    descripcion: 'Exporta un informe técnico completo en formato PDF con diseño corporativo Illusion:',
+    puntos: [
+      'Pulsa el botón "Descargar Materiales de Rack (PDF)" ubicado al pie del panel lateral derecho.',
+      'Tabla 1 (Materiales): Cómputo de rack recomendado, regletas PDU traseras, pasacables, regletas frontales, baldas 1U y reforzadas, tornillería M6 y ventiladores.',
+      'Tabla 2 (Equipos): Desglose de todos los equipos instalados con categoría, altura en U, consumo en W y cantidades.',
+      'Prescripción Eléctrica: Cálculo exacto de líneas de 2,5 mm², magnetotérmicos de 16A y diferenciales 40A/30mA.'
+    ],
+    ejemplo: 'El PDF incluye membrete oficial, fecha y numeración de páginas listo para presupuesto o dirección de obra.'
+  },
+  {
+    id: 'consumo',
+    titulo: 'Consumo y Dimensionamiento',
+    icono: Zap,
+    color: '#eab308',
+    badge: '7. Cálculo',
+    subtitulo: 'Supervisa la potencia eléctrica y el tamaño comercial de rack',
+    descripcion: 'El motor de cálculo analiza en tiempo real todas las variables de la instalación:',
+    puntos: [
+      'Indicador de Consumo (W): Muestra la potencia total acumulada en la barra superior.',
+      'Rack Recomendado: Sugiere el tamaño comercial Excell óptimo (9U, 15U, 20U, 24U, 33U, 42U o 47U) con ventilador intermedio automático en modelos superiores a 24U (33U, 42U y 47U).',
+      'Distribución Eléctrica: Calcula las PDUs traseras a razón de 1 regleta cada 8 tomas y las líneas de protección necesarias.'
+    ],
+    ejemplo: 'Si superas los 3680W, el sistema te recomendará automáticamente 2 o más líneas de alimentación independientes.'
+  }
+];
+
+let sharedAudioCtx = null;
+
+const initOrResumeAudio = () => {
+  try {
+    if (!sharedAudioCtx) {
+      const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtxClass) {
+        sharedAudioCtx = new AudioCtxClass();
+      }
+    }
+    if (sharedAudioCtx && sharedAudioCtx.state === 'suspended') {
+      sharedAudioCtx.resume().catch(() => {});
+    }
+  } catch (e) {
+    console.warn('AudioContext init error:', e);
+  }
+  return sharedAudioCtx;
+};
+
+// Sonido de clic sutil y agradable al añadir equipo
+const playClickSound = () => {
+  try {
+    const ctx = initOrResumeAudio();
+    if (!ctx) return;
+    
+    // Si sigue suspendido, reanudar
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(550, now);
+    osc.frequency.exponentialRampToValueAtTime(1050, now + 0.05);
+
+    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.09);
+  } catch (e) {
+    console.warn('Audio click error:', e);
+  }
+};
+
+// Sonido de eliminación sutil al retirar equipo
+const playDeleteSound = () => {
+  try {
+    const ctx = initOrResumeAudio();
+    if (!ctx) return;
+
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(460, now);
+    osc.frequency.exponentialRampToValueAtTime(160, now + 0.08);
+
+    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.1);
+  } catch (e) {
+    console.warn('Audio delete error:', e);
+  }
+};
+
+let instanceCounter = 0;
+const createInstanceId = () => `inst_${Date.now()}_${++instanceCounter}`;
+
+const createNewEquiposList = (prevEquipos, item) => {
+  const uCalculadas = item.uOcupadas || Math.ceil(item.altura / UNIDAD_RACK_MM);
+  const now = Date.now();
+  const nuevoItem = { 
+    ...item, 
+    instanceId: createInstanceId(), 
+    uOcupadas: uCalculadas,
+    timestamp: now
+  };
+  
+  if (item.id.includes('udm') || item.id.includes('sw-')) {
+    const patchPanel = {
+      id: 'patch-panel-auto',
+      nombre: 'Patch Panel (Auto)',
+      altura: 44,
+      esRackable: true,
+      categoria: 'Redes',
+      consumo: 0,
+      requiereEscobilla: false,
+      fondo: 200,
+      instanceId: createInstanceId(),
+      uOcupadas: 1,
+      timestamp: now + 1,
+      esAutomatico: true
+    };
+    return [...prevEquipos, nuevoItem, patchPanel];
+  }
+  return [...prevEquipos, nuevoItem];
+};
+
+const esBaldaLigera = (eq) => ['sonos-amp', 'sonos-port', 'crestron-rmc4', 'beoliving', 'beocore', 'apple-tv', 'receptor-sat'].includes(eq.id);
+
+const calcularRackCalculos = (equipos, posicionVentiladorIntermedio = null) => {
+  let numEscobillas = 0;
+  let numTapasAutomaticas = 0;
+  let numTapasBalda = 0;
+  let pasacablesTraseros = 0;
+  const rackItems = [];
+  const bloquesBaldas = [];
+
+  const pendientesMedia = [];
+
+  const procesarNoRackable = (eq) => {
+    if (eq.ancho === 'media') {
+      const indexPareja = pendientesMedia.findIndex(e => e.ancho === 'media');
+      if (indexPareja !== -1) {
+        pasacablesTraseros++;
+        const pareja = pendientesMedia.splice(indexPareja, 1)[0];
+        const tieneTapa = eq.requiereTapaCiega || pareja.requiereTapaCiega;
+        const esSonosAmp = (e) => e.id === 'sonos-amp';
+        const hayDosSonosAmp = esSonosAmp(eq) && esSonosAmp(pareja);
+        const tapaCiegaFinal = hayDosSonosAmp ? false : tieneTapa;
+        if (tapaCiegaFinal) numTapasBalda++;
+        if (hayDosSonosAmp) numTapasBalda++;
+        const bloque = {
+          equipos: [pareja, eq],
+          uTotal: Math.max(eq.uOcupadas, pareja.uOcupadas) + (tapaCiegaFinal ? 1 : 0) + (hayDosSonosAmp ? 1 : 0),
+          tieneTapa: false,
+          tieneTapaArriba: tapaCiegaFinal,
+          tieneVentilacionArriba: hayDosSonosAmp
+        };
+        bloquesBaldas.push(bloque);
+        rackItems.push({ __esBloque: true, bloque });
+      } else {
+        pendientesMedia.push(eq);
+      }
+    } else {
+      pasacablesTraseros++;
+      const tieneTapa = eq.requiereTapaCiega;
+      if (tieneTapa) numTapasBalda++;
+      const bloque = {
+        equipos: [eq],
+        uTotal: eq.uOcupadas + (tieneTapa ? 1 : 0),
+        tieneTapa: false,
+        tieneTapaArriba: tieneTapa,
+        tieneVentilacionArriba: false
+      };
+      bloquesBaldas.push(bloque);
+      rackItems.push({ __esBloque: true, bloque });
+    }
+  };
+
+  equipos.forEach(eq => {
+    if (eq.esRackable) {
+      if (eq.categoria !== 'Accesorios') pasacablesTraseros++;
+      if (eq.categoria === 'Cinema') {
+        numTapasAutomaticas++;
+        rackItems.push({
+          instanceId: `ventilacion-cin-${eq.instanceId}`,
+          nombre: `Rejilla de Ventilación (Cinema)`,
+          categoria: 'Pasivo',
+          uOcupadas: 1,
+          tipoPasivo: 'Ventilacion'
+        });
+      }
+      if (eq.requiereEscobilla) {
+        const esRedes = eq.categoria === 'Redes';
+        if (esRedes) numEscobillas++;
+        rackItems.push({
+          instanceId: `esc-${eq.instanceId}`,
+          nombre: `Escobilla Pasacables`,
+          categoria: 'Pasivo',
+          uOcupadas: 1,
+          tipoPasivo: 'Escobilla',
+          esEscobilla: esRedes
+        });
+      }
+      rackItems.push(eq);
+    } else {
+      procesarNoRackable(eq);
+    }
+  });
+
+  pendientesMedia.forEach(eq => {
+    pasacablesTraseros++;
+    const tieneTapa = eq.requiereTapaCiega;
+    if (tieneTapa) numTapasBalda++;
+    const bloque = {
+      equipos: [eq],
+      uTotal: eq.uOcupadas + (tieneTapa ? 1 : 0),
+      tieneTapa: false,
+      tieneTapaArriba: tieneTapa,
+      tieneVentilacionArriba: false
+    };
+    bloquesBaldas.push(bloque);
+    rackItems.push({ __esBloque: true, bloque });
+  });
+
+  const infraestructuraSuperiorU = 1;
+  const uDeEquiposTotal = rackItems.reduce((acc, item) => {
+    if (item.__esBloque) return acc + item.bloque.uTotal;
+    return acc + (item.uOcupadas || 0);
+  }, 0);
+  
+  const consumoTotalCalc = equipos.reduce((sum, eq) => sum + (eq.consumo || 0), 0);
+  const numEquiposTotal = equipos.length;
+  const numRegletasTraseras = consumoTotalCalc === 0 ? (numEquiposTotal === 0 ? 0 : Math.ceil(numEquiposTotal / 6)) : Math.max(Math.ceil(consumoTotalCalc / 3500), Math.ceil(numEquiposTotal / 6));
+  
+  const totalUNecesariasFrontales = uDeEquiposTotal + infraestructuraSuperiorU;
+  const rackRecomendado = RACKS_COMERCIALES.find(r => r >= totalUNecesariasFrontales) || 47;
+  
+  const numVentiladores = rackRecomendado <= 24 ? 1 : 2;
+  const totalSlotsSinVentilador = rackItems.length;
+  const posicionVentiladorPorDefecto = Math.floor(totalSlotsSinVentilador / 2);
+  let posicionVentiladorActual = null;
+  
+  if (rackRecomendado > 24 && totalSlotsSinVentilador > 0) {
+    posicionVentiladorActual = (typeof posicionVentiladorIntermedio === 'number' && !isNaN(posicionVentiladorIntermedio))
+      ? Math.max(0, Math.min(totalSlotsSinVentilador, posicionVentiladorIntermedio))
+      : posicionVentiladorPorDefecto;
+
+    const ventiladorAdicional = {
+      instanceId: 'ventilador-adicional-auto',
+      nombre: 'Ventilador Intermedio 1U',
+      categoria: 'Ventilacion',
+      uOcupadas: 1,
+      esVentiladorAdicional: true,
+      posicionIndex: posicionVentiladorActual,
+      totalSlots: totalSlotsSinVentilador
+    };
+    rackItems.splice(posicionVentiladorActual, 0, ventiladorAdicional);
+  }
+  
+  const bandejasSonosAmp = bloquesBaldas.filter(bloque => bloque.tieneVentilacionArriba).length;
+  const escobillasAccesorios = equipos.filter(e => e.id === 'escobilla-acc').length;
+  const pasacablesFrontales = equipos.filter(e => e.id === 'pasacables-acc').length;
+  const regletasFrontales = equipos.filter(e => e.id === 'regleta-acc').length;
+  const totalBandejasVentilacion = numTapasAutomaticas + bandejasSonosAmp;
+  
+  const placasCiegasAccesorios = equipos.filter(e => 
+    e.id === 'placa-ciega-1u' || e.id === 'placa-ciega-2u'
+  ).length;
+
+  const numBaldas1U = bloquesBaldas.filter(bloque =>
+    bloque.equipos.some(e => esBaldaLigera(e))
+  ).length;
+
+  const numBaldasReforzadas = equipos.filter(e => e.categoria === 'Cinema').length;
+
+  return {
+    rackItems,
+    bloquesBaldas,
+    rackRecomendado,
+    numRegletasTraseras,
+    numRegletasFrontales: regletasFrontales,
+    numPasacablesFrontales: pasacablesFrontales,
+    totalUNecesariasFrontales,
+    numTornillos: equipos.length * 4,
+    consumoTotal: equipos.reduce((sum, eq) => sum + (eq.consumo || 0), 0),
+    numLineasElectricas: Math.max(1, Math.ceil(equipos.reduce((sum, eq) => sum + (eq.consumo || 0), 0) / 3680)),
+    numEscobillas: numEscobillas + escobillasAccesorios,
+    numPlacasCiegas: numTapasBalda + numTapasAutomaticas + placasCiegasAccesorios,
+    pasacablesTraseros,
+    numVentiladores,
+    bandejasSonosAmp,
+    totalBandejasVentilacion,
+    numBaldas1U,
+    numBaldasReforzadas,
+    posicionVentiladorPorDefecto,
+    posicionVentiladorActual,
+    totalSlotsSinVentilador
+  };
+};
+
 export default function App() {
-  const CATALOGO_EQUIPOS = [
-    // --- REDES ---
-    { id: 'udm-pro', nombre: 'UniFi Dream Machine Pro', altura: 44, esRackable: true, categoria: 'Redes', consumo: 33, requiereEscobilla: true, fondo: 285 },
-    { id: 'sw-pro-48', nombre: 'UniFi Switch Pro 48 PoE', altura: 44, esRackable: true, categoria: 'Redes', consumo: 600, requiereEscobilla: true, fondo: 400 },
-    { id: 'sw-ent-24', nombre: 'UniFi Enterprise 24', altura: 44, esRackable: true, categoria: 'Redes', consumo: 450, requiereEscobilla: true, fondo: 320 },
-    { id: 'unifi-router-compact', nombre: 'UniFi Router Compact', altura: 44, esRackable: false, categoria: 'Redes', consumo: 200, ancho: 'media', requiereTapaCiega: true, fondo: 150 },
-    
-    // --- CONTROL ---
-    { id: 'crestron-cp4', nombre: 'Crestron CP4 Control System', altura: 44, esRackable: true, categoria: 'Control', consumo: 15, fondo: 170 },
-    { id: 'crestron-rmc4', nombre: 'Crestron RMC4 Processor', altura: 44, esRackable: false, categoria: 'Control', consumo: 10, ancho: 'media', requiereTapaCiega: true, fondo: 120 },
-    { id: 'beoliving', nombre: 'Beoliving Intelligence (B&O)', altura: 44, esRackable: false, categoria: 'Control', consumo: 20, ancho: 'media', requiereTapaCiega: true, fondo: 200 },
-    
-    // --- AUDIO ---
-    { id: 'beocore', nombre: 'BeoCore (B&O)', altura: 44, esRackable: false, categoria: 'Audio', consumo: 50, fondo: 310, ancho: 'media', requiereTapaCiega: true },
-    { id: 'sonance-dsp', nombre: 'Sonance DSP 8-125', altura: 44, esRackable: true, categoria: 'Audio', consumo: 600, fondo: 425, requiereEscobilla: true },
-    { id: 'beoamp2', nombre: 'B&O Beoamp2', altura: 44, esRackable: true, categoria: 'Audio', consumo: 300, fondo: 250 },
-    { id: 'sonos-port', nombre: 'Sonos Port', altura: 44, esRackable: false, categoria: 'Audio', consumo: 10, ancho: 'media', requiereTapaCiega: true, fondo: 150 },
-    { id: 'sonos-amp', nombre: 'Sonos Amp', altura: 88, esRackable: false, categoria: 'Audio', consumo: 100, ancho: 'media', requiereTapaCiega: true, fondo: 220 },
-    { id: 'sonos-amp-multi', nombre: 'Sonos Amp Multi', altura: 88, esRackable: true, categoria: 'Audio', consumo: 200, fondo: 220, uOcupadas: 2 },
-    { id: 'matrix-audio', nombre: 'Matriz Audio 16x16', altura: 88, esRackable: true, categoria: 'Audio', consumo: 80, fondo: 350 },
-    
-    // --- VIDEO ---
-    { id: 'apple-tv', nombre: 'Apple TV 4K', altura: 35, esRackable: false, categoria: 'Video', consumo: 6, requiereTapaCiega: true, ancho: 'media', fondo: 93 },
-    { id: 'kaleidescape', nombre: 'Kaleidescape Strato', altura: 44, esRackable: true, categoria: 'Video', consumo: 30, fondo: 250 },
-    { id: 'receptor-sat', nombre: 'Receptor Sat', altura: 44, esRackable: false, categoria: 'Video', consumo: 15, ancho: 'media', requiereTapaCiega: true, fondo: 150 },
-    
-    // --- CINEMA ---
-    { id: 'marantz-av', nombre: 'Marantz AV Processor', altura: 177, esRackable: true, categoria: 'Cinema', consumo: 800, fondo: 411, uOcupadas: 4 },
-    { id: 'integra-drx', nombre: 'Integra DRX Series', altura: 177, esRackable: true, categoria: 'Cinema', consumo: 850, fondo: 390, uOcupadas: 4 },
-    { id: 'audiocontrol-av', nombre: 'AudioControl Maestro', altura: 177, esRackable: true, categoria: 'Cinema', consumo: 850, fondo: 420, uOcupadas: 4 },
-
-    // --- ENERGÍA ---
-    { id: 'ups-apc', nombre: 'SAI APC Smart-UPS 1500', altura: 88, esRackable: true, categoria: 'Energía', consumo: 0, fondo: 457 },
-
-    // --- OTROS ---
-    { id: 'equipo-1u', nombre: 'Equipo 1U', altura: 44, esRackable: true, categoria: 'Otros', consumo: 50, fondo: 300 },
-    { id: 'equipo-2u', nombre: 'Equipo 2U', altura: 88, esRackable: true, categoria: 'Otros', consumo: 100, fondo: 350 },
-    { id: 'equipo-3u', nombre: 'Equipo 3U', altura: 133, esRackable: true, categoria: 'Otros', consumo: 150, fondo: 400, uOcupadas: 3 },
-    { id: 'equipo-4u', nombre: 'Equipo 4U', altura: 177, esRackable: true, categoria: 'Otros', consumo: 200, fondo: 450, uOcupadas: 4 },
-    { id: 'equipo-media-balda', nombre: 'Equipo Media Balda', altura: 44, esRackable: false, categoria: 'Otros', consumo: 25, ancho: 'media', requiereTapaCiega: true, fondo: 150 },
-
-    // --- ACCESORIOS ---
-    { id: 'placa-ciega-1u', nombre: 'Placa Ciega 1U', altura: 44, esRackable: true, categoria: 'Accesorios', consumo: 0, fondo: 0, esAccesorio: true },
-    { id: 'placa-ciega-2u', nombre: 'Placa Ciega 2U', altura: 88, esRackable: true, categoria: 'Accesorios', consumo: 0, fondo: 0, uOcupadas: 2, esAccesorio: true },
-    { id: 'escobilla-acc', nombre: 'Escobilla', altura: 44, esRackable: true, categoria: 'Accesorios', consumo: 0, fondo: 0, esAccesorio: true, esEscobillaMaual: true },
-  ];
-
+  const [nombreProyectoActual, setNombreProyectoActual] = useState('Nuevo Proyecto');
   const [equipos, setEquipos] = useState([]);
+  const [posicionVentiladorIntermedio, setPosicionVentiladorIntermedio] = useState(null);
   const [categoriasAbiertas, setCategoriasAbiertas] = useState([]);
-  const [timerAutoReplegado, setTimerAutoReplegado] = useState(null);
+  const [mostrarModalGuardar, setMostrarModalGuardar] = useState(false);
+  const [inputNombreProyecto, setInputNombreProyecto] = useState('Nuevo Proyecto');
+  const [notificacionGuardado, setNotificacionGuardado] = useState(false);
+  const [mostrarGuia, setMostrarGuia] = useState(false);
+  const [pasoGuia, setPasoGuia] = useState(0);
+  const timerAutoReplegadoRef = useRef(null);
+
+  // Atajos de teclado para la guía interactiva
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (!mostrarGuia) return;
+      if (e.key === 'Escape') {
+        setMostrarGuia(false);
+      } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        setPasoGuia((prev) => Math.min(PASOS_GUIA.length - 1, prev + 1));
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        setPasoGuia((prev) => Math.max(0, prev - 1));
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [mostrarGuia]);
+
+  // Limpieza inicial y desbloqueo de audio
+  useEffect(() => {
+    // Desbloquear AudioContext con la primera interacción del usuario en la ventana
+    const unlockAudio = () => {
+      initOrResumeAudio();
+    };
+    window.addEventListener('pointerdown', unlockAudio, { once: true });
+    window.addEventListener('keydown', unlockAudio, { once: true });
+
+    // Limpiar proyectos con nombre antiguo si estuvieran presentes
+    try {
+      const proyectos = JSON.parse(localStorage.getItem('illusion-proyectos') || '[]');
+      const proyectosFiltrados = proyectos.filter(p => !p.nombre.toLowerCase().includes('agotos'));
+      if (proyectos.length !== proyectosFiltrados.length) {
+        localStorage.setItem('illusion-proyectos', JSON.stringify(proyectosFiltrados));
+      }
+    } catch (e) {
+      console.error('Error limpiando proyectos:', e);
+    }
+
+    return () => {
+      window.removeEventListener('pointerdown', unlockAudio);
+      window.removeEventListener('keydown', unlockAudio);
+    };
+  }, []);
 
   // Drag & drop state
   const dragIndexRef = useRef(null);
@@ -88,23 +688,18 @@ export default function App() {
   // Auto-replegado de pestañas después de 10 segundos
   useEffect(() => {
     if (categoriasAbiertas.length > 0) {
-      // Limpiar timer anterior si existe
-      if (timerAutoReplegado) {
-        clearTimeout(timerAutoReplegado);
+      if (timerAutoReplegadoRef.current) {
+        clearTimeout(timerAutoReplegadoRef.current);
       }
       
-      // Crear nuevo timer
-      const nuevoTimer = setTimeout(() => {
+      timerAutoReplegadoRef.current = setTimeout(() => {
         setCategoriasAbiertas([]);
-      }, 10000); // 10 segundos
-      
-      setTimerAutoReplegado(nuevoTimer);
+      }, 10000);
     }
     
-    // Cleanup al desmontar el componente
     return () => {
-      if (timerAutoReplegado) {
-        clearTimeout(timerAutoReplegado);
+      if (timerAutoReplegadoRef.current) {
+        clearTimeout(timerAutoReplegadoRef.current);
       }
     };
   }, [categoriasAbiertas]);
@@ -115,88 +710,13 @@ export default function App() {
     );
   };
 
-  const UNIDAD_RACK_MM = 44.45;
-  const PIXELS_PER_U = 50; 
-  const RACKS_COMERCIALES = [4, 6, 9, 12, 15, 18, 22, 27, 32, 37, 42, 47];
-
   const agregarItem = (item) => {
-    // Reproducir sonido de click al añadir
-    try {
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      
-      // Sonido más audible: "beep" corto ascendente
-      oscillator.type = 'sine';
-      oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
-      oscillator.frequency.exponentialRampToValueAtTime(800, audioContext.currentTime + 0.05);
-      
-      gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
-      
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.1);
-    } catch (e) {
-      console.log('Audio no disponible');
-    }
-    
-    const uCalculadas = item.uOcupadas || Math.ceil(item.altura / UNIDAD_RACK_MM);
-    const nuevoItem = { 
-      ...item, 
-      instanceId: Math.random().toString(36).substr(2, 9), 
-      uOcupadas: uCalculadas,
-      timestamp: Date.now()
-    };
-    
-    // Si es un router UniFi, añadir automáticamente un Patch Panel
-    if (item.id.includes('udm') || item.id.includes('sw-')) {
-      const patchPanel = {
-        id: 'patch-panel-auto',
-        nombre: 'Patch Panel (Auto)',
-        altura: 44,
-        esRackable: true,
-        categoria: 'Redes',
-        consumo: 0,
-        requiereEscobilla: false,
-        fondo: 200,
-        instanceId: Math.random().toString(36).substr(2, 9),
-        uOcupadas: 1,
-        timestamp: Date.now() + 1,
-        esAutomatico: true
-      };
-      setEquipos([...equipos, nuevoItem, patchPanel]);
-    } else {
-      setEquipos([...equipos, nuevoItem]);
-    }
+    playClickSound();
+    setEquipos(prev => createNewEquiposList(prev, item));
   };
 
   const eliminarItem = (id) => {
-    // Reproducir sonido al eliminar (tono descendente)
-    try {
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      
-      // Sonido descendente para "eliminar"
-      oscillator.type = 'sine';
-      oscillator.frequency.setValueAtTime(600, audioContext.currentTime);
-      oscillator.frequency.exponentialRampToValueAtTime(200, audioContext.currentTime + 0.08);
-      
-      gainNode.gain.setValueAtTime(0.4, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
-      
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.1);
-    } catch (e) {
-      console.log('Audio no disponible');
-    }
-    
+    playDeleteSound();
     setEquipos(prev => prev.filter(e => e.instanceId !== id));
   };
 
@@ -207,7 +727,7 @@ export default function App() {
     e.dataTransfer.effectAllowed = 'move';
   };
 
-  const handleDragEnd = (e) => {
+  const handleDragEnd = () => {
     dragIndexRef.current = null;
     setDraggingIndex(null);
     setDragOverIndex(null);
@@ -245,6 +765,7 @@ export default function App() {
   const moverEquipo = (index, direccion) => {
     const nuevoIndex = index + direccion;
     if (nuevoIndex < 0 || nuevoIndex >= equipos.length) return;
+    playClickSound();
     setEquipos(prev => {
       const updated = [...prev];
       const [moved] = updated.splice(index, 1);
@@ -253,30 +774,50 @@ export default function App() {
     });
   };
 
+  const moverVentiladorIntermedio = (direccion) => {
+    const posActual = (typeof posicionVentiladorIntermedio === 'number' && !isNaN(posicionVentiladorIntermedio))
+      ? posicionVentiladorIntermedio
+      : (res.posicionVentiladorPorDefecto ?? 0);
+    const maxPos = res.totalSlotsSinVentilador ?? 0;
+    const nuevaPos = Math.max(0, Math.min(maxPos, posActual + direccion));
+    playClickSound();
+    setPosicionVentiladorIntermedio(nuevaPos);
+  };
+
   // Funciones para guardar y cargar proyectos
-  const guardarProyecto = () => {
-    const nombreSugerido = `Proyecto_${new Date().toLocaleDateString('es-ES').replace(/\//g, '-')}`;
-    const nombre = window.prompt('Nombre del proyecto:', nombreSugerido);
-    if (nombre === null) return; // cancelado
-    const nombreFinal = nombre.trim() || nombreSugerido;
+  const abrirModalGuardar = () => {
+    setInputNombreProyecto(nombreProyectoActual || 'Proyecto Rack');
+    setMostrarModalGuardar(true);
+  };
+
+  const confirmarGuardarProyecto = (e) => {
+    if (e) e.preventDefault();
+    const nombreFinal = inputNombreProyecto.trim() || 'Proyecto Rack';
 
     const proyecto = {
       equipos: equipos,
+      posicionVentiladorIntermedio: posicionVentiladorIntermedio,
       nombre: nombreFinal,
       fecha: new Date().toISOString(),
-      version: '1.0'
+      version: '2.1'
     };
 
     const proyectosGuardados = JSON.parse(localStorage.getItem('illusion-proyectos') || '[]');
-    proyectosGuardados.push(proyecto);
-    localStorage.setItem('illusion-proyectos', JSON.stringify(proyectosGuardados));
+    const filtrados = proyectosGuardados.filter(p => p.nombre !== nombreFinal);
+    localStorage.setItem('illusion-proyectos', JSON.stringify([proyecto, ...filtrados]));
 
-    alert(`Proyecto guardado como: ${nombreFinal}`);
+    setNombreProyectoActual(nombreFinal);
+    setMostrarModalGuardar(false);
+    setNotificacionGuardado(`Proyecto "${nombreFinal}" guardado correctamente`);
+    setTimeout(() => setNotificacionGuardado(false), 3000);
   };
 
   const cargarProyecto = (proyecto) => {
     setEquipos(proyecto.equipos || []);
-    alert(`Proyecto "${proyecto.nombre}" cargado correctamente`);
+    setPosicionVentiladorIntermedio(typeof proyecto.posicionVentiladorIntermedio === 'number' ? proyecto.posicionVentiladorIntermedio : null);
+    setNombreProyectoActual(proyecto.nombre);
+    setNotificacionGuardado(`Proyecto "${proyecto.nombre}" cargado`);
+    setTimeout(() => setNotificacionGuardado(false), 3000);
   };
 
   const obtenerProyectosGuardados = () => {
@@ -289,329 +830,224 @@ export default function App() {
     localStorage.setItem('illusion-proyectos', JSON.stringify(proyectos));
   };
 
-  // Función para descargar listado de materiales de rack
-  const descargarMaterialesRack = () => {
+  // Función para descargar informe en PDF profesional
+  const descargarMaterialesRackPDF = () => {
     const fecha = new Date().toLocaleDateString('es-ES');
     const hora = new Date().toLocaleTimeString('es-ES');
-    const equiposNoRackables = equipos.filter(e => !e.esRackable);
-    const baldasNecesarias = Math.ceil(equiposNoRackables.length / 2);
 
-    let contenido = `
-╔══════════════════════════════════════════════════════════════════════════════════════╗
-║                           ILLUSION - MATERIALES DE RACK                             ║
-║                              LISTADO DE INFRAESTRUCTURA                             ║
-╚══════════════════════════════════════════════════════════════════════════════════════╝
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
+    });
 
-📅 FECHA: ${fecha}
-🕐 HORA: ${hora}
-🏢 EMPRESA: Illusion.es
+    const primaryColor = [15, 23, 42]; // Slate 900
+    const indigoAccent = [79, 70, 229]; // Indigo 600
+    const lightBg = [248, 250, 252]; // Slate 50
 
-═══════════════════════════════════════════════════════════════════════════════════════
-📋 RESUMEN DEL RACK:
-═══════════════════════════════════════════════════════════════════════════════════════
-• Rack recomendado: ${res.rackRecomendado}U
-• Equipos a instalar: ${equipos.length} unidades
-• Unidades ocupadas: ${res.totalUNecesariasFrontales}U
-• Unidades libres: ${res.rackRecomendado - res.totalUNecesariasFrontales}U
+    // Header Superior
+    doc.setFillColor(...primaryColor);
+    doc.rect(0, 0, 210, 32, 'F');
 
-═══════════════════════════════════════════════════════════════════════════════════════
-🏗️ ESTRUCTURA Y RACK:
-═══════════════════════════════════════════════════════════════════════════════════════
-• Rack ${res.rackRecomendado}U: x1
-• Termostato (obligatorio): x1
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.setTextColor(255, 255, 255);
+    doc.text('ILLUSION RACK DESIGNER', 14, 14);
 
-═══════════════════════════════════════════════════════════════════════════════════════
-⚡ ALIMENTACIÓN ELÉCTRICA:
-═══════════════════════════════════════════════════════════════════════════════════════
-• Regletas PDU (traseras): x${res.numRegletasTraseras}
-  └─ Cálculo: 1 PDU por cada 3.500W o 1 cada 6 equipos (el mayor)
-  └─ Consumo total estimado: ${res.consumoTotal}W
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(199, 210, 254);
+    doc.text('LISTADO DE MATERIALES & INFRAESTRUCTURA DE RACK', 14, 21);
 
-• Instalación eléctrica necesaria: x${res.numLineasElectricas} línea${res.numLineasElectricas > 1 ? 's' : ''}
-  └─ Cable 2,5 mm²: x${res.numLineasElectricas}
-  └─ Magnetotérmicos 16A: x${res.numLineasElectricas}
-  └─ Diferenciales 40A / 30mA: x${res.numLineasElectricas}
-  └─ Consumo total del rack: ${res.consumoTotal}W (máx. 3.680W por línea)
+    doc.setFontSize(8);
+    doc.setTextColor(148, 163, 184);
+    doc.text(`PROYECTO: ${(nombreProyectoActual || 'PROYECTO RACK').toUpperCase()}   |   FECHA: ${fecha} - ${hora}`, 14, 27);
 
-═══════════════════════════════════════════════════════════════════════════════════════
-🔗 CONECTIVIDAD Y CABLEADO:
-═══════════════════════════════════════════════════════════════════════════════════════
-• Pasacables posteriores: x${res.pasacablesTraseros}
-• Escobillas pasacables: x${res.numEscobillas}
-• Patch Panels (automáticos): x${equipos.filter(e => e.esAutomatico).length}
-  └─ Añadidos automáticamente con routers UniFi
+    // Caja de Resumen del Rack
+    doc.setFillColor(...lightBg);
+    doc.setDrawColor(226, 232, 240);
+    doc.roundedRect(14, 37, 182, 28, 2, 2, 'FD');
 
-═══════════════════════════════════════════════════════════════════════════════════════
-🛠️ ACCESORIOS Y HERRAJES:
-═══════════════════════════════════════════════════════════════════════════════════════
-• Tornillería M6: x${res.numTornillos} tornillos
-  └─ Cálculo: 4 tornillos por equipo
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9.5);
+    doc.setTextColor(...primaryColor);
+    doc.text('RESUMEN TÉCNICO DEL RACK', 19, 44);
 
-═══════════════════════════════════════════════════════════════════════════════════════
-🏠 BALDAS Y SOPORTES:
-═══════════════════════════════════════════════════════════════════════════════════════`;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.setTextColor(71, 85, 105);
 
-    if (baldasNecesarias > 0) {
-      contenido += `
-• Baldas 1U: x${res.numBaldas1U}
-• Baldas reforzadas: x${res.numBaldasReforzadas}
-  └─ Para equipos no rackables (${equiposNoRackables.length} equipos)`;
-    } else {
-      contenido += `
-• No se requieren baldas adicionales
-  └─ Todos los equipos son rackables`;
+    doc.text(`• Rack Recomendado: ${res.rackRecomendado}U`, 19, 51);
+    doc.text(`• Unidades Ocupadas: ${res.totalUNecesariasFrontales}U`, 19, 58);
+    doc.text(`• Unidades Libres: ${res.rackRecomendado - res.totalUNecesariasFrontales}U`, 78, 51);
+    doc.text(`• Consumo Total: ${res.consumoTotal} W`, 78, 58);
+    doc.text(`• Regletas PDU: ${res.numRegletasTraseras}`, 138, 51);
+    doc.text(`• Líneas Eléctricas: ${res.numLineasElectricas} (2,5mm²)`, 138, 58);
+
+    // Tabla 1: Resumen de Cantidades / Materiales (BOM de Infraestructura)
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10.5);
+    doc.setTextColor(...primaryColor);
+    doc.text('1. RESUMEN DE CANTIDADES (MATERIALES DE INFRAESTRUCTURA)', 14, 72);
+
+    const materialesFilas = [
+      [`Rack Excell ${res.rackRecomendado}U`, 'x1', 'XXXXX'],
+      ['Regletas PDU (Traseras)', `x${res.numRegletasTraseras}`, 'XXXXX']
+    ];
+
+    if (res.numRegletasFrontales > 0) {
+      materialesFilas.push(['Regletas de conexión 1U (Frontales)', `x${res.numRegletasFrontales}`, 'XXXXX']);
     }
 
-    contenido += `
+    materialesFilas.push(
+      ['Líneas eléctricas 2,5 mm²', `x${res.numLineasElectricas}`, 'XXXXX'],
+      ['Magnetotérmicos 16A', `x${res.numLineasElectricas}`, 'XXXXX'],
+      ['Diferenciales 40A / 30mA', `x${res.numLineasElectricas}`, 'XXXXX'],
+      ['Pasacables posteriores', `x${res.pasacablesTraseros}`, 'XXXXX']
+    );
 
-═══════════════════════════════════════════════════════════════════════════════════════
-🌡️ VENTILACIÓN Y CLIMATIZACIÓN:
-═══════════════════════════════════════════════════════════════════════════════════════
-• Termostato digital: x1 (incluido)
-• Ventilador superior: x1${res.rackRecomendado >= 24 ? `
-• Ventilador intermedio: x1` : ''}
-  └─ ${res.rackRecomendado < 24 ? 'Rack menor a 24U: solo ventilador superior' : 'Rack ≥24U: ventilador superior + intermedio'}
+    if (res.numPasacablesFrontales > 0) {
+      materialesFilas.push(['Pasacables 1U (Frontales)', `x${res.numPasacablesFrontales}`, 'XXXXX']);
+    }
 
-═══════════════════════════════════════════════════════════════════════════════════════
-📦 RESUMEN DE CANTIDADES:
-═══════════════════════════════════════════════════════════════════════════════════════
-┌─────────────────────────────────────┬──────────┬──────────────┐
-│ ELEMENTO                            │ CANTIDAD │ CÓDIGO ODDO  │
-├─────────────────────────────────────┼──────────┼──────────────┤
-│ Rack ${res.rackRecomendado}U                         │    x1    │    xxxxx     │
-│ Regletas PDU                        │    x${res.numRegletasTraseras}    │    xxxxx     │
-│ Líneas eléctricas 2,5 mm²           │    x${res.numLineasElectricas}    │    xxxxx     │
-│ Magnetotérmicos 16A                 │    x${res.numLineasElectricas}    │    xxxxx     │
-│ Diferenciales 40A/30mA              │    x${res.numLineasElectricas}    │    xxxxx     │
-│ Pasacables posteriores              │    x${res.pasacablesTraseros}    │    xxxxx     │
-│ Escobillas pasacables               │    x${res.numEscobillas}    │    xxxxx     │
-│ Patch Panels automáticos            │    x${equipos.filter(e => e.esAutomatico).length}    │    xxxxx     │
-│ Tornillos M6                        │    x${res.numTornillos}   │    xxxxx     │`;
+    materialesFilas.push(
+      ['Escobillas pasacables', `x${res.numEscobillas}`, 'XXXXX'],
+      ['Patch Panels automáticos', `x${equipos.filter(e => e.esAutomatico).length}`, 'XXXXX'],
+      ['Tornillos M6', `x${res.numTornillos}`, 'XXXXX']
+    );
 
     if (res.numBaldas1U > 0) {
-      contenido += `
-│ Baldas 1U                           │    x${res.numBaldas1U}    │    xxxxx     │`;
+      materialesFilas.push(['Baldas 1U', `x${res.numBaldas1U}`, 'XXXXX']);
     }
     if (res.numBaldasReforzadas > 0) {
-      contenido += `
-│ Baldas reforzadas                   │    x${res.numBaldasReforzadas}    │    xxxxx     │`;
+      materialesFilas.push(['Baldas reforzadas', `x${res.numBaldasReforzadas}`, 'XXXXX']);
     }
 
-    contenido += `
-│ Termostato digital                  │    x1    │    xxxxx     │
-│ Ventilador superior                 │    x1    │    xxxxx     │`;
-    
+    materialesFilas.push(['Termostato digital', 'x1', 'XXXXX']);
+    materialesFilas.push(['Ventilador superior', 'x1', 'XXXXX']);
+
     if (res.rackRecomendado >= 24) {
-      contenido += `
-│ Ventilador intermedio               │    x1    │    xxxxx     │`;
+      materialesFilas.push(['Ventilador intermedio', 'x1', 'XXXXX']);
     }
 
-    contenido += `
-└─────────────────────────────────────┴──────────┴──────────────┘
+    autoTable(doc, {
+      startY: 76,
+      head: [[
+        { content: 'ELEMENTO / MATERIAL', styles: { halign: 'left' } },
+        { content: 'CANTIDAD', styles: { halign: 'center' } },
+        { content: 'CÓDIGO ODOO', styles: { halign: 'center' } }
+      ]],
+      body: materialesFilas,
+      theme: 'grid',
+      headStyles: {
+        fillColor: indigoAccent,
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        fontSize: 8.5
+      },
+      bodyStyles: {
+        fontSize: 8,
+        textColor: [30, 41, 59]
+      },
+      alternateRowStyles: {
+        fillColor: [248, 250, 252]
+      },
+      columnStyles: {
+        0: { cellWidth: 100, fontStyle: 'bold', halign: 'left' },
+        1: { cellWidth: 35, halign: 'center', fontStyle: 'bold', textColor: indigoAccent },
+        2: { cellWidth: 47, halign: 'center', fontStyle: 'bold', textColor: [100, 116, 139] }
+      },
+      margin: { left: 14, right: 14 }
+    });
 
-═══════════════════════════════════════════════════════════════════════════════════════
-📝 NOTAS PARA EL INSTALADOR:
-═══════════════════════════════════════════════════════════════════════════════════════
-• Verificar profundidad del rack según equipos a instalar
-• Los Patch Panels se calculan automáticamente con routers UniFi
-• Regletas PDU: distribuir uniformemente en la parte trasera
-• Termostato: instalar en la parte superior del rack
-• Ventiladores: rack <24U solo superior, rack ≥24U superior + intermedio
-• Consumo total: ${res.consumoTotal}W — requiere ${res.numLineasElectricas} línea${res.numLineasElectricas > 1 ? 's' : ''} eléctrica${res.numLineasElectricas > 1 ? 's' : ''} de 2,5 mm²
+    // Tabla 2: Listado de Equipos Instalados
+    const posYEquipos = doc.lastAutoTable.finalY + 9;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10.5);
+    doc.setTextColor(...primaryColor);
+    doc.text('2. EQUIPOS INSTALADOS EN EL RACK', 14, posYEquipos);
 
-═══════════════════════════════════════════════════════════════════════════════════════
-🏢 GENERADO POR: Illusion Rack Designer Pro v2.0.0
+    const conteoEquipos = {};
+    const equiposSinPatchAutomatico = equipos.filter(eq => !eq.esAutomatico);
+    equiposSinPatchAutomatico.forEach(eq => {
+      if (!conteoEquipos[eq.nombre]) {
+        conteoEquipos[eq.nombre] = { count: 0, cat: eq.categoria, u: eq.uOcupadas || 1, pot: eq.consumo || 0 };
+      }
+      conteoEquipos[eq.nombre].count += 1;
+    });
 
-📧 CONTACTO: info@e-illusion.es
-🌐 WEB: http://www.illusion.es
-═══════════════════════════════════════════════════════════════════════════════════════
-`;
+    const equiposFilas = Object.entries(conteoEquipos).map(([nombre, d]) => [
+      nombre,
+      d.cat || 'General',
+      `${d.u}U`,
+      `${d.pot} W`,
+      `x${d.count}`
+    ]);
 
-    const blob = new Blob([contenido], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Illusion_Materiales_Rack_${fecha.replace(/\//g, '-')}_${hora.replace(/:/g, '-')}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    autoTable(doc, {
+      startY: posYEquipos + 4,
+      head: [[
+        { content: 'EQUIPO / MODELO', styles: { halign: 'left' } },
+        { content: 'CATEGORÍA', styles: { halign: 'left' } },
+        { content: 'ALTURA', styles: { halign: 'center' } },
+        { content: 'POTENCIA', styles: { halign: 'center' } },
+        { content: 'CANTIDAD', styles: { halign: 'center' } }
+      ]],
+      body: equiposFilas.length > 0 ? equiposFilas : [['No hay equipos en el rack', '-', '-', '-', '-']],
+      theme: 'striped',
+      headStyles: {
+        fillColor: primaryColor,
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        fontSize: 8.5
+      },
+      bodyStyles: {
+        fontSize: 8,
+        textColor: [30, 41, 59]
+      },
+      columnStyles: {
+        0: { cellWidth: 78, fontStyle: 'bold', halign: 'left' },
+        1: { cellWidth: 38, halign: 'left' },
+        2: { cellWidth: 20, halign: 'center' },
+        3: { cellWidth: 22, halign: 'center' },
+        4: { cellWidth: 24, halign: 'center', fontStyle: 'bold', textColor: indigoAccent }
+      },
+      margin: { left: 14, right: 14 }
+    });
+
+    // Notas finales
+    const posYNotas = doc.lastAutoTable.finalY + 8;
+    if (posYNotas < 260) {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(...primaryColor);
+      doc.text('NOTAS PARA EL INSTALADOR:', 14, posYNotas);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+      doc.setTextColor(71, 85, 105);
+      doc.text(`• Consumo total: ${res.consumoTotal}W — Requiere ${res.numLineasElectricas} línea(s) de 2,5 mm² con magnetotérmico 16A y diferencial 40A/30mA.`, 14, posYNotas + 5);
+      doc.text('• Regletas PDU: Distribuir uniformemente en la parte posterior del rack.', 14, posYNotas + 9);
+      doc.text(`• Climatización: Termostato digital en parte superior + ventilador(es) (${res.rackRecomendado < 24 ? 'superior' : 'superior e intermedio'}).`, 14, posYNotas + 13);
+    }
+
+    // Pie de página
+    const totalPages = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+      doc.setTextColor(148, 163, 184);
+      doc.setDrawColor(226, 232, 240);
+      doc.line(14, 285, 196, 285);
+      doc.text('🏢 Generado por: Jony Cusac  |  Illusion.es (info@e-illusion.es)', 14, 290);
+      doc.text(`Página ${i} de ${totalPages}`, 196, 290, { align: 'right' });
+    }
+
+    doc.save(`Illusion_Materiales_Rack_${(nombreProyectoActual || 'Proyecto').replace(/\s+/g, '_')}.pdf`);
   };
 
-  const res = useMemo(() => {
-    let numEscobillas = 0;
-    let numTapasAutomaticas = 0;
-    let numTapasBalda = 0;
-    let pasacablesTraseros = 0;
-    const rackItems = [];
-    const bloquesBaldas = [];
-
-    // Procesamos equipos EN ORDEN DE INSERCIÓN
-    // Los no-rackables de ancho 'media' se van acumulando hasta tener pareja
-    const pendientesMedia = [];
-
-    const procesarNoRackable = (eq) => {
-      if (eq.ancho === 'media') {
-        const indexPareja = pendientesMedia.findIndex(e => e.ancho === 'media');
-        if (indexPareja !== -1) {
-          // Tenemos pareja: 1 solo pasacable por los dos
-          pasacablesTraseros++;
-          const pareja = pendientesMedia.splice(indexPareja, 1)[0];
-          const tieneTapa = eq.requiereTapaCiega || pareja.requiereTapaCiega;
-          const esSonosAmp = (e) => e.id === 'sonos-amp';
-          const hayDosSonosAmp = esSonosAmp(eq) && esSonosAmp(pareja);
-          const tapaCiegaFinal = hayDosSonosAmp ? false : tieneTapa;
-          if (tapaCiegaFinal) numTapasBalda++;
-          if (hayDosSonosAmp) numTapasBalda++;
-          const bloque = {
-            equipos: [pareja, eq],
-            uTotal: Math.max(eq.uOcupadas, pareja.uOcupadas) + (tapaCiegaFinal ? 1 : 0) + (hayDosSonosAmp ? 1 : 0),
-            tieneTapa: false,
-            tieneTapaArriba: tapaCiegaFinal,
-            tieneVentilacionArriba: hayDosSonosAmp
-          };
-          bloquesBaldas.push(bloque);
-          rackItems.push({ __esBloque: true, bloque });
-        } else {
-          // Sin pareja aún: pendiente, el pasacable se suma cuando forme bloque
-          pendientesMedia.push(eq);
-        }
-      } else {
-        // Ancho completo: balda individual, 1 pasacable
-        pasacablesTraseros++;
-        const tieneTapa = eq.requiereTapaCiega;
-        if (tieneTapa) numTapasBalda++;
-        const bloque = {
-          equipos: [eq],
-          uTotal: eq.uOcupadas + (tieneTapa ? 1 : 0),
-          tieneTapa: false,
-          tieneTapaArriba: tieneTapa,
-          tieneVentilacionArriba: false
-        };
-        bloquesBaldas.push(bloque);
-        rackItems.push({ __esBloque: true, bloque });
-      }
-    };
-
-    equipos.forEach(eq => {
-      if (eq.esRackable) {
-        // Rackable: va directo al rack
-        if (eq.categoria !== 'Accesorios') pasacablesTraseros++;
-        if (eq.categoria === 'Cinema') {
-          numTapasAutomaticas++;
-          rackItems.push({
-            instanceId: `ventilacion-cin-${eq.instanceId}`,
-            nombre: `Rejilla de Ventilación (Cinema)`,
-            categoria: 'Pasivo',
-            uOcupadas: 1,
-            tipoPasivo: 'Ventilacion'
-          });
-        }
-        if (eq.requiereEscobilla) {
-          const esRedes = eq.categoria === 'Redes';
-          if (esRedes) numEscobillas++;
-          rackItems.push({
-            instanceId: `esc-${eq.instanceId}`,
-            nombre: `Escobilla Pasacables`,
-            categoria: 'Pasivo',
-            uOcupadas: 1,
-            tipoPasivo: 'Escobilla',
-            esEscobilla: esRedes
-          });
-        }
-        rackItems.push(eq);
-      } else {
-        procesarNoRackable(eq);
-      }
-    });
-
-    // Equipos 'media' que quedaron sin pareja: baldas individuales
-    pendientesMedia.forEach(eq => {
-      pasacablesTraseros++;
-      const tieneTapa = eq.requiereTapaCiega;
-      if (tieneTapa) numTapasBalda++;
-      const bloque = {
-        equipos: [eq],
-        uTotal: eq.uOcupadas + (tieneTapa ? 1 : 0),
-        tieneTapa: false,
-        tieneTapaArriba: tieneTapa,
-        tieneVentilacionArriba: false
-      };
-      bloquesBaldas.push(bloque);
-      rackItems.push({ __esBloque: true, bloque });
-    });
-
-    const infraestructuraSuperiorU = 1;
-    const uDeEquiposTotal = rackItems.reduce((acc, item) => {
-      if (item.__esBloque) return acc + item.bloque.uTotal;
-      return acc + (item.uOcupadas || 0);
-    }, 0);
-    
-    // Regletas PDU: 1 por cada 3.500W de consumo (máximo por PDU)
-    const consumoTotalCalc = equipos.reduce((sum, eq) => sum + (eq.consumo || 0), 0);
-    const numEquiposTotal = equipos.length;
-    const numRegletasTraseras = consumoTotalCalc === 0 ? (numEquiposTotal === 0 ? 0 : Math.ceil(numEquiposTotal / 6)) : Math.max(Math.ceil(consumoTotalCalc / 3500), Math.ceil(numEquiposTotal / 6));
-    
-    const totalUNecesariasFrontales = uDeEquiposTotal + infraestructuraSuperiorU;
-    const rackRecomendado = RACKS_COMERCIALES.find(r => r >= totalUNecesariasFrontales) || 47;
-    
-    const numVentiladores = rackRecomendado < 24 ? 1 : 2;
-    
-    // Añadir ventilador adicional en medio del rack si supera 24U
-    if (rackRecomendado >= 24 && rackItems.length > 0) {
-      const mitadRack = Math.floor(rackItems.length / 2);
-      const ventiladorAdicional = {
-        instanceId: 'ventilador-adicional-auto',
-        nombre: 'Ventilador Adicional 1U',
-        categoria: 'Ventilacion',
-        uOcupadas: 1,
-        esVentiladorAdicional: true
-      };
-      rackItems.splice(mitadRack, 0, ventiladorAdicional);
-    }
-    
-    // Calcular bandejas de ventilación para Sonos Amp
-    const bandejasSonosAmp = bloquesBaldas.filter(bloque => bloque.tieneVentilacionArriba).length;
-    
-    // Calcular escobillas manuales añadidas desde Accesorios
-    const escobillasAccesorios = equipos.filter(e => e.id === 'escobilla-acc').length;
-
-    // Calcular total de rejillas de ventilación (Cinema + Sonos Amp)
-    const totalBandejasVentilacion = numTapasAutomaticas + bandejasSonosAmp;
-    
-    // Calcular placas ciegas de accesorios (1U y 2U)
-    const placasCiegasAccesorios = equipos.filter(e => 
-      e.id === 'placa-ciega-1u' || e.id === 'placa-ciega-2u'
-    ).length;
-
-    // Calcular baldas 1U (automáticas con Sonos Amp, Sonos Port, Crestron RMC4, Beoliving, BeoCore, Apple TV)
-    const esBaldaLigera = (eq) => ['sonos-amp', 'sonos-port', 'crestron-rmc4', 'beoliving', 'beocore', 'apple-tv', 'receptor-sat'].includes(eq.id);
-    const numBaldas1U = bloquesBaldas.filter(bloque =>
-      bloque.equipos.some(e => esBaldaLigera(e))
-    ).length;
-
-    // Calcular baldas reforzadas (1 por cada equipo de Cinema)
-    const numBaldasReforzadas = equipos.filter(e => e.categoria === 'Cinema').length;
-
-    return {
-      rackItems,
-      bloquesBaldas,
-      rackRecomendado,
-      numRegletasTraseras,
-      totalUNecesariasFrontales,
-      numTornillos: equipos.length * 4,
-      consumoTotal: equipos.reduce((sum, eq) => sum + (eq.consumo || 0), 0),
-      numLineasElectricas: Math.max(1, Math.ceil(equipos.reduce((sum, eq) => sum + (eq.consumo || 0), 0) / 3680)),
-      numEscobillas: numEscobillas + escobillasAccesorios,
-      numPlacasCiegas: numTapasBalda + numTapasAutomaticas + placasCiegasAccesorios,
-      pasacablesTraseros,
-      numVentiladores,
-      bandejasSonosAmp,
-      totalBandejasVentilacion,
-      numBaldas1U,
-      numBaldasReforzadas
-    };
-  }, [equipos]);
+  const res = calcularRackCalculos(equipos, posicionVentiladorIntermedio);
 
   const getCategoryIcon = (cat) => {
     switch(cat) {
@@ -627,77 +1063,122 @@ export default function App() {
     }
   };
 
-  const getCategoryTheme = (cat) => {
-    switch(cat) {
-      case 'Redes': return { color: 'text-green-400', rackColor: 'bg-green-600' };
-      case 'Audio': return { color: 'text-blue-500', rackColor: 'bg-blue-600' };
-      case 'Video': return { color: 'text-purple-500', rackColor: 'bg-purple-600' };
-      case 'Control': return { color: 'text-indigo-500', rackColor: 'bg-indigo-600' };
-      case 'Cinema': return { color: 'text-rose-500', rackColor: 'bg-rose-700' };
-      case 'Energía': return { color: 'text-orange-500', rackColor: 'bg-orange-600' };
-      case 'Otros': return { color: 'text-slate-400', rackColor: 'bg-slate-600' };
-      default: return { color: 'text-slate-400', rackColor: 'bg-slate-800' };
-    }
-  };
-
   return (
     <div className="h-screen text-slate-100 flex flex-col overflow-hidden font-sans" style={{ backgroundColor: 'var(--bg-app)' }}>
-      <header className="h-14 flex items-center justify-between px-8 border-b shrink-0"
+      <header className="h-16 flex items-center justify-between px-6 border-b shrink-0 relative select-none shadow-md z-20"
               style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border)' }}>
-        <div className="flex items-center gap-3">
-          <div className="p-1.5 rounded-lg" style={{ backgroundColor: 'var(--accent)' }}>
-            <ShieldCheck className="text-white w-5 h-5" />
+        
+        {/* Lado Izquierdo: Logo y Nombre Illusion Rack Designer */}
+        <div className="flex items-center gap-3.5 shrink-0">
+          <div className="p-2.5 rounded-2xl shadow-lg shadow-indigo-500/20 flex items-center justify-center bg-gradient-to-br from-indigo-500 to-indigo-700 border border-indigo-400/30">
+            <ShieldCheck className="text-white w-7 h-7" />
           </div>
-          <h1 style={{ fontSize: 'var(--font-brand)', fontWeight: 500, letterSpacing: '0.5px' }}>
-            Illusion <span style={{ color: '#e0e1e6', fontWeight: 300 }}>Rack Designer Pro v2.1</span>
-          </h1>
+          <div className="flex items-center">
+            <h1 className="text-xl font-black tracking-tight text-white leading-none">
+              Illusion <span className="text-indigo-400 font-extrabold">Rack Designer</span>
+            </h1>
+          </div>
         </div>
-        <div className="flex items-center gap-8" style={{ fontSize: '10px', fontWeight: 700 }}>
-           <div className="flex gap-6">
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ backgroundColor: 'rgba(224, 153, 63, 0.15)' }}>
-                 <Zap size={16} style={{ color: '#fbbf24' }} />
-                 <span className="uppercase tracking-tight font-extrabold" style={{ color: '#fbbf24', fontSize: '12px' }}>Consumo: {res.consumoTotal}W</span>
+
+        {/* Lado Derecho: Pestaña Guía, Indicador de Consumo & Botones de Acción */}
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Pestaña / Botón de GUÍA homogéneo con los botones de acción */}
+          <button
+            onClick={() => {
+              setPasoGuia(0);
+              setMostrarGuia(true);
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 hover:text-indigo-200 border border-indigo-500/35 transition-all text-xs font-bold shadow-sm active:scale-95 cursor-pointer shrink-0"
+            title="Abrir Guía y Manual de Uso"
+          >
+            <BookOpen size={14} className="text-indigo-400" />
+            <span>Guía</span>
+          </button>
+
+          {/* Métrica de Consumo (Estilo píldora ámbar) */}
+          <div 
+            className="flex items-center gap-2 px-3 py-1.5 rounded-full select-none cursor-default shrink-0" 
+            style={{ backgroundColor: 'rgba(224, 153, 63, 0.15)' }}
+            title="Consumo eléctrico total estimado"
+          >
+             <Zap size={16} style={{ color: '#fbbf24' }} />
+             <span className="uppercase tracking-tight font-extrabold" style={{ color: '#fbbf24', fontSize: '12px' }}>
+               CONSUMO: {res.consumoTotal}W
+             </span>
+          </div>
+
+          {/* Separador vertical */}
+          <div className="h-6 w-px bg-white/10 mx-0.5" />
+
+          {/* Botones de Acción Homogéneos */}
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Botón Guardar */}
+            <button 
+              onClick={abrirModalGuardar} 
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 hover:text-emerald-200 border border-emerald-500/35 transition-all text-xs font-bold shadow-sm active:scale-95 cursor-pointer"
+              title="Guardar diseño de rack actual"
+            >
+              <Save size={14} className="text-emerald-400" />
+              <span>Guardar</span>
+            </button>
+
+            {/* Menú Proyectos Guardados */}
+            <div className="relative group">
+              <button 
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 hover:text-sky-200 border border-sky-500/35 transition-all text-xs font-bold shadow-sm cursor-pointer"
+                title="Ver y abrir proyectos guardados"
+              >
+                <FolderOpen size={14} className="text-sky-400" />
+                <span>Proyectos</span>
+                <ChevronDown size={12} className="text-sky-400/80 group-hover:rotate-180 transition-transform" />
+              </button>
+              
+              <div className="absolute right-0 top-full mt-2 w-64 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 border overflow-hidden"
+                   style={{ backgroundColor: '#111420', borderColor: 'rgba(99, 102, 241, 0.3)' }}>
+                <div className="px-3 py-2 border-b border-white/10 bg-black/20 flex items-center justify-between">
+                  <span className="text-[10px] uppercase font-black tracking-wider text-slate-300">Proyectos Guardados</span>
+                  <span className="text-[10px] text-indigo-400 font-bold">{obtenerProyectosGuardados().length}</span>
+                </div>
+                <div className="p-2 max-h-56 overflow-y-auto custom-scrollbar space-y-1">
+                  {obtenerProyectosGuardados().length === 0 ? (
+                    <p className="text-xs p-3 text-center text-slate-400">No hay proyectos guardados en memoria</p>
+                  ) : (
+                    obtenerProyectosGuardados().map((proyecto, index) => (
+                      <div key={index} className="flex items-center justify-between p-2 hover:bg-white/10 rounded-lg text-xs transition-colors group/item">
+                        <div className="flex-1 cursor-pointer truncate pr-2" onClick={() => cargarProyecto(proyecto)}>
+                          <div className="font-semibold text-slate-200 truncate group-hover/item:text-indigo-300">{proyecto.nombre}</div>
+                          <div className="text-[10px] text-slate-400">{new Date(proyecto.fecha).toLocaleDateString('es-ES')}</div>
+                        </div>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            eliminarProyecto(index);
+                          }} 
+                          className="p-1 rounded text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                          title="Eliminar proyecto"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                 <PlugZap size={14} style={{ color: 'var(--accent-light)' }} />
-                 <span className="uppercase tracking-tighter" style={{ color: 'var(--accent-light)' }}>PDUs: x{res.numRegletasTraseras}</span>
-              </div>
-           </div>
-           <div className="flex items-center gap-2">
-             <button onClick={guardarProyecto} className="p-2 rounded-full transition-colors" style={{ color: 'var(--text-muted)' }} title="Guardar proyecto"
-               onMouseEnter={e => e.currentTarget.style.color='#4ade80'} onMouseLeave={e => e.currentTarget.style.color='var(--text-muted)'}>
-               <Save size={16} />
-             </button>
-             <div className="relative group">
-               <button className="p-2 rounded-full transition-colors" style={{ color: 'var(--text-muted)' }} title="Cargar proyecto">
-                 <FolderOpen size={16} />
-               </button>
-               <div className="absolute right-0 top-full mt-2 w-64 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 border"
-                    style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border)' }}>
-                 <div className="p-2 max-h-48 overflow-y-auto">
-                   {obtenerProyectosGuardados().length === 0 ? (
-                     <p className="text-xs p-2" style={{ color: 'var(--text-secondary)' }}>No hay proyectos guardados</p>
-                   ) : (
-                     obtenerProyectosGuardados().map((proyecto, index) => (
-                       <div key={index} className="flex items-center justify-between p-2 hover:bg-white/5 rounded text-xs">
-                         <div className="flex-1 cursor-pointer" onClick={() => cargarProyecto(proyecto)}>
-                           <div className="font-medium" style={{ color: 'var(--text-primary)' }}>{proyecto.nombre}</div>
-                           <div style={{ color: 'var(--text-secondary)' }}>{new Date(proyecto.fecha).toLocaleDateString('es-ES')}</div>
-                         </div>
-                         <button onClick={() => eliminarProyecto(index)} className="ml-2" style={{ color: 'var(--text-secondary)' }}>
-                           <Trash2 size={12} />
-                         </button>
-                       </div>
-                     ))
-                   )}
-                 </div>
-               </div>
-             </div>
-             <button onClick={() => setEquipos([])} className="p-2 rounded-full transition-colors" style={{ color: 'var(--text-muted)' }} title="Limpiar todo"
-               onMouseEnter={e => e.currentTarget.style.color='#f87171'} onMouseLeave={e => e.currentTarget.style.color='var(--text-muted)'}>
-               <RotateCcw size={16} />
-             </button>
-           </div>
+            </div>
+
+            {/* Botón Reiniciar / Limpiar */}
+            <button 
+              onClick={() => {
+                setEquipos([]);
+                setPosicionVentiladorIntermedio(null);
+              }} 
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 hover:text-rose-200 border border-rose-500/30 transition-all text-xs font-bold shadow-sm active:scale-95 cursor-pointer" 
+              title="Vaciar todos los equipos del rack y empezar de nuevo"
+            >
+              <RotateCcw size={14} className="text-rose-400" />
+              <span>Limpiar</span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -719,13 +1200,16 @@ export default function App() {
                 </button>
                 {categoriasAbiertas.includes(cat) && (
                   <div className="p-2 border-t" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--bg-app)' }}>
-                    {CATALOGO_EQUIPOS.filter(i => i.categoria === cat).map(item => (
+                    {CATALOGO_EQUIPOS.filter(i => i.categoria === cat).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' })).map(item => (
                       <button key={item.id} onClick={() => agregarItem(item)}
                         className="w-full p-3 rounded-lg group text-left flex justify-between items-center mb-2 transition-all duration-200 border hover:shadow-lg"
                         style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border)' }}
                         onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'var(--accent)'; e.currentTarget.style.borderColor = 'var(--accent)'; }}
                         onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'var(--bg-panel)'; e.currentTarget.style.borderColor = 'var(--border)'; }}>
-                        <span className="font-semibold truncate" style={{ fontSize: 'var(--font-rack)', color: 'var(--text-primary)' }}>{item.nombre}</span>
+                        <span className="font-semibold truncate flex items-center gap-1.5" style={{ fontSize: 'var(--font-rack)', color: 'var(--text-primary)' }}>
+                          <BrandLogo brand={getBrandForEquipment(item)} size={12} className="text-slate-300" />
+                          <span>{item.nombre}</span>
+                        </span>
                         <div className="flex items-center justify-center w-7 h-7 rounded-full flex-shrink-0 ml-2" style={{ backgroundColor: 'rgba(58,62,224,0.15)' }}>
                           <Plus size={13} style={{ color: 'var(--accent-light)' }} />
                         </div>
@@ -743,13 +1227,13 @@ export default function App() {
               {res.rackRecomendado}<span className="text-xl ml-2" style={{ color: 'var(--accent-light)' }}>U</span>
             </h2>
             <p className="font-black uppercase tracking-widest mt-2 pl-3" style={{ fontSize: '9px', color: 'var(--accent-light)', borderLeft: '3px solid var(--accent)' }}>
-              Rack Illusion Recomendado
+              Rack Excell Recomendado
             </p>
           </div>
         </aside>
 
-        <section className="max-w-[450px] flex-1 relative flex items-center justify-center p-4 overflow-hidden" style={{ backgroundColor: 'var(--bg-app)' }}>
-          <div className="relative w-full max-w-[400px] h-full flex flex-col rounded-lg border-x-[24px]"
+        <section className="flex-1 relative flex items-center justify-center p-4 overflow-hidden" style={{ backgroundColor: 'var(--bg-app)' }}>
+          <div className="relative w-full max-w-[420px] h-full flex flex-col rounded-lg border-x-[24px]"
                style={{ backgroundColor: 'var(--bg-rack)', borderColor: '#2a2d35', boxShadow: '0 0 40px rgba(58,62,224,0.15)', outline: '1px solid var(--border)' }}>
             <div className="flex-1 flex flex-col p-1 overflow-y-auto custom-scrollbar">
               {/* Ventiladores */}
@@ -765,6 +1249,9 @@ export default function App() {
                   <Fan size={18} />
                 </span>
                 <span className="uppercase" style={{ fontSize: '13px', letterSpacing: '2px', color: '#60a5fa', fontWeight: 700 }}>Ventiladores</span>
+                <span className="fan-spin" style={{ color: '#60a5fa', display: 'inline-block' }}>
+                  <Fan size={18} />
+                </span>
                 <div className="flex gap-1">{[...Array(8)].map((_, j) => (
                   <div key={j} className="w-1 h-3 bg-blue-400 rounded-full" style={{ opacity: 0.3 + ((7 - j) * 0.08) }} />
                 ))}</div>
@@ -825,21 +1312,28 @@ export default function App() {
                                      opacity: isDraggable && draggingIndex === equipoRealIndex ? 0.35 : 1,
                                    }}>
                                 {isDraggable && <div className="w-4 shrink-0" />}
-                                <span className="flex-1 font-black uppercase text-white text-[11px] px-1 leading-tight text-center">{e.nombre}</span>
+                                <div className="flex-1 flex items-center justify-center gap-1.5 px-1 leading-tight overflow-hidden">
+                                  <BrandLogo brand={getBrandForEquipment(e)} size={11} className="text-white/90" />
+                                  <span className="font-black uppercase text-white text-[11px] truncate text-center">{e.nombre}</span>
+                                </div>
                                 {isDraggable && (
-                                  <div className="w-4 shrink-0 flex flex-col items-center justify-center gap-0.5">
+                                  <div className="w-5 shrink-0 flex flex-col items-center justify-center gap-0.5 z-10 mr-1">
                                     <button
                                       onClick={() => moverEquipo(equipoRealIndex, -1)}
                                       disabled={equipoRealIndex === 0}
-                                      className="opacity-0 group-hover/item:opacity-100 transition-all disabled:opacity-10 disabled:cursor-not-allowed"
-                                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.5)', fontSize: '8px', lineHeight: 1, padding: '1px 3px' }}>
+                                      className="w-4 h-3.5 flex items-center justify-center rounded bg-black/50 hover:bg-black/80 text-white/90 hover:text-white transition-all opacity-0 group-hover/item:opacity-100 disabled:opacity-0 disabled:cursor-not-allowed cursor-pointer shadow-sm active:scale-95 border border-white/15"
+                                      style={{ fontSize: '8px', lineHeight: 1 }}
+                                      title="Mover equipo hacia arriba"
+                                    >
                                       ▲
                                     </button>
                                     <button
                                       onClick={() => moverEquipo(equipoRealIndex, 1)}
                                       disabled={equipoRealIndex === equipos.length - 1}
-                                      className="opacity-0 group-hover/item:opacity-100 transition-all disabled:opacity-10 disabled:cursor-not-allowed"
-                                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.5)', fontSize: '8px', lineHeight: 1, padding: '1px 3px' }}>
+                                      className="w-4 h-3.5 flex items-center justify-center rounded bg-black/50 hover:bg-black/80 text-white/90 hover:text-white transition-all opacity-0 group-hover/item:opacity-100 disabled:opacity-0 disabled:cursor-not-allowed cursor-pointer shadow-sm active:scale-95 border border-white/15"
+                                      style={{ fontSize: '8px', lineHeight: 1 }}
+                                      title="Mover equipo hacia abajo"
+                                    >
                                       ▼
                                     </button>
                                   </div>
@@ -858,26 +1352,71 @@ export default function App() {
                     );
                   }
 
-                  // ── VENTILADOR ADICIONAL (automático en racks >24U) ────
+                  // ── VENTILADOR ADICIONAL (automático en racks >=24U con movimiento arriba / abajo) ────
                   if (item.esVentiladorAdicional) {
+                    const posActual = item.posicionIndex ?? 0;
+                    const maxSlots = item.totalSlots ?? 0;
+                    const puedeSubir = posActual > 0;
+                    const puedeBajar = posActual < maxSlots;
+
                     return (
-                      <div key={item.instanceId} 
-                           style={{ 
-                             height: `${PIXELS_PER_U}px`,
-                             background: 'linear-gradient(90deg, rgba(59, 130, 246, 0.08) 0%, rgba(96, 165, 250, 0.15) 50%, rgba(59, 130, 246, 0.08) 100%)',
-                             borderBottom: '1px solid var(--border)'
-                           }} 
-                           className="w-full flex items-center justify-center gap-3">
-                        <div className="flex gap-1">{[...Array(8)].map((_, j) => (
-                          <div key={j} className="w-1 h-3 bg-blue-400 rounded-full" style={{ opacity: 0.3 + (j * 0.08) }} />
-                        ))}</div>
-                        <span className="fan-spin" style={{ color: '#60a5fa', display: 'inline-block' }}>
-                          <Fan size={18} />
-                        </span>
-                        <span className="uppercase" style={{ fontSize: '13px', letterSpacing: '2px', color: '#60a5fa', fontWeight: 700 }}>Ventilador</span>
-                        <div className="flex gap-1">{[...Array(8)].map((_, j) => (
-                          <div key={j} className="w-1 h-3 bg-blue-400 rounded-full" style={{ opacity: 0.3 + ((7 - j) * 0.08) }} />
-                        ))}</div>
+                      <div 
+                        key={item.instanceId} 
+                        style={{ 
+                          height: `${PIXELS_PER_U}px`,
+                          background: 'linear-gradient(90deg, rgba(30, 58, 138, 0.25) 0%, rgba(59, 130, 246, 0.2) 50%, rgba(30, 58, 138, 0.25) 100%)',
+                          borderBottom: '1px solid rgba(96, 165, 250, 0.35)',
+                          borderTop: '1px solid rgba(96, 165, 250, 0.25)'
+                        }} 
+                        className="w-full flex items-center justify-between px-3 overflow-hidden relative group shadow-sm"
+                      >
+                        {/* Lado Izquierdo: Espaciador simétrico */}
+                        <div className="w-8 shrink-0" />
+
+                        {/* Centro: Animación de ventiladores y texto */}
+                        <div className="flex-1 flex items-center justify-center gap-2.5 overflow-hidden">
+                          <div className="flex gap-1 shrink-0 hidden sm:flex">
+                            {[...Array(5)].map((_, j) => (
+                              <div key={j} className="w-1 h-3 bg-blue-400 rounded-full" style={{ opacity: 0.3 + (j * 0.14) }} />
+                            ))}
+                          </div>
+                          <span className="fan-spin shrink-0 text-blue-400" style={{ display: 'inline-flex' }}>
+                            <Fan size={15} />
+                          </span>
+                          <span className="uppercase text-center whitespace-nowrap shrink-0 text-blue-300 font-extrabold tracking-wider text-[11px]">
+                            Ventilador Intermedio
+                          </span>
+                          <span className="fan-spin shrink-0 text-blue-400" style={{ display: 'inline-flex' }}>
+                            <Fan size={15} />
+                          </span>
+                          <div className="flex gap-1 shrink-0 hidden sm:flex">
+                            {[...Array(5)].map((_, j) => (
+                              <div key={j} className="w-1 h-3 bg-blue-400 rounded-full" style={{ opacity: 0.3 + ((4 - j) * 0.14) }} />
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Lado Derecho: Controles de movimiento Arriba / Abajo */}
+                        <div className="w-8 shrink-0 flex flex-col items-center justify-center gap-0.5">
+                          <button
+                            onClick={() => moverVentiladorIntermedio(-1)}
+                            disabled={!puedeSubir}
+                            className="w-5 h-4 flex items-center justify-center rounded bg-blue-500/25 hover:bg-blue-500/50 text-blue-200 hover:text-white transition-all disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer shadow-sm active:scale-95"
+                            style={{ fontSize: '9px', lineHeight: 1 }}
+                            title="Mover ventilador intermedio hacia arriba"
+                          >
+                            ▲
+                          </button>
+                          <button
+                            onClick={() => moverVentiladorIntermedio(1)}
+                            disabled={!puedeBajar}
+                            className="w-5 h-4 flex items-center justify-center rounded bg-blue-500/25 hover:bg-blue-500/50 text-blue-200 hover:text-white transition-all disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer shadow-sm active:scale-95"
+                            style={{ fontSize: '9px', lineHeight: 1 }}
+                            title="Mover ventilador intermedio hacia abajo"
+                          >
+                            ▼
+                          </button>
+                        </div>
                       </div>
                     );
                   }
@@ -889,6 +1428,8 @@ export default function App() {
                   const isDragOver = isDraggable && dragOverIndex === equipoRealIndex;
                   const backgroundColor = eq.tipoPasivo === 'Ventilacion' || eq.esRejillaVentilacion ? '#000000' :
                                          eq.tipoPasivo === 'Escobilla' || eq.tipoPasivo === 'Ciego' ? '#000000' :
+                                         eq.id === 'regleta-acc' ? '#181b24' :
+                                         eq.id === 'pasacables-acc' ? '#111827' :
                                          eq.esAccesorio ? '#000000' :
                                          eq.categoria === 'Redes' ? '#475569' :
                                          eq.categoria === 'Audio' ? '#2563eb' :
@@ -915,48 +1456,111 @@ export default function App() {
                            opacity: isDraggable && draggingIndex === equipoRealIndex ? 0.35 : 1,
                          }}>
                       {isDraggable && <div className="w-8 shrink-0" />}
-                      <div className="flex-1 flex items-center justify-center overflow-hidden">
+                      <div className="flex-1 h-full flex items-center justify-center overflow-hidden">
                         {eq.tipoPasivo === 'Ventilacion' || eq.esRejillaVentilacion ? (
                           <div className="flex items-center gap-2">
                             <Fan size={11} className="text-white/40 shrink-0" />
                             <span className="text-[10px] font-bold text-white uppercase tracking-widest">PLACA CIEGA 1U</span>
                           </div>
-                        ) : eq.tipoPasivo === 'Escobilla' || eq.tipoPasivo === 'Ciego' ? (
-                          <div className="flex items-center gap-2">
-                            {!eq.esEscobilla && <Fan size={11} className="text-white/40 shrink-0" />}
-                            <span className="text-[10px] font-bold text-white uppercase tracking-widest">
-                              {eq.esEscobilla ? 'ESCOBILLA PASACABLES' : 'PLACA CIEGA 1U'}
+                        ) : eq.tipoPasivo === 'Escobilla' || eq.esEscobilla || eq.id === 'escobilla-acc' || (eq.nombre && eq.nombre.toLowerCase().includes('escobilla')) ? (
+                          /* Diseño Escobilla Pasacables con logos de escoba */
+                          <div className="w-full flex items-center justify-center gap-3 px-4">
+                            <span className="text-amber-400 shrink-0" style={{ display: 'inline-flex' }}>
+                              <EscobaIcon size={16} />
                             </span>
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-white whitespace-nowrap">
+                              ESCOBILLA PASACABLES
+                            </span>
+                            <span className="text-amber-400 shrink-0" style={{ display: 'inline-flex' }}>
+                              <EscobaIcon size={16} />
+                            </span>
+                          </div>
+                        ) : eq.id === 'pasacables-acc' || (eq.nombre && eq.nombre.toLowerCase().includes('pasacables') && !eq.nombre.toLowerCase().includes('escobilla')) ? (
+                          /* Diseño Pasacables 1U Ranurado con Guías */
+                          <div className="w-full flex items-center justify-between px-3 h-full">
+                            <div className="flex items-center gap-1.5 opacity-50">
+                              {[...Array(3)].map((_, i) => (
+                                <div key={i} className="w-2.5 h-5 rounded-sm border border-slate-600 bg-slate-800/80" />
+                              ))}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Cable size={14} className="text-cyan-400 shrink-0" />
+                              <span className="text-[10px] font-bold text-white uppercase tracking-widest">
+                                PASACABLES 1U
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5 opacity-50">
+                              {[...Array(3)].map((_, i) => (
+                                <div key={i} className="w-2.5 h-5 rounded-sm border border-slate-600 bg-slate-800/80" />
+                              ))}
+                            </div>
+                          </div>
+                        ) : eq.id === 'regleta-acc' || (eq.nombre && eq.nombre.toLowerCase().includes('regleta')) ? (
+                          /* Diseño Regleta de Conexión 1U PDU Frontal */
+                          <div className="w-full flex items-center justify-between px-3 h-full">
+                            <div className="flex items-center gap-2">
+                              <div className="w-3.5 h-5 rounded-sm bg-red-600 shadow-sm shadow-red-500/50 flex items-center justify-center border border-red-400/50" title="Interruptor I/O">
+                                <div className="w-1 h-2 bg-red-200 rounded-full" />
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <RoundedSocketIcon size={13} className="text-indigo-400 shrink-0" />
+                                <span className="text-[10px] font-bold text-white uppercase tracking-widest">
+                                  REGLETA DE CONEXIÓN 1U
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              {[...Array(4)].map((_, i) => (
+                                <div key={i} className="w-5 h-5 rounded-full border border-slate-700 bg-slate-900 flex items-center justify-center shadow-inner" title="Toma Schuko">
+                                  <div className="flex gap-0.5">
+                                    <div className="w-1 h-1 bg-slate-500 rounded-full" />
+                                    <div className="w-1 h-1 bg-slate-500 rounded-full" />
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : eq.tipoPasivo === 'Ciego' ? (
+                          <div className="flex items-center gap-2">
+                            <Fan size={11} className="text-white/40 shrink-0" />
+                            <span className="text-[10px] font-bold text-white uppercase tracking-widest">PLACA CIEGA 1U</span>
                           </div>
                         ) : eq.categoria === 'Accesorios' ? (
                           <div className="flex items-center gap-2">
-                            {eq.id !== 'escobilla-acc' && <Fan size={11} className="text-white/40 shrink-0" />}
+                            <Fan size={11} className="text-white/40 shrink-0" />
                             <span className="text-[10px] font-bold text-white uppercase tracking-widest">
-                              {eq.id === 'placa-ciega-2u' ? 'PLACA CIEGA 2U' : eq.id === 'escobilla-acc' ? 'ESCOBILLA PASACABLES' : 'PLACA CIEGA 1U'}
+                              {eq.id === 'placa-ciega-2u' ? 'PLACA CIEGA 2U' : 'PLACA CIEGA 1U'}
                             </span>
                           </div>
                         ) : (
                           <div className="flex flex-col items-center">
-                            <span className="font-black uppercase tracking-tight px-4 truncate text-[14px] text-white">{eq.nombre}</span>
+                            <div className="flex items-center gap-2 max-w-full px-4">
+                              <BrandLogo brand={getBrandForEquipment(eq)} size={13} className="text-white/80" />
+                              <span className="font-black uppercase tracking-tight truncate text-[14px] text-white">{eq.nombre}</span>
+                            </div>
                             <span className="text-[10px] font-bold opacity-50 uppercase tracking-widest">{eq.categoria}</span>
                           </div>
                         )}
                       </div>
-                      <div className="w-8 shrink-0 flex flex-col items-center justify-center gap-0.5">
+                      <div className="w-8 shrink-0 flex flex-col items-center justify-center gap-0.5 z-10 mr-1">
                         {isDraggable && (
                           <>
                             <button
                               onClick={() => moverEquipo(equipoRealIndex, -1)}
                               disabled={equipoRealIndex === 0}
-                              className="opacity-0 group-hover:opacity-100 transition-all disabled:opacity-10 disabled:cursor-not-allowed"
-                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.5)', fontSize: '9px', lineHeight: 1, padding: '2px 4px' }}>
+                              className="w-5 h-4 flex items-center justify-center rounded bg-black/50 hover:bg-black/80 text-white/90 hover:text-white transition-all opacity-0 group-hover:opacity-100 disabled:opacity-0 disabled:cursor-not-allowed cursor-pointer shadow-sm active:scale-95 border border-white/15"
+                              style={{ fontSize: '9px', lineHeight: 1 }}
+                              title="Mover equipo hacia arriba"
+                            >
                               ▲
                             </button>
                             <button
                               onClick={() => moverEquipo(equipoRealIndex, 1)}
                               disabled={equipoRealIndex === equipos.length - 1}
-                              className="opacity-0 group-hover:opacity-100 transition-all disabled:opacity-10 disabled:cursor-not-allowed"
-                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.5)', fontSize: '9px', lineHeight: 1, padding: '2px 4px' }}>
+                              className="w-5 h-4 flex items-center justify-center rounded bg-black/50 hover:bg-black/80 text-white/90 hover:text-white transition-all opacity-0 group-hover:opacity-100 disabled:opacity-0 disabled:cursor-not-allowed cursor-pointer shadow-sm active:scale-95 border border-white/15"
+                              style={{ fontSize: '9px', lineHeight: 1 }}
+                              title="Mover equipo hacia abajo"
+                            >
                               ▼
                             </button>
                           </>
@@ -987,11 +1591,20 @@ export default function App() {
              </div>
              <div className="flex justify-between p-3 bg-white/5 rounded-xl border border-white/5">
                 <div className="flex items-center gap-2">
-                   <Zap size={14} className="text-slate-300" />
-                   <span className="text-slate-200 font-bold uppercase text-[10px]">Regletas (Traseras)</span>
+                   <RoundedSocketIcon size={14} className="text-slate-300" />
+                   <span className="text-slate-200 font-bold uppercase text-[10px]">Regletas PDU (Traseras)</span>
                 </div>
                 <span className="font-black text-white">x{res.numRegletasTraseras}</span>
              </div>
+             {res.numRegletasFrontales > 0 && (
+               <div className="flex justify-between p-3 bg-white/5 rounded-xl border border-white/5">
+                  <div className="flex items-center gap-2">
+                     <RoundedSocketIcon size={14} className="text-indigo-400" />
+                     <span className="text-slate-200 font-bold uppercase text-[10px]">Regletas 1U (Frontales)</span>
+                  </div>
+                  <span className="font-black text-white">x{res.numRegletasFrontales}</span>
+               </div>
+             )}
              <div className="flex justify-between p-3 bg-white/5 rounded-xl border border-white/5">
                 <div className="flex items-center gap-2">
                    <Cable size={14} className="text-slate-300" />
@@ -999,6 +1612,15 @@ export default function App() {
                 </div>
                 <span className="font-black text-white">x{res.pasacablesTraseros}</span>
              </div>
+             {res.numPasacablesFrontales > 0 && (
+               <div className="flex justify-between p-3 bg-white/5 rounded-xl border border-white/5">
+                  <div className="flex items-center gap-2">
+                     <Cable size={14} className="text-cyan-400" />
+                     <span className="text-slate-200 font-bold uppercase text-[10px]">Pasacables 1U (Frontales)</span>
+                  </div>
+                  <span className="font-black text-white">x{res.numPasacablesFrontales}</span>
+               </div>
+             )}
              <div className="flex justify-between p-3 bg-white/5 rounded-xl border border-white/5">
                 <div className="flex items-center gap-2">
                    <LayoutList size={14} className="text-slate-300" />
@@ -1070,13 +1692,300 @@ export default function App() {
           </div>
 
           <div className="mt-auto pt-6">
-            <button onClick={descargarMaterialesRack} className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-900/40 transition-all active:scale-95 flex items-center justify-center gap-2">
+            <button 
+              onClick={descargarMaterialesRackPDF} 
+              className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-900/40 transition-all active:scale-95 flex items-center justify-center gap-2"
+              title="Descargar listado de materiales en PDF"
+            >
               <Download size={14} />
-              Descargar Materiales de Rack
+              Descargar Materiales de Rack (PDF)
             </button>
           </div>
         </aside>
       </main>
+
+      {/* Modal para Guardar y Nombrar Proyecto */}
+      {mostrarModalGuardar && (
+        <div className="modal-overlay" onClick={() => setMostrarModalGuardar(false)}>
+          <div 
+            className="modal-card"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+                  <Save size={18} />
+                </div>
+                <div>
+                  <h3 className="text-white font-bold text-base leading-tight">Guardar Proyecto</h3>
+                  <p className="text-slate-400 text-xs">Asigna un nombre a la configuración del rack</p>
+                </div>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setMostrarModalGuardar(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={confirmarGuardarProyecto} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+                  Nombre del Proyecto
+                </label>
+                <input
+                  type="text"
+                  autoFocus
+                  value={inputNombreProyecto}
+                  onChange={(e) => setInputNombreProyecto(e.target.value)}
+                  placeholder="Ej: Rack Villa Sol, Rack Central..."
+                  className="modal-input"
+                  style={{
+                    backgroundColor: '#090a0f',
+                    color: '#ffffff',
+                    border: '1px solid #2d3142',
+                    fontSize: '14px',
+                    lineHeight: '20px'
+                  }}
+                />
+                <p className="text-[11px] text-slate-400 mt-2">
+                  Este nombre aparecerá automáticamente como título oficial en el informe PDF de materiales.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setMostrarModalGuardar(false)}
+                  className="modal-btn-cancel"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="modal-btn-confirm"
+                >
+                  <Check size={14} />
+                  Guardar Proyecto
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Notificación Toast */}
+      {notificacionGuardado && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-3 bg-emerald-500/90 text-white rounded-xl shadow-xl backdrop-blur border border-emerald-400/40 text-xs font-semibold animate-in fade-in slide-in-from-bottom-3 duration-200">
+          <Check size={16} className="text-white" />
+          <span>{notificacionGuardado}</span>
+        </div>
+      )}
+
+      {/* Modal Guía Interactiva & Manual de Uso */}
+      {mostrarGuia && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200" onClick={() => setMostrarGuia(false)}>
+          <div 
+            className="w-full max-w-4xl max-h-[92vh] flex flex-col rounded-2xl border shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
+            style={{ 
+              backgroundColor: '#0c0e15',
+              borderColor: 'rgba(99, 102, 241, 0.3)',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 40px -10px rgba(99, 102, 241, 0.2)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header del Modal */}
+            <div className="flex items-center justify-between px-6 py-4 border-b shrink-0" style={{ borderColor: 'rgba(255,255,255,0.08)', backgroundColor: '#111420' }}>
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center">
+                  <BookOpen size={18} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-white font-extrabold text-base tracking-wide leading-tight">Guía Interactiva & Manual de Uso</h3>
+                    <span className="text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-full font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                      Illusion v3
+                    </span>
+                  </div>
+                  <p className="text-slate-400 text-xs mt-0.5">Aprende a diseñar, reordenar y dimensionar racks profesionales paso a paso</p>
+                </div>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setMostrarGuia(false)}
+                className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                title="Cerrar guía (Esc)"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Selector de Pestañas / Pasos Superiores con Formato Homogéneo y de Alto Contraste */}
+            <div className="flex items-center justify-start gap-2.5 px-6 py-3.5 border-b overflow-x-auto shrink-0 custom-scrollbar" style={{ borderColor: 'rgba(255,255,255,0.08)', backgroundColor: '#0d101a' }}>
+              {PASOS_GUIA.map((paso, idx) => {
+                const PasoIcono = paso.icono;
+                const activo = pasoGuia === idx;
+                
+                // Esquema de colores vibrantes estilo píldora para cada pestaña
+                const estilosPestana = [
+                  { bg: 'bg-sky-500/15 hover:bg-sky-500/25', text: 'text-sky-300 hover:text-sky-200', border: 'border-sky-500/40', iconColor: 'text-sky-400', activeBg: 'bg-sky-500 text-slate-950 border-sky-300 shadow-sky-500/30' },
+                  { bg: 'bg-emerald-500/15 hover:bg-emerald-500/25', text: 'text-emerald-300 hover:text-emerald-200', border: 'border-emerald-500/40', iconColor: 'text-emerald-400', activeBg: 'bg-emerald-500 text-slate-950 border-emerald-300 shadow-emerald-500/30' },
+                  { bg: 'bg-indigo-500/15 hover:bg-indigo-500/25', text: 'text-indigo-300 hover:text-indigo-200', border: 'border-indigo-500/40', iconColor: 'text-indigo-400', activeBg: 'bg-indigo-500 text-white border-indigo-300 shadow-indigo-500/30' },
+                  { bg: 'bg-rose-500/15 hover:bg-rose-500/25', text: 'text-rose-300 hover:text-rose-200', border: 'border-rose-500/40', iconColor: 'text-rose-400', activeBg: 'bg-rose-500 text-white border-rose-300 shadow-rose-500/30' },
+                  { bg: 'bg-amber-500/15 hover:bg-amber-500/25', text: 'text-amber-300 hover:text-amber-200', border: 'border-amber-500/40', iconColor: 'text-amber-400', activeBg: 'bg-amber-400 text-slate-950 border-yellow-200 shadow-amber-500/30' },
+                  { bg: 'bg-purple-500/15 hover:bg-purple-500/25', text: 'text-purple-300 hover:text-purple-200', border: 'border-purple-500/40', iconColor: 'text-purple-400', activeBg: 'bg-purple-500 text-white border-purple-300 shadow-purple-500/30' },
+                  { bg: 'bg-yellow-500/15 hover:bg-yellow-500/25', text: 'text-yellow-300 hover:text-yellow-200', border: 'border-yellow-500/40', iconColor: 'text-yellow-400', activeBg: 'bg-yellow-400 text-slate-950 border-yellow-200 shadow-yellow-500/30' },
+                ][idx % 7];
+
+                const titulosCompletos = [
+                  '1. Pestañas',
+                  '2. Cómo Añadir',
+                  '3. Desplazar',
+                  '4. Eliminar',
+                  '5. Guardar',
+                  '6. Descargar',
+                  '7. Consumo'
+                ];
+
+                return (
+                  <button
+                    key={paso.id}
+                    onClick={() => setPasoGuia(idx)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap shrink-0 transition-all duration-200 cursor-pointer border shadow-sm active:scale-95 ${
+                      activo 
+                        ? `${estilosPestana.activeBg} font-black shadow-lg scale-105` 
+                        : `${estilosPestana.bg} ${estilosPestana.text} ${estilosPestana.border}`
+                    }`}
+                  >
+                    <PasoIcono size={15} className={`shrink-0 ${activo ? (idx === 0 || idx === 1 || idx === 4 || idx === 6 ? 'text-slate-950 stroke-[2.5]' : 'text-white stroke-[2.5]') : estilosPestana.iconColor}`} />
+                    <span className="leading-none whitespace-nowrap">{titulosCompletos[idx] || `${idx + 1}. ${paso.titulo}`}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Contenido Central del Paso Activo */}
+            <div className="flex-1 p-6 overflow-y-auto custom-scrollbar space-y-5">
+              {(() => {
+                const pasoActual = PASOS_GUIA[pasoGuia];
+                const IconoActual = pasoActual.icono;
+
+                return (
+                  <div className="space-y-4">
+                    {/* Encabezado del Paso */}
+                    <div className="flex items-start justify-between gap-4 p-4 rounded-xl border bg-white/[0.02]" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+                      <div className="flex items-start gap-3.5">
+                        <div 
+                          className="p-3 rounded-xl shrink-0 flex items-center justify-center shadow-lg"
+                          style={{ backgroundColor: `${pasoActual.color}20`, border: `1px solid ${pasoActual.color}40`, color: pasoActual.color }}
+                        >
+                          <IconoActual size={24} />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md" style={{ backgroundColor: `${pasoActual.color}25`, color: pasoActual.color }}>
+                              {pasoActual.badge}
+                            </span>
+                            <h4 className="text-white font-bold text-lg">{pasoActual.titulo}</h4>
+                          </div>
+                          <p className="text-slate-300 text-sm font-medium mt-1">{pasoActual.subtitulo}</p>
+                          <p className="text-slate-400 text-xs mt-1.5 leading-relaxed">{pasoActual.descripcion}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Lista de Puntos Clave */}
+                    <div className="space-y-2.5">
+                      <h5 className="text-[11px] font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                        <Sparkles size={13} className="text-indigo-400" />
+                        Instrucciones y Puntos Clave:
+                      </h5>
+                      <div className="space-y-2">
+                        {pasoActual.puntos.map((punto, pIdx) => (
+                          <div key={pIdx} className="flex items-start gap-2.5 p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] text-xs text-slate-200 leading-relaxed">
+                            <CheckCircle2 size={15} className="text-emerald-400 shrink-0 mt-0.5" />
+                            <span>{punto}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Demostración Visual / Ejemplos */}
+                    {pasoActual.ejemplo && (
+                      <div className="p-3.5 rounded-xl border bg-indigo-950/20 border-indigo-500/20 text-xs space-y-1">
+                        <span className="font-bold text-indigo-300 uppercase tracking-wider text-[10px] block">
+                          💡 Ejemplo Práctico:
+                        </span>
+                        <p className="text-slate-300 text-xs leading-relaxed">
+                          {pasoActual.ejemplo}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Pro Tip Callout */}
+                    {pasoActual.tip && (
+                      <div className="p-3.5 rounded-xl border bg-amber-500/10 border-amber-500/20 text-xs flex items-start gap-2.5 text-amber-200/90">
+                        <Zap size={15} className="text-amber-400 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-bold uppercase tracking-wider text-[10px] text-amber-400 block mb-0.5">Consejo Pro:</span>
+                          <span className="text-xs text-amber-100/80">{pasoActual.tip}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Footer de Navegación del Modal */}
+            <div className="flex items-center justify-between px-6 py-4 border-t shrink-0" style={{ borderColor: 'rgba(255,255,255,0.08)', backgroundColor: '#0e1018' }}>
+              <div className="flex items-center gap-2 text-xs text-slate-400">
+                <span className="font-bold text-white">Paso {pasoGuia + 1}</span>
+                <span>de {PASOS_GUIA.length}</span>
+                <span className="text-slate-600 hidden sm:inline">• Usa las teclas ← / → para navegar o Esc para cerrar</span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={pasoGuia === 0}
+                  onClick={() => setPasoGuia((prev) => Math.max(0, prev - 1))}
+                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+                    pasoGuia === 0
+                      ? 'opacity-40 cursor-not-allowed bg-white/5 text-slate-500'
+                      : 'bg-white/10 hover:bg-white/15 text-slate-200 cursor-pointer active:scale-95'
+                  }`}
+                >
+                  <ArrowLeft size={13} />
+                  Anterior
+                </button>
+
+                {pasoGuia < PASOS_GUIA.length - 1 ? (
+                  <button
+                    type="button"
+                    onClick={() => setPasoGuia((prev) => Math.min(PASOS_GUIA.length - 1, prev + 1))}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-900/40 transition-all cursor-pointer active:scale-95"
+                  >
+                    Siguiente
+                    <ArrowRight size={13} />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setMostrarGuia(false)}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/40 transition-all cursor-pointer active:scale-95"
+                  >
+                    <Check size={14} />
+                    ¡Entendido! Comenzar a diseñar
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style dangerouslySetInnerHTML={{ __html: `
         .custom-scrollbar::-webkit-scrollbar { 
