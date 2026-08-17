@@ -1,31 +1,20 @@
-# Importado en static-deploy.md
-# Este archivo se extrae como un archivo separado para que Renovate pueda actualizar las versiones de las acciones
-#
-#region contenido
-# Flujo de trabajo simple para desplegar contenido estático en GitHub Pages
 name: Desplegar contenido estático en Pages
 
 on:
-  # Se ejecuta cuando se hace push a la rama Racks-1
   push:
-    branches: ['Racks-1']
-
-  # Permite ejecutar este flujo de trabajo manualmente desde la pestaña de Acciones
+    branches: ['Racks-1', 'main']
   workflow_dispatch:
 
-# Establece los permisos del GITHUB_TOKEN para permitir el despliegue en GitHub Pages
 permissions:
   contents: read
   pages: write
   id-token: write
 
-# Permite un solo despliegue concurrente
 concurrency:
   group: 'pages'
   cancel-in-progress: true
 
 jobs:
-  # Trabajo único de despliegue ya que solo estamos desplegando
   deploy:
     environment:
       name: github-pages
@@ -33,27 +22,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
+
       - name: Configurar Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
-          node-version: lts/*
+          node-version: 20
           cache: 'npm'
+
       - name: Instalar dependencias
-        run: npm ci
+        run: npm install
+
       - name: Construir
         run: npm run build
+
       - name: Configurar Pages
         uses: actions/configure-pages@v5
+
       - name: Subir artefacto
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v3
         with:
-          # Subir la carpeta dist
           path: './dist'
+
       - name: Desplegar a GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
-#endregion contenido
-
-      - name: Deploy to GitHub Pages
         uses: actions/deploy-pages@v4

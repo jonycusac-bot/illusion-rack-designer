@@ -276,6 +276,96 @@ html, body {
   border-radius: 10px;
 }
 
+/* Modal y Controles de Formulario */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.modal-card {
+  width: 100%;
+  max-width: 440px;
+  background-color: #14161f;
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+}
+
+.modal-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background-color: #090a0f !important;
+  color: #ffffff !important;
+  border: 1px solid #2d3142;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.modal-input:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25);
+  background-color: #0c0e16 !important;
+}
+
+.modal-input::placeholder {
+  color: #64748b;
+}
+
+.modal-btn-cancel {
+  padding: 0.625rem 1rem;
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #cbd5e1;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.modal-btn-cancel:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.modal-btn-confirm {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background-color: #4f46e5;
+  color: #ffffff;
+  border: 1px solid rgba(99, 102, 241, 0.5);
+  border-radius: 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  box-shadow: 0 10px 15px -3px rgba(30, 27, 75, 0.5);
+  transition: all 0.2s ease;
+}
+
+.modal-btn-confirm:hover {
+  background-color: #6366f1;
+  box-shadow: 0 10px 20px -3px rgba(99, 102, 241, 0.4);
+}
+
+.modal-btn-confirm:active {
+  transform: scale(0.97);
+}
+
 /* Estilos específicos de la aplicación */
 .text-center { text-align: center; }
 .cursor-pointer { cursor: pointer; }
