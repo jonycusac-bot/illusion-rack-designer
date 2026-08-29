@@ -1,6 +1,25 @@
 # Changelog - Illusion Rack Designer Pro
 
-## [v2.0.0 - VERSIÓN FINAL] - 2025-01-25
+## [v3.0.0] - 2026-09
+
+### Versión activa
+- **ACTUALIZADO**: Identidad y documentación unificadas en v3.0.0 Pro.
+- **ACTUALIZADO**: Fecha de la versión vigente a septiembre de 2026.
+- **CORREGIDO**: Puerto local documentado y configurado en `3000`.
+- **MEJORADO**: Acción de documentación integrada en el panel técnico.
+- **LIMPIEZA**: Eliminados estilos y recursos heredados de Vite sin uso.
+- **DOCUMENTACIÓN**: `README.md` pasa a ser la fuente principal del estado y ejecución del proyecto.
+- **NUEVO**: Creación manual de equipos personalizados con fabricante, modelo, categoría, espacio, profundidad, consumo, peso y requisitos de montaje.
+- **NUEVO**: Categoría dinámica `Personalizados` con edición, eliminación y persistencia local.
+- **MEJORADO**: Los equipos personalizados participan en los cálculos, el alzado del rack y el dossier PDF.
+- **PRUEBAS**: Cobertura de validación, normalización, persistencia y flujo completo de alta, inserción, edición, eliminación y PDF.
+- **NUEVO**: Campo URL oficial con validación y acceso directo a la fuente del producto.
+- **NUEVO**: Botón `Enviar equipo para revisión` con entrega AJAX mediante FormSubmit a `jonycusac@gmail.com`.
+- **MEJORADO**: Estados visibles de envío, confirmación y error sin depender del cliente de correo del usuario.
+- **DECISIÓN**: Los productos personalizados permanecen locales y no se alojan ni publican en Firebase.
+- **SEGURIDAD**: Firestore continúa limitado a perfiles y proyectos privados del usuario.
+
+## [v2.0.0] - 2025-01-25
 
 ### 🎉 VERSIÓN FINAL - PROYECTO COMPLETADO
 - **FINALIZADO**: Todas las funcionalidades principales implementadas
@@ -103,20 +122,11 @@
 
 ---
 
-## 🏆 RESUMEN FINAL v2.0.0
+## Estado de versiones
 
-### ✅ Funcionalidades Completadas:
-- ✅ Interfaz completa con 7 categorías de equipos
-- ✅ Visualización en tiempo real del rack
-- ✅ Cálculos automáticos de todos los materiales
-- ✅ Sistema de guardar/cargar proyectos
-- ✅ Exportación de materiales para instaladores
-- ✅ Auto-replegado de pestañas
-- ✅ Patch Panels automáticos
-- ✅ Sistema de tornillería completo
-
-### 🎯 Proyecto Finalizado:
-**Illusion Rack Designer Pro v2.0.0** está listo para uso en producción con todas las funcionalidades solicitadas implementadas y funcionando correctamente.
+- **Versión activa:** v3.0.0 Pro — Septiembre 2026.
+- Las entradas anteriores se conservan únicamente como historial de evolución.
+- Consulta `README.md` para instalación, ejecución local y funcionalidades vigentes.
 
 ---
 

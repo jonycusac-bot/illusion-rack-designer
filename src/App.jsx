@@ -30,10 +30,39 @@ import {
   HelpCircle,
   CheckCircle2,
   Layers,
-  ArrowUpDown
+  ArrowUpDown,
+  User,
+  LogIn,
+  LogOut,
+  Cloud,
+  CloudOff,
+  Mail,
+  ExternalLink,
+  Send,
+  Lock,
+  AlertCircle,
+  Loader2
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import LoginPage from './components/LoginPage';
+import { normalizeCustomEquipment, parseStoredCustomEquipment, validateCustomEquipment } from './customEquipment';
+import { submitEquipmentForReview } from './equipmentReview';
+import { getRackVisualSegments } from './rackEquipmentVisual';
+import { calculateRackCapacity } from './rackCapacity';
+import { PDF_REVIEW_LABELS } from './pdfReviewLabels';
+import { DEFAULT_TABLET_DESIGNER_VIEW, TABLET_DESIGNER_VIEWS } from './designerViewport';
+import { EQUIPMENT_CATALOG } from './catalog/equipmentCatalog';
+import { formatProfessionalIdentity } from './catalog/formatProfessionalIdentity';
+import { 
+  auth, 
+  onAuthStateChanged,
+  logoutUser, 
+  guardarProyectoEnFirestore, 
+  cargarProyectosDeFirestore, 
+  eliminarProyectoDeFirestore,
+  testConnection
+} from './firebase';
 
 // Icono Enchufe / Toma Schuko Redondeada (Estilo Flaticon 62931)
 const RoundedSocketIcon = ({ size = 15, className = "text-indigo-400" }) => (
@@ -172,60 +201,31 @@ const getBrandForEquipment = (item) => {
  * Lógica PDU: 1 por cada 3.500W de consumo o 1 cada 6 equipos (el mayor).
  */
 
-const CATALOGO_EQUIPOS = [
-  // --- REDES ---
-  { id: 'udm-pro', nombre: 'UniFi Dream Machine Pro', altura: 44, esRackable: true, categoria: 'Redes', consumo: 33, requiereEscobilla: true, fondo: 285 },
-  { id: 'sw-pro-48', nombre: 'UniFi Switch Pro 48 PoE', altura: 44, esRackable: true, categoria: 'Redes', consumo: 600, requiereEscobilla: true, fondo: 400 },
-  { id: 'sw-ent-24', nombre: 'UniFi Enterprise 24', altura: 44, esRackable: true, categoria: 'Redes', consumo: 450, requiereEscobilla: true, fondo: 320 },
-  { id: 'unifi-router-compact', nombre: 'UniFi Router Compact', altura: 44, esRackable: false, categoria: 'Redes', consumo: 200, ancho: 'media', requiereTapaCiega: true, fondo: 150 },
-  { id: 'switch-8p-dlink', nombre: 'Switch 8p D-Link', altura: 44, esRackable: false, categoria: 'Redes', consumo: 10, ancho: 'media', requiereTapaCiega: true, fondo: 120 },
-  
-  // --- CONTROL ---
-  { id: 'crestron-cp4', nombre: 'Crestron CP4', altura: 44, esRackable: true, categoria: 'Control', consumo: 15, fondo: 170 },
-  { id: 'crestron-rmc4', nombre: 'Crestron RMC4', altura: 44, esRackable: false, categoria: 'Control', consumo: 10, ancho: 'media', requiereTapaCiega: true, fondo: 120 },
-  { id: 'beoliving', nombre: 'Beoliving Intelligence', altura: 44, esRackable: false, categoria: 'Control', consumo: 20, ancho: 'media', requiereTapaCiega: true, fondo: 200 },
-  
-  // --- AUDIO (Ordenado Alfabéticamente) ---
-  { id: 'beoamp2', nombre: 'B&O Beoamp2', altura: 44, esRackable: true, categoria: 'Audio', consumo: 300, fondo: 250 },
-  { id: 'beocore', nombre: 'BeoCore (B&O)', altura: 44, esRackable: false, categoria: 'Audio', consumo: 50, fondo: 310, ancho: 'media', requiereTapaCiega: true },
-  { id: 'matrix-audio', nombre: 'Matriz Audio 16x16', altura: 88, esRackable: true, categoria: 'Audio', consumo: 80, fondo: 350 },
-  { id: 'sonance-dsp', nombre: 'Sonance DSP 8-125', altura: 44, esRackable: true, categoria: 'Audio', consumo: 600, fondo: 425, requiereEscobilla: true },
-  { id: 'sonos-amp', nombre: 'Sonos Amp', altura: 88, esRackable: false, categoria: 'Audio', consumo: 100, ancho: 'media', requiereTapaCiega: true, fondo: 220 },
-  { id: 'sonos-amp-multi', nombre: 'Sonos Amp Multi', altura: 88, esRackable: true, categoria: 'Audio', consumo: 200, fondo: 220, uOcupadas: 2 },
-  { id: 'sonos-port', nombre: 'Sonos Port', altura: 44, esRackable: false, categoria: 'Audio', consumo: 10, ancho: 'media', requiereTapaCiega: true, fondo: 150 },
-  
-  // --- VIDEO ---
-  { id: 'apple-tv', nombre: 'Apple TV 4K', altura: 35, esRackable: false, categoria: 'Video', consumo: 6, requiereTapaCiega: true, ancho: 'media', fondo: 93 },
-  { id: 'kaleidescape', nombre: 'Kaleidescape Strato', altura: 44, esRackable: true, categoria: 'Video', consumo: 30, fondo: 250 },
-  { id: 'receptor-sat', nombre: 'Receptor Sat', altura: 44, esRackable: false, categoria: 'Video', consumo: 15, ancho: 'media', requiereTapaCiega: true, fondo: 150 },
-  
-  // --- CINEMA ---
-  { id: 'marantz-av', nombre: 'Marantz AV Processor', altura: 177, esRackable: true, categoria: 'Cinema', consumo: 800, fondo: 411, uOcupadas: 4 },
-  { id: 'integra-drx', nombre: 'Integra DRX Series', altura: 177, esRackable: true, categoria: 'Cinema', consumo: 850, fondo: 390, uOcupadas: 4 },
-  { id: 'audiocontrol-av', nombre: 'AudioControl Maestro', altura: 177, esRackable: true, categoria: 'Cinema', consumo: 850, fondo: 420, uOcupadas: 4 },
-
-  // --- ENERGÍA ---
-  { id: 'ups-apc', nombre: 'SAI APC Smart-UPS 1500', altura: 88, esRackable: true, categoria: 'Energía', consumo: 0, fondo: 457 },
-
-  // --- OTROS ---
-  { id: 'equipo-1u', nombre: 'Equipo 1U', altura: 44, esRackable: true, categoria: 'Otros', consumo: 50, fondo: 300 },
-  { id: 'equipo-2u', nombre: 'Equipo 2U', altura: 88, esRackable: true, categoria: 'Otros', consumo: 100, fondo: 350 },
-  { id: 'equipo-3u', nombre: 'Equipo 3U', altura: 133, esRackable: true, categoria: 'Otros', consumo: 150, fondo: 400, uOcupadas: 3 },
-  { id: 'equipo-4u', nombre: 'Equipo 4U', altura: 177, esRackable: true, categoria: 'Otros', consumo: 200, fondo: 450, uOcupadas: 4 },
-  { id: 'equipo-media-balda', nombre: 'Equipo Media Balda', altura: 44, esRackable: false, categoria: 'Otros', consumo: 25, ancho: 'media', requiereTapaCiega: true, fondo: 150 },
-
-  // --- ACCESORIOS ---
-  { id: 'placa-ciega-1u', nombre: 'Placa Ciega 1U', altura: 44, esRackable: true, categoria: 'Accesorios', consumo: 0, fondo: 0, esAccesorio: true },
-  { id: 'placa-ciega-2u', nombre: 'Placa Ciega 2U', altura: 88, esRackable: true, categoria: 'Accesorios', consumo: 0, fondo: 0, uOcupadas: 2, esAccesorio: true },
-  { id: 'escobilla-acc', nombre: 'Escobilla', altura: 44, esRackable: true, categoria: 'Accesorios', consumo: 0, fondo: 0, esAccesorio: true, esEscobillaMaual: true },
-  { id: 'pasacables-acc', nombre: 'Pasacables', altura: 44, esRackable: true, categoria: 'Accesorios', consumo: 0, fondo: 100, esAccesorio: true },
-  { id: 'regleta-acc', nombre: 'Regleta de conexión', altura: 44, esRackable: true, categoria: 'Accesorios', consumo: 0, fondo: 150, esAccesorio: true },
-];
+const CATALOGO_EQUIPOS = EQUIPMENT_CATALOG;
 
 const UNIDAD_RACK_MM = 44.45;
 const PIXELS_PER_U = 50; 
 // Modelos oficiales de rack marca Excell: 9U, 15U, 20U, 24U, 33U, 42U y 47U
 const RACKS_COMERCIALES = [9, 15, 20, 24, 33, 42, 47];
+const CUSTOM_EQUIPMENT_STORAGE_KEY = 'illusion-equipos-personalizados';
+const CUSTOM_EQUIPMENT_INITIAL_FORM = {
+  fabricante: '',
+  modelo: '',
+  nombre: '',
+  urlProducto: '',
+  categoria: 'Otros',
+  esRackable: true,
+  uOcupadas: 1,
+  fondo: 300,
+  consumo: 0,
+  pesoKg: 0,
+  ancho: 'media',
+  incluyeOrejasRack: true,
+  requiereTapaCiega: false,
+  requiereEscobilla: false,
+  requierePlacaCiega: false,
+  notas: ''
+};
 
 const PASOS_GUIA = [
   {
@@ -432,7 +432,8 @@ const createNewEquiposList = (prevEquipos, item) => {
     timestamp: now
   };
   
-  if (item.id.includes('udm') || item.id.includes('sw-')) {
+  // Patch Panel automático únicamente para Switches de red (sw-), no para routers como UDM Pro
+  if (item.id.includes('sw-')) {
     const patchPanel = {
       id: 'patch-panel-auto',
       nombre: 'Patch Panel (Auto)',
@@ -517,6 +518,18 @@ const calcularRackCalculos = (equipos, posicionVentiladorIntermedio = null) => {
           tipoPasivo: 'Ventilacion'
         });
       }
+      if (eq.requierePlacaCiega || eq.id === 'sonance-dsp') {
+        numTapasAutomaticas++;
+        rackItems.push({
+          instanceId: `placa-auto-${eq.instanceId}`,
+          nombre: `Placa Ciega 1U`,
+          categoria: 'Accesorios',
+          uOcupadas: 1,
+          tipoPasivo: 'Ciego',
+          esPlacaCiega: true,
+          esAutomatico: true
+        });
+      }
       if (eq.requiereEscobilla) {
         const esRedes = eq.categoria === 'Redes';
         if (esRedes) numEscobillas++;
@@ -550,7 +563,8 @@ const calcularRackCalculos = (equipos, posicionVentiladorIntermedio = null) => {
     rackItems.push({ __esBloque: true, bloque });
   });
 
-  const infraestructuraSuperiorU = 1;
+  // Ventilación superior (1U) + termostato (1U), ambos visibles en el alzado.
+  const infraestructuraSuperiorU = 2;
   const uDeEquiposTotal = rackItems.reduce((acc, item) => {
     if (item.__esBloque) return acc + item.bloque.uTotal;
     return acc + (item.uOcupadas || 0);
@@ -560,15 +574,19 @@ const calcularRackCalculos = (equipos, posicionVentiladorIntermedio = null) => {
   const numEquiposTotal = equipos.length;
   const numRegletasTraseras = consumoTotalCalc === 0 ? (numEquiposTotal === 0 ? 0 : Math.ceil(numEquiposTotal / 6)) : Math.max(Math.ceil(consumoTotalCalc / 3500), Math.ceil(numEquiposTotal / 6));
   
-  const totalUNecesariasFrontales = uDeEquiposTotal + infraestructuraSuperiorU;
-  const rackRecomendado = RACKS_COMERCIALES.find(r => r >= totalUNecesariasFrontales) || 47;
+  const capacidadRack = calculateRackCapacity(
+    uDeEquiposTotal + infraestructuraSuperiorU,
+    RACKS_COMERCIALES
+  );
+  const totalUNecesariasFrontales = capacidadRack.occupiedU;
+  const rackRecomendado = capacidadRack.rackRecommended;
   
   const numVentiladores = rackRecomendado <= 24 ? 1 : 2;
   const totalSlotsSinVentilador = rackItems.length;
   const posicionVentiladorPorDefecto = Math.floor(totalSlotsSinVentilador / 2);
   let posicionVentiladorActual = null;
   
-  if (rackRecomendado > 24 && totalSlotsSinVentilador > 0) {
+  if (capacidadRack.intermediateFanU > 0 && totalSlotsSinVentilador > 0) {
     posicionVentiladorActual = (typeof posicionVentiladorIntermedio === 'number' && !isNaN(posicionVentiladorIntermedio))
       ? Math.max(0, Math.min(totalSlotsSinVentilador, posicionVentiladorIntermedio))
       : posicionVentiladorPorDefecto;
@@ -583,6 +601,20 @@ const calcularRackCalculos = (equipos, posicionVentiladorIntermedio = null) => {
       totalSlots: totalSlotsSinVentilador
     };
     rackItems.splice(posicionVentiladorActual, 0, ventiladorAdicional);
+  }
+
+  // Las U libres se mantienen disponibles para expansión y se cubren con placas desmontables.
+  for (let index = 0; index < capacidadRack.extraBlankPlates; index++) {
+    rackItems.push({
+      instanceId: `placa-extra-auto-${index + 1}`,
+      nombre: 'Placa Ciega Extra 1U',
+      categoria: 'Accesorios',
+      uOcupadas: 1,
+      tipoPasivo: 'Ciego',
+      esPlacaCiega: true,
+      esPlacaCiegaExtra: true,
+      esAutomatico: true
+    });
   }
   
   const bandejasSonosAmp = bloquesBaldas.filter(bloque => bloque.tieneVentilacionArriba).length;
@@ -614,6 +646,8 @@ const calcularRackCalculos = (equipos, posicionVentiladorIntermedio = null) => {
     numLineasElectricas: Math.max(1, Math.ceil(equipos.reduce((sum, eq) => sum + (eq.consumo || 0), 0) / 3680)),
     numEscobillas: numEscobillas + escobillasAccesorios,
     numPlacasCiegas: numTapasBalda + numTapasAutomaticas + placasCiegasAccesorios,
+    numPlacasCiegasExtra: capacidadRack.extraBlankPlates,
+    unidadesExpansion: capacidadRack.expansionU,
     pasacablesTraseros,
     numVentiladores,
     bandejasSonosAmp,
@@ -636,7 +670,69 @@ export default function App() {
   const [notificacionGuardado, setNotificacionGuardado] = useState(false);
   const [mostrarGuia, setMostrarGuia] = useState(false);
   const [pasoGuia, setPasoGuia] = useState(0);
+  const [generandoPDF, setGenerandoPDF] = useState(false);
+  const [equiposPersonalizados, setEquiposPersonalizados] = useState(() =>
+    parseStoredCustomEquipment(localStorage.getItem(CUSTOM_EQUIPMENT_STORAGE_KEY))
+  );
+  const [mostrarModalEquipoPersonalizado, setMostrarModalEquipoPersonalizado] = useState(false);
+  const [equipoPersonalizadoEditando, setEquipoPersonalizadoEditando] = useState(null);
+  const [formEquipoPersonalizado, setFormEquipoPersonalizado] = useState(CUSTOM_EQUIPMENT_INITIAL_FORM);
+  const [erroresEquipoPersonalizado, setErroresEquipoPersonalizado] = useState({});
+  const [envioRevision, setEnvioRevision] = useState({ itemId: null, status: 'idle' });
+  const [vistaTablet, setVistaTablet] = useState(DEFAULT_TABLET_DESIGNER_VIEW);
+  const [menuProyectosAbierto, setMenuProyectosAbierto] = useState(false);
+  const [menuUsuarioAbierto, setMenuUsuarioAbierto] = useState(false);
   const timerAutoReplegadoRef = useRef(null);
+  const rackContainerRef = useRef(null);
+
+  // Firebase Auth & Cloud Sync State
+  const [usuario, setUsuario] = useState(null);
+  const [cargandoAuth, setCargandoAuth] = useState(true);
+  const [enDisenador, setEnDisenador] = useState(false);
+  const [proyectosNube, setProyectosNube] = useState([]);
+  const [cargandoProyectosNube, setCargandoProyectosNube] = useState(false);
+  const [guardandoNube, setGuardandoNube] = useState(false);
+
+  const refrescarProyectosNube = async (uid) => {
+    if (!uid) return;
+    setCargandoProyectosNube(true);
+    try {
+      const projs = await cargarProyectosDeFirestore(uid);
+      setProyectosNube(projs || []);
+    } catch (err) {
+      console.error('Error al cargar proyectos de Firestore:', err);
+    } finally {
+      setCargandoProyectosNube(false);
+    }
+  };
+
+  // Escuchar estado de autenticación de Firebase y probar conexión
+  useEffect(() => {
+    testConnection();
+    const unsubscribe = onAuthStateChanged(auth, async (userActual) => {
+      setUsuario(userActual);
+      setCargandoAuth(false);
+      if (userActual) {
+        refrescarProyectosNube(userActual.uid);
+      } else {
+        setProyectosNube([]);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+      setUsuario(null);
+      setEnDisenador(false);
+      setNotificacionGuardado('Sesión cerrada correctamente');
+      setTimeout(() => setNotificacionGuardado(false), 3500);
+    } catch (err) {
+      console.error('Error al cerrar sesión:', err);
+    }
+  };
 
   // Atajos de teclado para la guía interactiva
   useEffect(() => {
@@ -715,6 +811,70 @@ export default function App() {
     setEquipos(prev => createNewEquiposList(prev, item));
   };
 
+  useEffect(() => {
+    localStorage.setItem(CUSTOM_EQUIPMENT_STORAGE_KEY, JSON.stringify(equiposPersonalizados));
+  }, [equiposPersonalizados]);
+
+  const abrirModalNuevoEquipo = () => {
+    setEquipoPersonalizadoEditando(null);
+    setFormEquipoPersonalizado(CUSTOM_EQUIPMENT_INITIAL_FORM);
+    setErroresEquipoPersonalizado({});
+    setMostrarModalEquipoPersonalizado(true);
+  };
+
+  const abrirModalEditarEquipo = (item) => {
+    setEquipoPersonalizadoEditando(item.id);
+    setFormEquipoPersonalizado({ ...CUSTOM_EQUIPMENT_INITIAL_FORM, ...item });
+    setErroresEquipoPersonalizado({});
+    setMostrarModalEquipoPersonalizado(true);
+  };
+
+  const guardarEquipoPersonalizado = (event) => {
+    event.preventDefault();
+    const errores = validateCustomEquipment(formEquipoPersonalizado);
+    if (Object.keys(errores).length > 0) {
+      setErroresEquipoPersonalizado(errores);
+      return;
+    }
+    const item = normalizeCustomEquipment(formEquipoPersonalizado, equipoPersonalizadoEditando || undefined);
+    setEquiposPersonalizados(prev => equipoPersonalizadoEditando
+      ? prev.map(actual => actual.id === equipoPersonalizadoEditando ? item : actual)
+      : [...prev, item]
+    );
+    setCategoriasAbiertas(prev => prev.includes('Personalizados') ? prev : [...prev, 'Personalizados']);
+    setMostrarModalEquipoPersonalizado(false);
+    setNotificacionGuardado(equipoPersonalizadoEditando ? 'Equipo personalizado actualizado' : 'Equipo personalizado creado');
+    setTimeout(() => setNotificacionGuardado(false), 3000);
+  };
+
+  const eliminarEquipoPersonalizado = (id) => {
+    setEquiposPersonalizados(prev => prev.filter(item => item.id !== id));
+    setNotificacionGuardado('Equipo eliminado del catálogo personalizado');
+    setTimeout(() => setNotificacionGuardado(false), 3000);
+  };
+
+  const enviarEquipoParaRevision = async (item) => {
+    if (envioRevision.status === 'sending') return;
+    setEnvioRevision({ itemId: item.id, status: 'sending' });
+    try {
+      await submitEquipmentForReview(item, usuario);
+      setEnvioRevision({ itemId: item.id, status: 'success' });
+      setNotificacionGuardado('Solicitud enviada a jonycusac@gmail.com');
+      setTimeout(() => setNotificacionGuardado(false), 4000);
+    } catch (error) {
+      console.error('Error enviando el equipo para revisión:', error);
+      setEnvioRevision({ itemId: item.id, status: 'error' });
+    } finally {
+      setTimeout(() => {
+        setEnvioRevision(current => current.itemId === item.id
+          ? { itemId: null, status: 'idle' }
+          : current
+        );
+      }, 5000);
+    }
+  };
+
+
   const eliminarItem = (id) => {
     playDeleteSound();
     setEquipos(prev => prev.filter(e => e.instanceId !== id));
@@ -790,7 +950,7 @@ export default function App() {
     setMostrarModalGuardar(true);
   };
 
-  const confirmarGuardarProyecto = (e) => {
+  const confirmarGuardarProyecto = async (e) => {
     if (e) e.preventDefault();
     const nombreFinal = inputNombreProyecto.trim() || 'Proyecto Rack';
 
@@ -799,21 +959,47 @@ export default function App() {
       posicionVentiladorIntermedio: posicionVentiladorIntermedio,
       nombre: nombreFinal,
       fecha: new Date().toISOString(),
-      version: '2.1'
+      version: '3.0.0'
     };
 
+    // Guardar en almacenamiento local como respaldo rápido
     const proyectosGuardados = JSON.parse(localStorage.getItem('illusion-proyectos') || '[]');
     const filtrados = proyectosGuardados.filter(p => p.nombre !== nombreFinal);
     localStorage.setItem('illusion-proyectos', JSON.stringify([proyecto, ...filtrados]));
 
+    // Si el usuario está autenticado con Firebase, guardar en Firestore
+    if (usuario) {
+      setGuardandoNube(true);
+      try {
+        await guardarProyectoEnFirestore(usuario.uid, {
+          nombre: nombreFinal,
+          rackAltura: `${res.rackRecomendado}U`,
+          elementos: equipos,
+          posicionVentiladorIntermedio: posicionVentiladorIntermedio,
+          consumoTotal: res.consumoTotal,
+          pesoTotal: res.pesoTotal || 0,
+          notas: `Guardado el ${new Date().toLocaleString('es-ES')}`
+        });
+        await refrescarProyectosNube(usuario.uid);
+        setNotificacionGuardado(`☁️ Proyecto "${nombreFinal}" guardado en la nube`);
+      } catch (err) {
+        console.error('Error guardando en la nube:', err);
+        setNotificacionGuardado(`Proyecto "${nombreFinal}" guardado localmente`);
+      } finally {
+        setGuardandoNube(false);
+      }
+    } else {
+      setNotificacionGuardado(`Proyecto "${nombreFinal}" guardado localmente`);
+    }
+
     setNombreProyectoActual(nombreFinal);
     setMostrarModalGuardar(false);
-    setNotificacionGuardado(`Proyecto "${nombreFinal}" guardado correctamente`);
-    setTimeout(() => setNotificacionGuardado(false), 3000);
+    setTimeout(() => setNotificacionGuardado(false), 3500);
   };
 
   const cargarProyecto = (proyecto) => {
-    setEquipos(proyecto.equipos || []);
+    const listaEquipos = proyecto.equipos || proyecto.elementos || [];
+    setEquipos(listaEquipos);
     setPosicionVentiladorIntermedio(typeof proyecto.posicionVentiladorIntermedio === 'number' ? proyecto.posicionVentiladorIntermedio : null);
     setNombreProyectoActual(proyecto.nombre);
     setNotificacionGuardado(`Proyecto "${proyecto.nombre}" cargado`);
@@ -828,276 +1014,909 @@ export default function App() {
     const proyectos = obtenerProyectosGuardados();
     proyectos.splice(index, 1);
     localStorage.setItem('illusion-proyectos', JSON.stringify(proyectos));
+    setNotificacionGuardado('Proyecto local eliminado');
+    setTimeout(() => setNotificacionGuardado(false), 2500);
   };
 
-  // Función para descargar informe en PDF profesional
+  const eliminarProyectoNube = async (projectId, e) => {
+    if (e) e.stopPropagation();
+    if (!usuario || !projectId) return;
+    try {
+      await eliminarProyectoDeFirestore(usuario.uid, projectId);
+      await refrescarProyectosNube(usuario.uid);
+      setNotificacionGuardado('☁️ Proyecto eliminado de la nube');
+      setTimeout(() => setNotificacionGuardado(false), 2500);
+    } catch (err) {
+      console.error('Error eliminando proyecto en la nube:', err);
+    }
+  };
+
+  // Función para descargar informe en PDF profesional con alzado visual vector CAD de alta precisión
   const descargarMaterialesRackPDF = () => {
-    const fecha = new Date().toLocaleDateString('es-ES');
-    const hora = new Date().toLocaleTimeString('es-ES');
+    setGenerandoPDF(true);
+    try {
+      const fecha = new Date().toLocaleDateString('es-ES');
+      const hora = new Date().toLocaleTimeString('es-ES');
 
-    const doc = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: 'a4'
-    });
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
 
-    const primaryColor = [15, 23, 42]; // Slate 900
-    const indigoAccent = [79, 70, 229]; // Indigo 600
-    const lightBg = [248, 250, 252]; // Slate 50
+      const primaryColor = [15, 23, 42]; // Slate 900
+      const indigoAccent = [79, 70, 229]; // Indigo 600
+      const lightBg = [248, 250, 252]; // Slate 50
 
-    // Header Superior
-    doc.setFillColor(...primaryColor);
-    doc.rect(0, 0, 210, 32, 'F');
+      // ─────────────────────────────────────────────────────────────
+      // PÁGINA 1: RESUMEN TÉCNICO, BOM DE INFRAESTRUCTURA & ELÉCTRICO
+      // ─────────────────────────────────────────────────────────────
+      // Header Superior
+      doc.setFillColor(...primaryColor);
+      doc.rect(0, 0, 210, 32, 'F');
 
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(16);
-    doc.setTextColor(255, 255, 255);
-    doc.text('ILLUSION RACK DESIGNER', 14, 14);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(16);
+      doc.setTextColor(255, 255, 255);
+      doc.text('ILLUSION RACK DESIGNER', 14, 14);
 
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(199, 210, 254);
-    doc.text('LISTADO DE MATERIALES & INFRAESTRUCTURA DE RACK', 14, 21);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(199, 210, 254);
+      doc.text('LISTADO DE MATERIALES & INFRAESTRUCTURA DE RACK', 14, 21);
 
-    doc.setFontSize(8);
-    doc.setTextColor(148, 163, 184);
-    doc.text(`PROYECTO: ${(nombreProyectoActual || 'PROYECTO RACK').toUpperCase()}   |   FECHA: ${fecha} - ${hora}`, 14, 27);
+      doc.setFontSize(8);
+      doc.setTextColor(148, 163, 184);
+      doc.text(`PROYECTO: ${(nombreProyectoActual || 'PROYECTO RACK').toUpperCase()}   |   FECHA: ${fecha} - ${hora}`, 14, 27);
 
-    // Caja de Resumen del Rack
-    doc.setFillColor(...lightBg);
-    doc.setDrawColor(226, 232, 240);
-    doc.roundedRect(14, 37, 182, 28, 2, 2, 'FD');
+      // Caja de Resumen del Rack
+      doc.setFillColor(...lightBg);
+      doc.setDrawColor(226, 232, 240);
+      doc.roundedRect(14, 32, 182, 21, 2, 2, 'FD');
 
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9.5);
-    doc.setTextColor(...primaryColor);
-    doc.text('RESUMEN TÉCNICO DEL RACK', 19, 44);
-
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8.5);
-    doc.setTextColor(71, 85, 105);
-
-    doc.text(`• Rack Recomendado: ${res.rackRecomendado}U`, 19, 51);
-    doc.text(`• Unidades Ocupadas: ${res.totalUNecesariasFrontales}U`, 19, 58);
-    doc.text(`• Unidades Libres: ${res.rackRecomendado - res.totalUNecesariasFrontales}U`, 78, 51);
-    doc.text(`• Consumo Total: ${res.consumoTotal} W`, 78, 58);
-    doc.text(`• Regletas PDU: ${res.numRegletasTraseras}`, 138, 51);
-    doc.text(`• Líneas Eléctricas: ${res.numLineasElectricas} (2,5mm²)`, 138, 58);
-
-    // Tabla 1: Resumen de Cantidades / Materiales (BOM de Infraestructura)
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10.5);
-    doc.setTextColor(...primaryColor);
-    doc.text('1. RESUMEN DE CANTIDADES (MATERIALES DE INFRAESTRUCTURA)', 14, 72);
-
-    const materialesFilas = [
-      [`Rack Excell ${res.rackRecomendado}U`, 'x1', 'XXXXX'],
-      ['Regletas PDU (Traseras)', `x${res.numRegletasTraseras}`, 'XXXXX']
-    ];
-
-    if (res.numRegletasFrontales > 0) {
-      materialesFilas.push(['Regletas de conexión 1U (Frontales)', `x${res.numRegletasFrontales}`, 'XXXXX']);
-    }
-
-    materialesFilas.push(
-      ['Líneas eléctricas 2,5 mm²', `x${res.numLineasElectricas}`, 'XXXXX'],
-      ['Magnetotérmicos 16A', `x${res.numLineasElectricas}`, 'XXXXX'],
-      ['Diferenciales 40A / 30mA', `x${res.numLineasElectricas}`, 'XXXXX'],
-      ['Pasacables posteriores', `x${res.pasacablesTraseros}`, 'XXXXX']
-    );
-
-    if (res.numPasacablesFrontales > 0) {
-      materialesFilas.push(['Pasacables 1U (Frontales)', `x${res.numPasacablesFrontales}`, 'XXXXX']);
-    }
-
-    materialesFilas.push(
-      ['Escobillas pasacables', `x${res.numEscobillas}`, 'XXXXX'],
-      ['Patch Panels automáticos', `x${equipos.filter(e => e.esAutomatico).length}`, 'XXXXX'],
-      ['Tornillos M6', `x${res.numTornillos}`, 'XXXXX']
-    );
-
-    if (res.numBaldas1U > 0) {
-      materialesFilas.push(['Baldas 1U', `x${res.numBaldas1U}`, 'XXXXX']);
-    }
-    if (res.numBaldasReforzadas > 0) {
-      materialesFilas.push(['Baldas reforzadas', `x${res.numBaldasReforzadas}`, 'XXXXX']);
-    }
-
-    materialesFilas.push(['Termostato digital', 'x1', 'XXXXX']);
-    materialesFilas.push(['Ventilador superior', 'x1', 'XXXXX']);
-
-    if (res.rackRecomendado >= 24) {
-      materialesFilas.push(['Ventilador intermedio', 'x1', 'XXXXX']);
-    }
-
-    autoTable(doc, {
-      startY: 76,
-      head: [[
-        { content: 'ELEMENTO / MATERIAL', styles: { halign: 'left' } },
-        { content: 'CANTIDAD', styles: { halign: 'center' } },
-        { content: 'CÓDIGO ODOO', styles: { halign: 'center' } }
-      ]],
-      body: materialesFilas,
-      theme: 'grid',
-      headStyles: {
-        fillColor: indigoAccent,
-        textColor: [255, 255, 255],
-        fontStyle: 'bold',
-        fontSize: 8.5
-      },
-      bodyStyles: {
-        fontSize: 8,
-        textColor: [30, 41, 59]
-      },
-      alternateRowStyles: {
-        fillColor: [248, 250, 252]
-      },
-      columnStyles: {
-        0: { cellWidth: 100, fontStyle: 'bold', halign: 'left' },
-        1: { cellWidth: 35, halign: 'center', fontStyle: 'bold', textColor: indigoAccent },
-        2: { cellWidth: 47, halign: 'center', fontStyle: 'bold', textColor: [100, 116, 139] }
-      },
-      margin: { left: 14, right: 14 }
-    });
-
-    // Tabla 2: Listado de Equipos Instalados
-    const posYEquipos = doc.lastAutoTable.finalY + 9;
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10.5);
-    doc.setTextColor(...primaryColor);
-    doc.text('2. EQUIPOS INSTALADOS EN EL RACK', 14, posYEquipos);
-
-    const conteoEquipos = {};
-    const equiposSinPatchAutomatico = equipos.filter(eq => !eq.esAutomatico);
-    equiposSinPatchAutomatico.forEach(eq => {
-      if (!conteoEquipos[eq.nombre]) {
-        conteoEquipos[eq.nombre] = { count: 0, cat: eq.categoria, u: eq.uOcupadas || 1, pot: eq.consumo || 0 };
-      }
-      conteoEquipos[eq.nombre].count += 1;
-    });
-
-    const equiposFilas = Object.entries(conteoEquipos).map(([nombre, d]) => [
-      nombre,
-      d.cat || 'General',
-      `${d.u}U`,
-      `${d.pot} W`,
-      `x${d.count}`
-    ]);
-
-    autoTable(doc, {
-      startY: posYEquipos + 4,
-      head: [[
-        { content: 'EQUIPO / MODELO', styles: { halign: 'left' } },
-        { content: 'CATEGORÍA', styles: { halign: 'left' } },
-        { content: 'ALTURA', styles: { halign: 'center' } },
-        { content: 'POTENCIA', styles: { halign: 'center' } },
-        { content: 'CANTIDAD', styles: { halign: 'center' } }
-      ]],
-      body: equiposFilas.length > 0 ? equiposFilas : [['No hay equipos en el rack', '-', '-', '-', '-']],
-      theme: 'striped',
-      headStyles: {
-        fillColor: primaryColor,
-        textColor: [255, 255, 255],
-        fontStyle: 'bold',
-        fontSize: 8.5
-      },
-      bodyStyles: {
-        fontSize: 8,
-        textColor: [30, 41, 59]
-      },
-      columnStyles: {
-        0: { cellWidth: 78, fontStyle: 'bold', halign: 'left' },
-        1: { cellWidth: 38, halign: 'left' },
-        2: { cellWidth: 20, halign: 'center' },
-        3: { cellWidth: 22, halign: 'center' },
-        4: { cellWidth: 24, halign: 'center', fontStyle: 'bold', textColor: indigoAccent }
-      },
-      margin: { left: 14, right: 14 }
-    });
-
-    // Notas finales
-    const posYNotas = doc.lastAutoTable.finalY + 8;
-    if (posYNotas < 260) {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(9);
       doc.setTextColor(...primaryColor);
-      doc.text('NOTAS PARA EL INSTALADOR:', 14, posYNotas);
+      doc.text('RESUMEN TÉCNICO DEL RACK', 19, 38);
 
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7.5);
+      doc.setFontSize(8);
       doc.setTextColor(71, 85, 105);
-      doc.text(`• Consumo total: ${res.consumoTotal}W — Requiere ${res.numLineasElectricas} línea(s) de 2,5 mm² con magnetotérmico 16A y diferencial 40A/30mA.`, 14, posYNotas + 5);
-      doc.text('• Regletas PDU: Distribuir uniformemente en la parte posterior del rack.', 14, posYNotas + 9);
-      doc.text(`• Climatización: Termostato digital en parte superior + ventilador(es) (${res.rackRecomendado < 24 ? 'superior' : 'superior e intermedio'}).`, 14, posYNotas + 13);
-    }
 
-    // Pie de página
-    const totalPages = doc.internal.getNumberOfPages();
-    for (let i = 1; i <= totalPages; i++) {
-      doc.setPage(i);
+      const hayEquiposRed = equipos.some(eq => eq.categoria === 'Redes');
+      const lineasTotales = hayEquiposRed ? res.numLineasElectricas + 1 : res.numLineasElectricas;
+
+      doc.text(`• Rack Recomendado: ${res.rackRecomendado}U`, 19, 44);
+      doc.text(`• Unidades Ocupadas: ${res.totalUNecesariasFrontales}U`, 19, 49.5);
+      doc.text(`• Reserva de Expansión: ${res.unidadesExpansion}U`, 78, 44);
+      doc.text(`• Consumo Total: ${res.consumoTotal} W`, 78, 49.5);
+      doc.text(`• Regletas PDU: ${res.numRegletasTraseras}`, 138, 44);
+      doc.text(`• Líneas Eléctricas: ${lineasTotales} (2,5mm²)`, 138, 49.5);
+
+      // Tabla 1: Resumen de Cantidades / Materiales (BOM de Infraestructura)
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10.5);
+      doc.setTextColor(...primaryColor);
+      doc.text('1. RESUMEN DE CANTIDADES (MATERIALES DE INFRAESTRUCTURA)', 14, 66);
+
+      const materialesFilas = [
+        [`Rack Excell ${res.rackRecomendado}U`, 'x1', 'XXXXX'],
+        ['Regletas PDU (Traseras)', `x${res.numRegletasTraseras}`, 'XXXXX']
+      ];
+
+      if (res.numRegletasFrontales > 0) {
+        materialesFilas.push(['Regletas de conexión 1U (Frontales)', `x${res.numRegletasFrontales}`, 'XXXXX']);
+      }
+
+      materialesFilas.push(
+        ['Pasacables posteriores', `x${res.pasacablesTraseros}`, 'XXXXX']
+      );
+
+      if (res.numPasacablesFrontales > 0) {
+        materialesFilas.push(['Pasacables 1U (Frontales)', `x${res.numPasacablesFrontales}`, 'XXXXX']);
+      }
+
+      materialesFilas.push(
+        ['Escobillas pasacables', `x${res.numEscobillas}`, 'XXXXX'],
+        ['Patch Panels automáticos', `x${equipos.filter(e => e.esAutomatico).length}`, 'XXXXX']
+      );
+
+      if (res.numPlacasCiegas > 0) {
+        materialesFilas.push(['Placas ciegas 1U (técnicas / baldas)', `x${res.numPlacasCiegas}`, 'XXXXX']);
+      }
+
+      if (res.numPlacasCiegasExtra > 0) {
+        materialesFilas.push(['Placas ciegas extra 1U (huecos libres)', `x${res.numPlacasCiegasExtra}`, 'XXXXX']);
+      }
+
+      materialesFilas.push(
+        ['Tornillos M6 (Bolsa/Juego)', `x${res.numTornillos}`, 'XXXXX']
+      );
+
+      if (res.numBaldas1U > 0) {
+        materialesFilas.push(['Baldas 1U fijas', `x${res.numBaldas1U}`, 'XXXXX']);
+      }
+      if (res.numBaldasReforzadas > 0) {
+        materialesFilas.push(['Baldas reforzadas (equipos pesados)', `x${res.numBaldasReforzadas}`, 'XXXXX']);
+      }
+
+      materialesFilas.push(['Termostato digital regulable', 'x1', 'XXXXX']);
+      materialesFilas.push(['Unidad de ventilación superior', 'x1', 'XXXXX']);
+
+      if (res.rackRecomendado > 24) {
+        materialesFilas.push(['Unidad de ventilación intermedia', 'x1', 'XXXXX']);
+      }
+
+      autoTable(doc, {
+        startY: 71,
+        head: [[
+          { content: 'ELEMENTO / INFRAESTRUCTURA', styles: { halign: 'left' } },
+          { content: 'CANTIDAD', styles: { halign: 'center' } },
+          { content: 'CÓDIGO ODOO', styles: { halign: 'center' } }
+        ]],
+        body: materialesFilas,
+        theme: 'grid',
+        headStyles: {
+          fillColor: indigoAccent,
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          fontSize: 8.5
+        },
+        bodyStyles: {
+          fontSize: 8,
+          textColor: [30, 41, 59]
+        },
+        alternateRowStyles: {
+          fillColor: [248, 250, 252]
+        },
+        columnStyles: {
+          0: { cellWidth: 105, fontStyle: 'bold', halign: 'left' },
+          1: { cellWidth: 32, halign: 'center', fontStyle: 'bold', textColor: indigoAccent },
+          2: { cellWidth: 45, halign: 'center', fontStyle: 'bold', textColor: [100, 116, 139] }
+        },
+        margin: { left: 14, right: 14 }
+      });
+
+      // 2. Sección dedicada: INSTALACIÓN ELÉCTRICA
+      const posYElectrica = doc.lastAutoTable.finalY + 9;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10.5);
+      doc.setTextColor(...primaryColor);
+      doc.text('2. INSTALACIÓN ELÉCTRICA', 14, posYElectrica);
+
+      const amperiosEstimados = (res.consumoTotal / 230).toFixed(1);
+
+      const electricasFilas = [
+        [
+          'Líneas eléctricas dedicadas 2,5 mm²',
+          `x${lineasTotales}`,
+          hayEquiposRed 
+            ? `Tirada directa desde cuadro general / SAI (incluye +1 línea extra para Redes)`
+            : 'Tirada directa desde cuadro general / SAI'
+        ],
+        [
+          'Magnetotérmicos 16A (Curva C)',
+          `x${lineasTotales}`,
+          hayEquiposRed
+            ? `Protección individual por cada línea del rack (${res.numLineasElectricas} Rack + 1 Redes)`
+            : 'Protección individual por cada línea del rack'
+        ],
+        [
+          'Diferenciales 40A / 30mA',
+          `x${lineasTotales}`,
+          'Protección diferencial de alta inmunidad'
+        ],
+        [
+          'Potencia Total Estimada',
+          `${res.consumoTotal} W (~${amperiosEstimados} A)`,
+          'Suma de consumos a 230V monofásico'
+        ]
+      ];
+
+      autoTable(doc, {
+        startY: posYElectrica + 4,
+        head: [[
+          { content: 'COMPONENTE / PROTECCIÓN ELÉCTRICA', styles: { halign: 'left' } },
+          { content: 'CANTIDAD / VALOR', styles: { halign: 'center' } },
+          { content: 'ESPECIFICACIÓN / PRESCRIPCIÓN', styles: { halign: 'left' } }
+        ]],
+        body: electricasFilas,
+        theme: 'grid',
+        headStyles: {
+          fillColor: [217, 119, 6], // Amber 600
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          fontSize: 8.5
+        },
+        bodyStyles: {
+          fontSize: 8,
+          textColor: [30, 41, 59]
+        },
+        alternateRowStyles: {
+          fillColor: [254, 252, 232] // Light yellow
+        },
+        columnStyles: {
+          0: { cellWidth: 70, fontStyle: 'bold', halign: 'left' },
+          1: { cellWidth: 38, halign: 'center', fontStyle: 'bold', textColor: [180, 83, 9] },
+          2: { cellWidth: 74, halign: 'left', textColor: [71, 85, 105] }
+        },
+        margin: { left: 14, right: 14 }
+      });
+
+      // 3. Tabla: Listado de Equipos Instalados (Hardware / Dispositivos activos)
+      const posYEquipos = doc.lastAutoTable.finalY + 9;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10.5);
+      doc.setTextColor(...primaryColor);
+      doc.text('3. EQUIPOS INSTALADOS EN EL RACK', 14, posYEquipos);
+
+      const conteoEquipos = {};
+      const equiposActivos = equipos.filter(eq => 
+        !eq.esAutomatico && 
+        !eq.esAccesorio && 
+        eq.categoria !== 'Accesorios' && 
+        eq.categoria !== 'Pasivo' &&
+        !eq.id?.includes('placa-ciega') &&
+        !eq.nombre?.toLowerCase().includes('placa ciega') &&
+        !eq.id?.includes('escobilla') &&
+        !eq.id?.includes('pasacables') &&
+        !eq.id?.includes('regleta')
+      );
+
+      equiposActivos.forEach(eq => {
+        if (!conteoEquipos[eq.nombre]) {
+          conteoEquipos[eq.nombre] = { count: 0, cat: eq.categoria, u: eq.uOcupadas || 1, pot: eq.consumo || 0 };
+        }
+        conteoEquipos[eq.nombre].count += 1;
+      });
+
+      const equiposFilas = Object.entries(conteoEquipos).map(([nombre, d]) => [
+        nombre,
+        d.cat || 'General',
+        `${d.u}U`,
+        `${d.pot} W`,
+        `x${d.count}`
+      ]);
+
+      autoTable(doc, {
+        startY: posYEquipos + 4,
+        head: [[
+          { content: 'EQUIPO / MODELO', styles: { halign: 'left' } },
+          { content: 'CATEGORÍA', styles: { halign: 'left' } },
+          { content: 'ALTURA', styles: { halign: 'center' } },
+          { content: 'POTENCIA', styles: { halign: 'center' } },
+          { content: 'CANTIDAD', styles: { halign: 'center' } }
+        ]],
+        body: equiposFilas.length > 0 ? equiposFilas : [['No hay equipos en el rack', '-', '-', '-', '-']],
+        theme: 'striped',
+        headStyles: {
+          fillColor: primaryColor,
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          fontSize: 8.5
+        },
+        bodyStyles: {
+          fontSize: 8,
+          textColor: [30, 41, 59]
+        },
+        columnStyles: {
+          0: { cellWidth: 78, fontStyle: 'bold', halign: 'left' },
+          1: { cellWidth: 38, halign: 'left' },
+          2: { cellWidth: 20, halign: 'center' },
+          3: { cellWidth: 22, halign: 'center' },
+          4: { cellWidth: 24, halign: 'center', fontStyle: 'bold', textColor: indigoAccent }
+        },
+        margin: { left: 14, right: 14 }
+      });
+
+      // Notas finales
+      const posYNotas = doc.lastAutoTable.finalY + 7;
+      if (posYNotas < 260) {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8.5);
+        doc.setTextColor(...primaryColor);
+        doc.text('NOTAS PARA EL INSTALADOR:', 14, posYNotas);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.5);
+        doc.setTextColor(71, 85, 105);
+        doc.text(`• Alimentación Eléctrica: ${lineasTotales} línea(s) de 2,5 mm² con magnetotérmicos 16A y diferenciales 40A/30mA${hayEquiposRed ? ' (incluye 1 línea independiente exclusiva para Redes/IT)' : ''}.`, 14, posYNotas + 4.5);
+        doc.text('• Regletas PDU: Distribuir uniformemente en la parte posterior del rack.', 14, posYNotas + 8.5);
+        doc.text(`• Climatización: Termostato digital en parte superior + ventilador(es) (${res.rackRecomendado <= 24 ? 'superior' : 'superior e intermedio'}).`, 14, posYNotas + 12.5);
+      }
+
+      // ─────────────────────────────────────────────────────────────
+      // PÁGINA 2: ALZADO FRONTAL & ELEVACIÓN VISUAL DEL RACK (19")
+      // ─────────────────────────────────────────────────────────────
+      doc.addPage();
+
+      // Header Página 2
+      doc.setFillColor(...primaryColor);
+      doc.rect(0, 0, 210, 32, 'F');
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(16);
+      doc.setTextColor(255, 255, 255);
+      doc.text('ILLUSION RACK DESIGNER', 14, 14);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(199, 210, 254);
+      doc.text('ALZADO FRONTAL & ELEVACIÓN TÉCNICA DEL BASTIDOR (19")', 14, 21);
+
+      doc.setFontSize(8);
+      doc.setTextColor(148, 163, 184);
+      doc.text(`BASTIDOR: EXCELL ${res.rackRecomendado}U (EIA-310-D)   |   OCUPACIÓN: ${res.totalUNecesariasFrontales}U (${((res.totalUNecesariasFrontales/res.rackRecomendado)*100).toFixed(0)}%)   |   POTENCIA: ${res.consumoTotal} W`, 14, 27);
+
+      // ═════════════════════════════════════════════════════════════
+      // RENDERIZADO VECTORIAL DEL RACK 19" (EXCELL ARCHITECTURAL CAD)
+      // ═════════════════════════════════════════════════════════════
+      const totalRackU = res.rackRecomendado || 20;
+      const rackX = 14;
+      const rackY = 36;
+      const rackW = 96;
+      const railW = 6;
+      const equipW = rackW - (railW * 2); // 84mm
+      const equipX = rackX + railW; // 20mm
+      const headerH = 6;
+      const footerH = 6;
+      const usableH = 232 - headerH - footerH; // 220mm
+      const uHeight = usableH / totalRackU;
+
+      // 1. Estructura Exterior del Rack
+      doc.setFillColor(15, 17, 23); // Chasis negro azabache
+      doc.roundedRect(rackX - 1, rackY, rackW + 2, 232, 2, 2, 'F');
+      doc.setDrawColor(79, 70, 229); // Borde azul índigo
+      doc.setLineWidth(0.4);
+      doc.roundedRect(rackX - 1, rackY, rackW + 2, 232, 2, 2, 'D');
+
+      // 2. Cabecera Mecánica Superior
+      doc.setFillColor(24, 27, 36);
+      doc.rect(rackX, rackY, rackW, headerH, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6.5);
+      doc.setTextColor(148, 163, 184);
+      doc.text(`BASTIDOR EXCELL 19" • ${totalRackU}U`, rackX + rackW / 2, rackY + 4.2, { align: 'center' });
+
+      // 3. Raíles de Montaje EIA-310-D Izquierdo y Derecho
+      const drawRails = () => {
+        // Raíl Izquierdo
+        doc.setFillColor(30, 34, 45);
+        doc.rect(rackX, rackY + headerH, railW, usableH, 'F');
+        // Raíl Derecho
+        doc.rect(rackX + rackW - railW, rackY + headerH, railW, usableH, 'F');
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(4.8);
+        
+        for (let u = 1; u <= totalRackU; u++) {
+          const uY = rackY + headerH + ((totalRackU - u) * uHeight);
+          // Separadores de U
+          doc.setDrawColor(51, 65, 85);
+          doc.setLineWidth(0.15);
+          doc.line(rackX, uY, rackX + railW, uY);
+          doc.line(rackX + rackW - railW, uY, rackX + rackW, uY);
+
+          // Número de U (de 1 a totalRackU)
+          doc.setTextColor(199, 210, 254);
+          doc.text(`${u}U`, rackX + 1.2, uY + (uHeight * 0.65));
+          doc.text(`${u}U`, rackX + rackW - railW + 1.2, uY + (uHeight * 0.65));
+
+          // Orificios de tornillo M6 (3 puntos por U)
+          doc.setFillColor(71, 85, 105);
+          const dotRadius = 0.35;
+          const leftDotX = rackX + railW - 1.2;
+          const rightDotX = rackX + rackW - railW + 1.2;
+          
+          doc.circle(leftDotX, uY + (uHeight * 0.2), dotRadius, 'F');
+          doc.circle(leftDotX, uY + (uHeight * 0.5), dotRadius, 'F');
+          doc.circle(leftDotX, uY + (uHeight * 0.8), dotRadius, 'F');
+
+          doc.circle(rightDotX, uY + (uHeight * 0.2), dotRadius, 'F');
+          doc.circle(rightDotX, uY + (uHeight * 0.5), dotRadius, 'F');
+          doc.circle(rightDotX, uY + (uHeight * 0.8), dotRadius, 'F');
+        }
+      };
+      drawRails();
+
+      // 4. Renderizado Secuencial de Equipos, Módulos e Infraestructura
+      let currentUnitPointer = totalRackU; // Va desde totalRackU bajando hasta 1
+
+      // A) Ventiladores Superiores (1U)
+      const topFanY = rackY + headerH + ((totalRackU - currentUnitPointer) * uHeight);
+      doc.setFillColor(20, 24, 38);
+      doc.rect(equipX, topFanY, equipW, uHeight, 'F');
+      doc.setDrawColor(59, 130, 246);
+      doc.setLineWidth(0.2);
+      doc.rect(equipX, topFanY, equipW, uHeight, 'D');
+
+      // Grilla de ventiladores
+      doc.setFillColor(37, 99, 235);
+      doc.circle(equipX + 14, topFanY + (uHeight / 2), Math.min(uHeight * 0.35, 2.5), 'FD');
+      doc.circle(equipX + equipW - 14, topFanY + (uHeight / 2), Math.min(uHeight * 0.35, 2.5), 'FD');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(Math.min(uHeight * 0.65, 6.5));
+      doc.setTextColor(96, 165, 250);
+      doc.text('UNIDAD DE VENTILACIÓN SUPERIOR (1U)', equipX + (equipW / 2), topFanY + (uHeight * 0.65), { align: 'center' });
+      currentUnitPointer -= 1;
+
+      // B) Termostato Digital (1U)
+      const thermoY = rackY + headerH + ((totalRackU - currentUnitPointer) * uHeight);
+      doc.setFillColor(18, 20, 29);
+      doc.rect(equipX, thermoY, equipW, uHeight, 'F');
+      doc.setDrawColor(245, 158, 11);
+      doc.setLineWidth(0.2);
+      doc.rect(equipX, thermoY, equipW, uHeight, 'D');
+      // Display termostato
+      doc.setFillColor(10, 15, 20);
+      doc.roundedRect(equipX + (equipW / 2) - 18, thermoY + 1, 36, Math.max(uHeight - 2, 3), 0.5, 0.5, 'FD');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(Math.min(uHeight * 0.6, 6));
+      doc.setTextColor(251, 191, 36);
+      doc.text('TERMOSTATO DIGITAL 1U', equipX + (equipW / 2), thermoY + (uHeight * 0.65), { align: 'center' });
+      currentUnitPointer -= 1;
+
+      // C) Equipos del Rack (desde res.rackItems)
+      const getCategoryColor = (cat) => {
+        switch (cat) {
+          case 'Redes': return { bg: [51, 65, 85], text: [255, 255, 255], border: [100, 116, 139] };
+          case 'Control': return { bg: [5, 150, 105], text: [255, 255, 255], border: [52, 211, 153] }; // Esmeralda / Jade
+          case 'Audio': return { bg: [30, 64, 175], text: [255, 255, 255], border: [96, 165, 250] };
+          case 'Video': return { bg: [109, 40, 217], text: [255, 255, 255], border: [192, 132, 252] };
+          case 'Cinema': return { bg: [159, 18, 57], text: [255, 255, 255], border: [251, 113, 133] };
+          case 'Energía': return { bg: [194, 65, 12], text: [255, 255, 255], border: [251, 146, 60] };
+          case 'Otros': return { bg: [82, 82, 91], text: [255, 255, 255], border: [161, 161, 170] };
+          default: return { bg: [30, 41, 59], text: [255, 255, 255], border: [71, 85, 105] };
+        }
+      };
+
+      res.rackItems.forEach((item) => {
+        if (currentUnitPointer <= 0) return;
+
+        // Caso 1: Bloque de Balda con equipos no rackables
+        if (item.__esBloque) {
+          const b = item.bloque;
+          const uEquipos = Math.max(1, (b.uTotal - (b.tieneTapaArriba ? 1 : 0) - (b.tieneVentilacionArriba ? 1 : 0) - (b.tieneTapa ? 1 : 0)));
+
+          // 1.1) Si tiene Placa Ciega / Ventilación arriba (1U)
+          if (b.tieneVentilacionArriba || b.tieneTapaArriba) {
+            const blindY = rackY + headerH + ((totalRackU - currentUnitPointer) * uHeight);
+            doc.setFillColor(15, 18, 26);
+            doc.rect(equipX, blindY, equipW, uHeight, 'F');
+            doc.setDrawColor(45, 52, 70);
+            doc.setLineWidth(0.2);
+            doc.rect(equipX, blindY, equipW, uHeight, 'D');
+
+            // Tornillos M6
+            doc.setFillColor(199, 210, 254);
+            doc.circle(equipX + 1.2, blindY + (uHeight / 2), 0.4, 'F');
+            doc.circle(equipX + equipW - 1.2, blindY + (uHeight / 2), 0.4, 'F');
+
+            // Texto placa ciega
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(Math.min(uHeight * 0.55, 5.5));
+            doc.setTextColor(148, 163, 184);
+            doc.text('PLACA CIEGA 1U', equipX + (equipW / 2), blindY + (uHeight * 0.63), { align: 'center' });
+
+            currentUnitPointer -= 1;
+          }
+
+          // 1.2) Cuerpo de la Balda (con la altura exacta de los equipos, ej: 2U para Sonos Amp, 1U para Sonos Port)
+          if (currentUnitPointer > 0) {
+            const blockH = uEquipos * uHeight;
+            const blockY = rackY + headerH + ((totalRackU - currentUnitPointer) * uHeight);
+
+            // Fondo balda de soporte de acero
+            doc.setFillColor(20, 24, 33);
+            doc.rect(equipX, blockY, equipW, blockH, 'F');
+            doc.setDrawColor(71, 85, 105);
+            doc.setLineWidth(0.2);
+            doc.rect(equipX, blockY, equipW, blockH, 'D');
+
+            // Tornillos M6 en los anclajes de la balda
+            doc.setFillColor(199, 210, 254);
+            doc.circle(equipX + 1.2, blockY + (blockH / 2), 0.4, 'F');
+            doc.circle(equipX + equipW - 1.2, blockY + (blockH / 2), 0.4, 'F');
+
+            // Sub-equipos dentro de la balda
+            const numEq = b.equipos.length;
+            const subEqW = (equipW - ((numEq + 1) * 2)) / numEq;
+
+            b.equipos.forEach((eq, eqIdx) => {
+              const subX = equipX + 2 + (eqIdx * (subEqW + 2));
+              const subY = blockY + 1.5;
+              const subH = blockH - 3;
+              const colors = getCategoryColor(eq.categoria);
+
+              doc.setFillColor(...colors.bg);
+              doc.roundedRect(subX, subY, subEqW, subH, 0.8, 0.8, 'F');
+              doc.setDrawColor(...colors.border);
+              doc.setLineWidth(0.15);
+              doc.roundedRect(subX, subY, subEqW, subH, 0.8, 0.8, 'D');
+
+              // LED Status
+              doc.setFillColor(52, 211, 153);
+              doc.circle(subX + 2.5, subY + (subH / 2), 0.4, 'F');
+
+              // Texto equipo balda
+              doc.setFont('helvetica', 'bold');
+              doc.setFontSize(Math.min(subH * 0.35, 5.8));
+              doc.setTextColor(255, 255, 255);
+              doc.text((eq.nombre || 'Dispositivo').toUpperCase(), subX + (subEqW / 2), subY + (subH * 0.58), { align: 'center', maxWidth: subEqW - 5 });
+            });
+
+            currentUnitPointer -= uEquipos;
+          }
+
+          // 1.3) Si tiene Placa Ciega abajo (1U)
+          if (b.tieneTapa && currentUnitPointer > 0) {
+            const blindY = rackY + headerH + ((totalRackU - currentUnitPointer) * uHeight);
+            doc.setFillColor(15, 18, 26);
+            doc.rect(equipX, blindY, equipW, uHeight, 'F');
+            doc.setDrawColor(45, 52, 70);
+            doc.setLineWidth(0.2);
+            doc.rect(equipX, blindY, equipW, uHeight, 'D');
+
+            doc.setFillColor(199, 210, 254);
+            doc.circle(equipX + 1.2, blindY + (uHeight / 2), 0.4, 'F');
+            doc.circle(equipX + equipW - 1.2, blindY + (uHeight / 2), 0.4, 'F');
+
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(Math.min(uHeight * 0.55, 5.5));
+            doc.setTextColor(148, 163, 184);
+            doc.text('PLACA CIEGA 1U', equipX + (equipW / 2), blindY + (uHeight * 0.63), { align: 'center' });
+
+            currentUnitPointer -= 1;
+          }
+        } 
+        // Caso 2: Equipo Rackable Estándar o Pasivo
+        else {
+          const uOcupadas = item.uOcupadas || 1;
+          const itemH = uOcupadas * uHeight;
+          const itemY = rackY + headerH + ((totalRackU - currentUnitPointer) * uHeight);
+          const visualSegments = getRackVisualSegments(item);
+          const equipmentVisualSegment = visualSegments.find(segment => segment.type === 'equipment');
+          const hasCenteredRackSupport = visualSegments.length === 3;
+          const equipmentVisualY = itemY + ((hasCenteredRackSupport ? visualSegments[0].u : 0) * uHeight);
+          const equipmentVisualH = equipmentVisualSegment.u * uHeight;
+
+          const esPlacaCiega = item.id?.includes('placa-ciega') || item.nombre?.toLowerCase().includes('placa ciega');
+          const esRejillaVent = item.id?.includes('ventilacion') || item.nombre?.toLowerCase().includes('ventilación') || item.tipoPasivo === 'Ventilacion';
+          const esEscobilla = item.id?.includes('esc') || item.nombre?.toLowerCase().includes('escobilla') || item.tipoPasivo === 'Escobilla';
+          const esPasacables = item.id?.includes('pasacables') || item.nombre?.toLowerCase().includes('pasacables');
+          const isPassiveOrAccessory = item.categoria === 'Pasivo' || item.categoria === 'Accesorios' || item.esAutomatico || item.esAccesorio || esPlacaCiega || esRejillaVent || esEscobilla || esPasacables;
+
+          // Si es Placa Ciega (manual o automática, 1U o 2U): estilo IDÉNTICO y uniforme al de 19U y 22U
+          if (esPlacaCiega) {
+            doc.setFillColor(15, 18, 26);
+            doc.rect(equipX, itemY, equipW, itemH, 'F');
+            doc.setDrawColor(45, 52, 70);
+            doc.setLineWidth(0.2);
+            doc.rect(equipX, itemY, equipW, itemH, 'D');
+
+            // Tornillos frontales M6 en las orejas
+            doc.setFillColor(199, 210, 254);
+            doc.circle(equipX + 1.2, itemY + (itemH / 2), 0.4, 'F');
+            doc.circle(equipX + equipW - 1.2, itemY + (itemH / 2), 0.4, 'F');
+
+            // Texto placa ciega centrado, sin LED ni badge lateral
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(Math.min(uHeight * 0.55, 5.5));
+            doc.setTextColor(148, 163, 184);
+            doc.text((item.nombre || 'PLACA CIEGA 1U').toUpperCase(), equipX + (equipW / 2), itemY + (itemH * 0.63), { align: 'center' });
+
+            currentUnitPointer -= uOcupadas;
+          }
+          // Si es Rejilla de Ventilación / Escobilla / Pasacables pasivo:
+          else if (isPassiveOrAccessory && (esRejillaVent || esEscobilla || esPasacables)) {
+            doc.setFillColor(18, 22, 32);
+            doc.rect(equipX, itemY, equipW, itemH, 'F');
+            doc.setDrawColor(51, 65, 85);
+            doc.setLineWidth(0.2);
+            doc.rect(equipX, itemY, equipW, itemH, 'D');
+
+            // Tornillos M6
+            doc.setFillColor(199, 210, 254);
+            doc.circle(equipX + 1.2, itemY + (itemH / 2), 0.4, 'F');
+            doc.circle(equipX + equipW - 1.2, itemY + (itemH / 2), 0.4, 'F');
+
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(Math.min(uHeight * 0.55, 5.5));
+            doc.setTextColor(148, 163, 184);
+            doc.text((item.nombre || 'ACCESORIO DE GESTIÓN').toUpperCase(), equipX + (equipW / 2), itemY + (itemH * 0.63), { align: 'center' });
+
+            currentUnitPointer -= uOcupadas;
+          }
+          // Equipos activos estándar
+          else {
+            const colors = getCategoryColor(item.categoria);
+
+            // Soporte oficial: conserva la ocupación total y centra el frontal real del equipo.
+            if (hasCenteredRackSupport) {
+              // Grafito azulado: distingue el soporte del hueco negro del rack.
+              doc.setFillColor(34, 41, 55);
+              doc.rect(equipX, itemY, equipW, itemH, 'F');
+              doc.setDrawColor(100, 116, 139);
+              doc.setLineWidth(0.2);
+              doc.rect(equipX, itemY, equipW, itemH, 'D');
+            }
+
+            // Fondo del frontal real del equipo
+            doc.setFillColor(...colors.bg);
+            doc.rect(equipX, equipmentVisualY, equipW, equipmentVisualH, 'F');
+            doc.setDrawColor(...colors.border);
+            doc.setLineWidth(0.2);
+            doc.rect(equipX, equipmentVisualY, equipW, equipmentVisualH, 'D');
+
+            // Tornillos frontales M6 en las orejas
+            doc.setFillColor(199, 210, 254);
+            doc.circle(equipX + 1.2, itemY + (itemH / 2), 0.4, 'F');
+            doc.circle(equipX + equipW - 1.2, itemY + (itemH / 2), 0.4, 'F');
+
+            // Indicador LED de alimentación
+            doc.setFillColor(34, 197, 94); // Green LED
+            doc.circle(equipX + 3.8, equipmentVisualY + (equipmentVisualH / 2), 0.5, 'F');
+
+            // Nombre del Equipo (Centrado)
+            doc.setFont('helvetica', 'bold');
+            const maxNameSize = uOcupadas > 1 ? 6.8 : 5.8;
+            doc.setFontSize(Math.min(equipmentVisualH * 0.5, maxNameSize));
+            doc.setTextColor(...colors.text);
+            doc.text((item.nombre || 'Equipo').toUpperCase(), equipX + (equipW / 2), equipmentVisualY + (equipmentVisualH * 0.62), { align: 'center', maxWidth: equipW - 16 });
+
+            currentUnitPointer -= uOcupadas;
+          }
+        }
+      });
+
+      // D) Unidades Libres / Vacantes restantes
+      while (currentUnitPointer > 0) {
+        const freeY = rackY + headerH + ((totalRackU - currentUnitPointer) * uHeight);
+        doc.setFillColor(11, 13, 19);
+        doc.rect(equipX, freeY, equipW, uHeight, 'F');
+        doc.setDrawColor(30, 41, 59);
+        doc.setLineWidth(0.15);
+        doc.rect(equipX, freeY, equipW, uHeight, 'D');
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(Math.min(uHeight * 0.45, 4.5));
+        doc.setTextColor(71, 85, 105);
+        doc.text(`[ ${currentUnitPointer}U DISPONIBLE / RESERVA ]`, equipX + (equipW / 2), freeY + (uHeight * 0.65), { align: 'center' });
+        currentUnitPointer -= 1;
+      }
+
+      // 5. Zócalo / Base Mecánica Inferior
+      const footerY = rackY + headerH + usableH;
+      doc.setFillColor(24, 27, 36);
+      doc.rect(rackX, footerY, rackW, footerH, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(5.5);
+      doc.setTextColor(148, 163, 184);
+      doc.text('EXCELL HEAVY-DUTY BASE • NIVELADORES DE PRECISIÓN', rackX + (rackW / 2), footerY + 4, { align: 'center' });
+
+      // ═════════════════════════════════════════════════════════════
+      // COLUMNA DERECHA: ESPECIFICACIONES, LEYENDA & APROBACIÓN
+      // ═════════════════════════════════════════════════════════════
+      const rightColX = 114;
+      const rightColW = 82;
+
+      // Bloque 1: Especificaciones del Bastidor
+      doc.setFillColor(...lightBg);
+      doc.setDrawColor(226, 232, 240);
+      doc.setLineWidth(0.2);
+      doc.roundedRect(rightColX, 36, rightColW, 46, 2, 2, 'FD');
+
+      doc.setFillColor(...indigoAccent);
+      doc.roundedRect(rightColX, 36, rightColW, 7, 2, 2, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(255, 255, 255);
+      doc.text('ESPECIFICACIONES DEL BASTIDOR', rightColX + 4, 41);
+
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7.5);
-      doc.setTextColor(148, 163, 184);
-      doc.setDrawColor(226, 232, 240);
-      doc.line(14, 285, 196, 285);
-      doc.text('🏢 Generado por: Jony Cusac  |  Illusion.es (info@e-illusion.es)', 14, 290);
-      doc.text(`Página ${i} de ${totalPages}`, 196, 290, { align: 'right' });
-    }
+      doc.setTextColor(51, 65, 85);
+      doc.text(`• Modelo: Bastidor Excell 19" (${res.rackRecomendado}U)`, rightColX + 4, 48);
+      doc.text(`• Altura útil ocupada: ${res.totalUNecesariasFrontales}U`, rightColX + 4, 54);
+      doc.text(`• Reserva disponible: ${res.rackRecomendado - res.totalUNecesariasFrontales}U`, rightColX + 4, 60);
+      doc.text(`• Carga térmica total: ${res.consumoTotal} W (~${amperiosEstimados} A)`, rightColX + 4, 66);
+      doc.text(`• Ventilación: ${res.rackRecomendado <= 24 ? 'Superior (1x)' : 'Superior + Intermedia (2x)'}`, rightColX + 4, 72);
+      doc.text(`• Distribución: ${res.numRegletasTraseras} PDU traseras | ${lineasTotales} línea(s) 2.5mm²`, rightColX + 4, 78);
 
-    doc.save(`Illusion_Materiales_Rack_${(nombreProyectoActual || 'Proyecto').replace(/\s+/g, '_')}.pdf`);
+      // Bloque 2: Leyenda de Subsistemas
+      const posYSub = 86;
+      doc.setFillColor(...lightBg);
+      doc.roundedRect(rightColX, posYSub, rightColW, 68, 2, 2, 'FD');
+
+      doc.setFillColor(30, 41, 59);
+      doc.roundedRect(rightColX, posYSub, rightColW, 7, 2, 2, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(255, 255, 255);
+      doc.text('CÓDIGO DE COLORES POR SUBSISTEMA', rightColX + 4, posYSub + 5);
+
+      const subsystems = [
+        { name: 'Redes & Comunicaciones (UniFi / Patch)', color: [51, 65, 85] },
+        { name: 'Control & Domótica (Crestron / Lutron)', color: [5, 150, 105] },
+        { name: 'Audio Distribuido & Streaming (Sonos/B&O)', color: [30, 64, 175] },
+        { name: 'Distribución de Video HD/4K (Apple/Marantz)', color: [109, 40, 217] },
+        { name: 'Cinema & Amplificación Pesada', color: [159, 18, 57] },
+        { name: 'Energía, SAIs & PDU Alimentación', color: [194, 65, 12] },
+        { name: 'Infraestructura, Baldas & Climatización', color: [15, 17, 23] }
+      ];
+
+      subsystems.forEach((sub, sIdx) => {
+        const itemY = posYSub + 13 + (sIdx * 7.5);
+        doc.setFillColor(...sub.color);
+        doc.rect(rightColX + 4, itemY - 2.5, 4, 4, 'F');
+        doc.setDrawColor(200, 200, 200);
+        doc.rect(rightColX + 4, itemY - 2.5, 4, 4, 'D');
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7);
+        doc.setTextColor(51, 65, 85);
+        doc.text(sub.name, rightColX + 11, itemY + 0.8);
+      });
+
+      // Bloque 3: Información de revisión técnica
+      const posYSello = 158;
+      doc.setFillColor(...lightBg);
+      doc.roundedRect(rightColX, posYSello, rightColW, 60, 2, 2, 'FD');
+
+      doc.setFillColor(16, 185, 129); // Emerald
+      doc.roundedRect(rightColX, posYSello, rightColW, 7, 2, 2, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(255, 255, 255);
+      doc.text(PDF_REVIEW_LABELS.heading, rightColX + 4, posYSello + 5);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+      doc.setTextColor(51, 65, 85);
+      doc.text(`• Proyecto: ${(nombreProyectoActual || 'PROYECTO RACK').toUpperCase()}`, rightColX + 4, posYSello + 13);
+      doc.text(`• Ingeniería: Illusion Custom Solutions`, rightColX + 4, posYSello + 19);
+      doc.text(`• Proyectista: Jony Cusac`, rightColX + 4, posYSello + 25);
+      doc.text(`• Contacto: info@e-illusion.es | Illusion.es`, rightColX + 4, posYSello + 31);
+      doc.text(`• ${PDF_REVIEW_LABELS.status}`, rightColX + 4, posYSello + 37);
+
+      // Aviso de revisión profesional
+      doc.setDrawColor(16, 185, 129);
+      doc.setFillColor(236, 253, 245);
+      doc.roundedRect(rightColX + 4, posYSello + 42, rightColW - 8, 14, 1, 1, 'FD');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7);
+      doc.setTextColor(5, 150, 105);
+      doc.text(PDF_REVIEW_LABELS.standard, rightColX + rightColW / 2, posYSello + 48, { align: 'center' });
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6.5);
+      doc.setTextColor(4, 120, 87);
+      doc.text(PDF_REVIEW_LABELS.notice, rightColX + rightColW / 2, posYSello + 53, { align: 'center' });
+
+      // Pie de página para todas las páginas
+      const totalPages = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.5);
+        doc.setTextColor(148, 163, 184);
+        doc.setDrawColor(226, 232, 240);
+        doc.line(14, 285, 196, 285);
+        doc.text('Generado por: Jony Cusac  |  Illusion.es (info@e-illusion.es)', 14, 290);
+        doc.text(`Página ${i} de ${totalPages}`, 196, 290, { align: 'right' });
+      }
+
+      doc.save(`Illusion_Dossier_Rack_${(nombreProyectoActual || 'Proyecto').replace(/\s+/g, '_')}.pdf`);
+    } catch (err) {
+      console.error('Error generando PDF:', err);
+    } finally {
+      setGenerandoPDF(false);
+    }
   };
 
   const res = calcularRackCalculos(equipos, posicionVentiladorIntermedio);
+  const categoriasPrioritarias = ['Audio', 'Video', 'Control', 'Redes'];
+  const categoriasRestantes = [...new Set(CATALOGO_EQUIPOS.map(item => item.categoria))]
+    .filter(categoria => !categoriasPrioritarias.includes(categoria));
+  const categoriasCatalogo = [
+    ...categoriasPrioritarias,
+    ...categoriasRestantes,
+    ...(equiposPersonalizados.length > 0 ? ['Personalizados'] : [])
+  ];
+  const obtenerItemsCategoria = (categoria) => {
+    if (categoria === 'Personalizados') return equiposPersonalizados;
+    return CATALOGO_EQUIPOS.filter(item => item.categoria === categoria);
+  };
 
   const getCategoryIcon = (cat) => {
     switch(cat) {
-      case 'Redes': return <Wifi size={12} className="text-blue-500" />;
-      case 'Control': return <Settings size={12} className="text-indigo-500" />;
-      case 'Audio': return <Volume2 size={12} className="text-emerald-500" />;
+      case 'Redes': return <Wifi size={12} className="text-slate-400" />;
+      case 'Control': return <Settings size={12} className="text-emerald-400" />;
+      case 'Audio': return <Volume2 size={12} className="text-blue-500" />;
       case 'Video': return <Monitor size={12} className="text-purple-500" />;
       case 'Cinema': return <Film size={12} className="text-rose-500" />;
       case 'Energía': return <Battery size={12} className="text-orange-500" />;
-      case 'Otros': return <Package size={12} className="text-slate-400" />;
+      case 'Otros': return <Package size={12} className="text-zinc-400" />;
       case 'Accesorios': return <LayoutList size={12} className="text-cyan-500" />;
+      case 'Personalizados': return <Sparkles size={12} className="text-indigo-400" />;
       default: return <Server size={12} className="text-slate-400" />;
     }
   };
 
+  // 1. Pantalla de carga si Firebase está comprobando la sesión
+  if (cargandoAuth) {
+    return (
+      <div className="h-screen w-screen bg-[#07090e] flex flex-col items-center justify-center text-white">
+        <div className="p-4 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 mb-4 animate-pulse">
+          <Server size={36} />
+        </div>
+        <div className="flex items-center gap-2.5 text-sm font-semibold text-slate-300">
+          <Loader2 size={18} className="animate-spin text-indigo-400" />
+          <span>Cargando Illusion Rack Designer...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // 2. Si no ha entrado al diseñador, mostrar la Página de Inicio & Login
+  if (!enDisenador) {
+    return (
+      <LoginPage 
+        usuarioActual={usuario}
+        onEnterDesigner={() => setEnDisenador(true)}
+        onLogout={handleLogout}
+        onLoginSuccess={(user) => {
+          setUsuario(user);
+          setEnDisenador(true);
+          setNotificacionGuardado(`¡Bienvenido ${user.displayName || user.email}!`);
+          setTimeout(() => setNotificacionGuardado(false), 3500);
+        }}
+        onContinueGuest={() => {
+          setEnDisenador(true);
+        }}
+      />
+    );
+  }
+
   return (
     <div className="h-screen text-slate-100 flex flex-col overflow-hidden font-sans" style={{ backgroundColor: 'var(--bg-app)' }}>
-      <header className="h-16 flex items-center justify-between px-6 border-b shrink-0 relative select-none shadow-md z-20"
+      <header className="hidden md:flex h-16 items-center justify-between px-3 xl:px-6 border-b shrink-0 relative select-none shadow-md z-20"
               style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border)' }}>
         
-        {/* Lado Izquierdo: Logo y Nombre Illusion Rack Designer */}
-        <div className="flex items-center gap-3.5 shrink-0">
-          <div className="p-2.5 rounded-2xl shadow-lg shadow-indigo-500/20 flex items-center justify-center bg-gradient-to-br from-indigo-500 to-indigo-700 border border-indigo-400/30">
-            <ShieldCheck className="text-white w-7 h-7" />
+        {/* Lado Izquierdo: Logo y Nombre Illusion Rack Designer (Click para volver al Inicio) */}
+        <div 
+          onClick={() => setEnDisenador(false)}
+          className="flex items-center gap-2.5 xl:gap-3.5 shrink-0 cursor-pointer group"
+          title="Volver a la Página de Inicio / Portal"
+        >
+          <div className="p-2 xl:p-2.5 rounded-2xl shadow-lg shadow-indigo-500/20 flex items-center justify-center bg-gradient-to-br from-indigo-500 to-indigo-700 border border-indigo-400/30 group-hover:scale-105 transition-all">
+            <ShieldCheck className="text-white w-6 h-6 xl:w-7 xl:h-7" />
           </div>
           <div className="flex items-center">
-            <h1 className="text-xl font-black tracking-tight text-white leading-none">
+            <h1 className="text-base xl:text-xl font-black tracking-tight text-white leading-none whitespace-nowrap">
               Illusion <span className="text-indigo-400 font-extrabold">Rack Designer</span>
             </h1>
           </div>
         </div>
 
         {/* Lado Derecho: Pestaña Guía, Indicador de Consumo & Botones de Acción */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1 xl:gap-2 shrink-0">
           {/* Pestaña / Botón de GUÍA homogéneo con los botones de acción */}
           <button
             onClick={() => {
               setPasoGuia(0);
               setMostrarGuia(true);
             }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 hover:text-indigo-200 border border-indigo-500/35 transition-all text-xs font-bold shadow-sm active:scale-95 cursor-pointer shrink-0"
+            className="flex items-center gap-1.5 px-2.5 xl:px-3 py-2 xl:py-1.5 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 hover:text-indigo-200 border border-indigo-500/35 transition-all text-xs font-bold shadow-sm active:scale-95 cursor-pointer shrink-0"
             title="Abrir Guía y Manual de Uso"
           >
             <BookOpen size={14} className="text-indigo-400" />
-            <span>Guía</span>
+            <span className="hidden xl:inline">Guía</span>
           </button>
+
 
           {/* Métrica de Consumo (Estilo píldora ámbar) */}
           <div 
-            className="flex items-center gap-2 px-3 py-1.5 rounded-full select-none cursor-default shrink-0" 
+            className="hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-full select-none cursor-default shrink-0" 
             style={{ backgroundColor: 'rgba(224, 153, 63, 0.15)' }}
             title="Consumo eléctrico total estimado"
           >
@@ -1108,46 +1927,118 @@ export default function App() {
           </div>
 
           {/* Separador vertical */}
-          <div className="h-6 w-px bg-white/10 mx-0.5" />
+          <div className="hidden xl:block h-6 w-px bg-white/10 mx-0.5" />
 
           {/* Botones de Acción Homogéneos */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1 xl:gap-2 shrink-0">
             {/* Botón Guardar */}
             <button 
               onClick={abrirModalGuardar} 
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 hover:text-emerald-200 border border-emerald-500/35 transition-all text-xs font-bold shadow-sm active:scale-95 cursor-pointer"
+              className="flex items-center gap-1.5 px-2.5 xl:px-3 py-2 xl:py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 hover:text-emerald-200 border border-emerald-500/35 transition-all text-xs font-bold shadow-sm active:scale-95 cursor-pointer"
               title="Guardar diseño de rack actual"
             >
-              <Save size={14} className="text-emerald-400" />
-              <span>Guardar</span>
+              {guardandoNube ? (
+                <Loader2 size={14} className="animate-spin text-emerald-400" />
+              ) : (
+                <Save size={14} className="text-emerald-400" />
+              )}
+              <span className="hidden xl:inline">Guardar</span>
             </button>
 
-            {/* Menú Proyectos Guardados */}
+            {/* Menú Proyectos Guardados (Nube + Local) */}
             <div className="relative group">
-              <button 
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 hover:text-sky-200 border border-sky-500/35 transition-all text-xs font-bold shadow-sm cursor-pointer"
+              <button
+                type="button"
+                onClick={() => setMenuProyectosAbierto(prev => !prev)}
+                aria-expanded={menuProyectosAbierto}
+                className="flex items-center gap-1.5 px-2.5 xl:px-3 py-2 xl:py-1.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 hover:text-sky-200 border border-sky-500/35 transition-all text-xs font-bold shadow-sm cursor-pointer"
                 title="Ver y abrir proyectos guardados"
               >
                 <FolderOpen size={14} className="text-sky-400" />
-                <span>Proyectos</span>
-                <ChevronDown size={12} className="text-sky-400/80 group-hover:rotate-180 transition-transform" />
+                <span className="hidden xl:inline">Proyectos</span>
+                {usuario && proyectosNube.length > 0 && (
+                  <span className="px-1.5 py-0.2 rounded-full bg-sky-500/30 text-[10px] font-black text-sky-200">
+                    {proyectosNube.length}
+                  </span>
+                )}
+                <ChevronDown size={12} className={`hidden xl:block text-sky-400/80 transition-transform ${menuProyectosAbierto ? 'rotate-180' : 'group-hover:rotate-180'}`} />
               </button>
               
-              <div className="absolute right-0 top-full mt-2 w-64 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 border overflow-hidden"
+              <div className={`absolute right-0 top-full mt-2 w-72 rounded-xl shadow-2xl transition-all z-50 border overflow-hidden ${menuProyectosAbierto ? 'opacity-100 visible' : 'opacity-0 invisible xl:group-hover:opacity-100 xl:group-hover:visible'}`}
                    style={{ backgroundColor: '#111420', borderColor: 'rgba(99, 102, 241, 0.3)' }}>
-                <div className="px-3 py-2 border-b border-white/10 bg-black/20 flex items-center justify-between">
-                  <span className="text-[10px] uppercase font-black tracking-wider text-slate-300">Proyectos Guardados</span>
-                  <span className="text-[10px] text-indigo-400 font-bold">{obtenerProyectosGuardados().length}</span>
+                
+                {/* Sección Nube si está autenticado */}
+                {usuario ? (
+                  <div>
+                    <div className="px-3 py-2 border-b border-white/10 bg-indigo-950/40 flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-indigo-300">
+                        <Cloud size={13} className="text-indigo-400" />
+                        <span className="text-[10px] uppercase font-black tracking-wider">Proyectos en la Nube</span>
+                      </div>
+                      <span className="text-[10px] text-indigo-400 font-bold">{proyectosNube.length}</span>
+                    </div>
+
+                    <div className="p-2 max-h-48 overflow-y-auto custom-scrollbar space-y-1">
+                      {cargandoProyectosNube ? (
+                        <div className="flex items-center justify-center p-3 text-xs text-slate-400 gap-2">
+                          <Loader2 size={13} className="animate-spin text-indigo-400" />
+                          <span>Cargando de Firestore...</span>
+                        </div>
+                      ) : proyectosNube.length === 0 ? (
+                        <p className="text-xs p-3 text-center text-slate-400">No tienes proyectos guardados en tu cuenta aún</p>
+                      ) : (
+                        proyectosNube.map((proyecto) => (
+                          <div key={proyecto.id} className="flex items-center justify-between p-2 hover:bg-white/10 rounded-lg text-xs transition-colors group/item">
+                            <div className="flex-1 cursor-pointer truncate pr-2" onClick={() => cargarProyecto(proyecto)}>
+                              <div className="font-semibold text-slate-200 truncate group-hover/item:text-indigo-300 flex items-center gap-1.5">
+                                <Cloud size={11} className="text-indigo-400 shrink-0" />
+                                <span>{proyecto.nombre}</span>
+                              </div>
+                              <div className="text-[10px] text-slate-400 flex items-center gap-2">
+                                <span>{new Date(proyecto.fecha || proyecto.updatedAt).toLocaleDateString('es-ES')}</span>
+                                {proyecto.rackAltura && <span className="text-indigo-300 font-bold">{proyecto.rackAltura}</span>}
+                              </div>
+                            </div>
+                            <button 
+                              onClick={(e) => eliminarProyectoNube(proyecto.id, e)} 
+                              className="p-1 rounded text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                              title="Eliminar de la nube"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-3 border-b border-white/10 bg-indigo-950/20">
+                    <p className="text-[11px] text-indigo-200 leading-snug">
+                      💡 <strong>Inicia sesión</strong> para guardar tus diseños en la nube y acceder desde cualquier ordenador.
+                    </p>
+                    <button
+                      onClick={() => setEnDisenador(false)}
+                      className="mt-2 w-full py-1.5 px-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all cursor-pointer shadow-sm"
+                    >
+                      Iniciar Sesión Ahora
+                    </button>
+                  </div>
+                )}
+
+                {/* Sección Memoria Local */}
+                <div className="px-3 py-1.5 border-t border-b border-white/10 bg-black/30 flex items-center justify-between">
+                  <span className="text-[9px] uppercase font-bold tracking-wider text-slate-400">Memoria Local (Navegador)</span>
+                  <span className="text-[10px] text-slate-400">{obtenerProyectosGuardados().length}</span>
                 </div>
-                <div className="p-2 max-h-56 overflow-y-auto custom-scrollbar space-y-1">
+                <div className="p-2 max-h-36 overflow-y-auto custom-scrollbar space-y-1">
                   {obtenerProyectosGuardados().length === 0 ? (
-                    <p className="text-xs p-3 text-center text-slate-400">No hay proyectos guardados en memoria</p>
+                    <p className="text-xs p-2 text-center text-slate-500">Sin proyectos locales</p>
                   ) : (
                     obtenerProyectosGuardados().map((proyecto, index) => (
-                      <div key={index} className="flex items-center justify-between p-2 hover:bg-white/10 rounded-lg text-xs transition-colors group/item">
+                      <div key={index} className="flex items-center justify-between p-1.5 hover:bg-white/10 rounded-lg text-xs transition-colors group/item">
                         <div className="flex-1 cursor-pointer truncate pr-2" onClick={() => cargarProyecto(proyecto)}>
-                          <div className="font-semibold text-slate-200 truncate group-hover/item:text-indigo-300">{proyecto.nombre}</div>
-                          <div className="text-[10px] text-slate-400">{new Date(proyecto.fecha).toLocaleDateString('es-ES')}</div>
+                          <div className="font-semibold text-slate-300 truncate group-hover/item:text-sky-300">{proyecto.nombre}</div>
+                          <div className="text-[9px] text-slate-500">{new Date(proyecto.fecha).toLocaleDateString('es-ES')}</div>
                         </div>
                         <button 
                           onClick={(e) => {
@@ -1155,9 +2046,9 @@ export default function App() {
                             eliminarProyecto(index);
                           }} 
                           className="p-1 rounded text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
-                          title="Eliminar proyecto"
+                          title="Eliminar proyecto local"
                         >
-                          <Trash2 size={13} />
+                          <Trash2 size={12} />
                         </button>
                       </div>
                     ))
@@ -1172,70 +2063,234 @@ export default function App() {
                 setEquipos([]);
                 setPosicionVentiladorIntermedio(null);
               }} 
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 hover:text-rose-200 border border-rose-500/30 transition-all text-xs font-bold shadow-sm active:scale-95 cursor-pointer" 
+              className="flex items-center gap-1.5 px-2.5 xl:px-3 py-2 xl:py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 hover:text-rose-200 border border-rose-500/30 transition-all text-xs font-bold shadow-sm active:scale-95 cursor-pointer" 
               title="Vaciar todos los equipos del rack y empezar de nuevo"
             >
               <RotateCcw size={14} className="text-rose-400" />
-              <span>Limpiar</span>
+              <span className="hidden xl:inline">Limpiar</span>
             </button>
+
+            {/* Separador vertical */}
+            <div className="hidden xl:block h-6 w-px bg-white/10 mx-0.5" />
+
+            {/* Botón / Menú de Usuario & Login Firebase */}
+            {cargandoAuth ? (
+              <div className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white/5 text-slate-400 text-xs">
+                <Loader2 size={14} className="animate-spin text-indigo-400" />
+              </div>
+            ) : usuario ? (
+              <div className="relative group">
+                <button
+                  type="button"
+                  onClick={() => setMenuUsuarioAbierto(prev => !prev)}
+                  aria-expanded={menuUsuarioAbierto}
+                  className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700/90 text-slate-200 border border-indigo-500/40 transition-all text-xs font-bold shadow-sm cursor-pointer shrink-0"
+                  title="Perfil de Usuario"
+                >
+                  {usuario.photoURL ? (
+                    <img src={usuario.photoURL} alt="Avatar" className="w-5 h-5 rounded-full object-cover border border-indigo-400 shrink-0" />
+                  ) : (
+                    <div className="w-5 h-5 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-700 text-white flex items-center justify-center text-[10px] font-black shrink-0">
+                      {(usuario.displayName || usuario.email || 'U')[0].toUpperCase()}
+                    </div>
+                  )}
+                  <span className="hidden xl:inline max-w-[100px] truncate">{usuario.displayName || usuario.email?.split('@')[0]}</span>
+                  <span className="flex h-2 w-2 relative" title="Conectado a Firebase Cloud">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  </span>
+                  <ChevronDown size={11} className={`hidden xl:block text-slate-400 transition-transform ${menuUsuarioAbierto ? 'rotate-180' : 'group-hover:rotate-180'}`} />
+                </button>
+                
+                {/* Menú de Usuario Desplegable */}
+                <div className={`absolute right-0 top-full mt-2 w-64 rounded-xl shadow-2xl transition-all z-50 border overflow-hidden ${menuUsuarioAbierto ? 'opacity-100 visible' : 'opacity-0 invisible xl:group-hover:opacity-100 xl:group-hover:visible'}`}
+                     style={{ backgroundColor: '#111420', borderColor: 'rgba(99, 102, 241, 0.3)' }}>
+                  <div className="p-3 border-b border-white/10 bg-black/30">
+                    <p className="text-xs font-bold text-white truncate">{usuario.displayName || 'Usuario Illusion'}</p>
+                    <p className="text-[11px] text-slate-400 truncate mt-0.5">{usuario.email}</p>
+                    <div className="mt-2.5 flex items-center gap-1.5 text-[10px] text-emerald-400 font-semibold bg-emerald-500/10 px-2 py-1 rounded-md border border-emerald-500/20">
+                      <Cloud size={12} />
+                      <span>Sincronización en la nube activa</span>
+                    </div>
+                  </div>
+                  <div className="p-2">
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold text-rose-300 hover:text-rose-200 hover:bg-rose-500/15 transition-all text-left cursor-pointer"
+                    >
+                      <LogOut size={14} className="text-rose-400" />
+                      <span>Cerrar Sesión</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <button 
+                onClick={() => setEnDisenador(false)}
+                className="flex items-center gap-1.5 px-2.5 xl:px-3 py-2 xl:py-1.5 rounded-xl bg-indigo-600/25 hover:bg-indigo-600/40 text-indigo-200 hover:text-white border border-indigo-500/45 transition-all text-xs font-bold shadow-sm active:scale-95 cursor-pointer shrink-0"
+                title="Iniciar sesión para guardar en la nube"
+              >
+                <User size={14} className="text-indigo-400" />
+                <span className="hidden xl:inline">Iniciar Sesión / Nube</span>
+              </button>
+            )}
           </div>
         </div>
       </header>
 
-      <main className="flex-1 flex overflow-hidden">
-        <aside className="w-[410px] border-r p-4 overflow-y-auto shrink-0 custom-scrollbar" style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border)' }}>
-          <p className="text-[9px] font-black uppercase tracking-widest mb-4" style={{ color: 'var(--text-muted)' }}>Librería Illusion</p>
-          <div className="space-y-2">
-            {[...new Set(CATALOGO_EQUIPOS.map(i => i.categoria))].map(cat => (
-              <div key={cat} className="rounded-lg overflow-hidden border" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--bg-highlight)' }}>
-                <button
-                  onClick={() => toggleCategoria(cat)}
-                  className="w-full px-3 py-2.5 flex items-center justify-between transition-colors hover:bg-white/5"
-                >
-                  <div className="flex items-center gap-2">
-                    {getCategoryIcon(cat)}
-                    <span className="font-bold uppercase tracking-wider" style={{ fontSize: 'var(--font-label)', color: 'var(--text-secondary)' }}>{cat}</span>
-                  </div>
-                  <ChevronDown size={12} style={{ color: 'var(--text-muted)' }} className={`transition-transform duration-300 ${categoriasAbiertas.includes(cat) ? 'rotate-180' : ''}`} />
-                </button>
-                {categoriasAbiertas.includes(cat) && (
-                  <div className="p-2 border-t" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--bg-app)' }}>
-                    {CATALOGO_EQUIPOS.filter(i => i.categoria === cat).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' })).map(item => (
-                      <button key={item.id} onClick={() => agregarItem(item)}
-                        className="w-full p-3 rounded-lg group text-left flex justify-between items-center mb-2 transition-all duration-200 border hover:shadow-lg"
-                        style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border)' }}
-                        onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'var(--accent)'; e.currentTarget.style.borderColor = 'var(--accent)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'var(--bg-panel)'; e.currentTarget.style.borderColor = 'var(--border)'; }}>
-                        <span className="font-semibold truncate flex items-center gap-1.5" style={{ fontSize: 'var(--font-rack)', color: 'var(--text-primary)' }}>
-                          <BrandLogo brand={getBrandForEquipment(item)} size={12} className="text-slate-300" />
-                          <span>{item.nombre}</span>
+      <div className="md:hidden flex-1 flex items-center justify-center p-6 text-center" style={{ backgroundColor: 'var(--bg-app)' }}>
+        <div className="max-w-sm rounded-2xl border border-indigo-500/30 bg-indigo-500/10 p-6 shadow-2xl">
+          <Monitor size={36} className="mx-auto mb-4 text-indigo-400" />
+          <h2 className="text-lg font-black text-white">Diseñador para iPad y PC</h2>
+          <p className="mt-2 text-sm leading-relaxed text-slate-300">
+            Para trabajar cómodamente con el rack, abre el configurador desde un iPad en horizontal o desde un ordenador.
+          </p>
+        </div>
+      </div>
+
+      <main className="hidden md:flex flex-1 min-h-0 flex-col xl:flex-row overflow-hidden">
+        <nav className="xl:hidden shrink-0 grid grid-cols-3 gap-1.5 border-b p-2" style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border)' }} aria-label="Vistas del diseñador">
+          {TABLET_DESIGNER_VIEWS.map(view => (
+            <button
+              key={view.id}
+              type="button"
+              onClick={() => setVistaTablet(view.id)}
+              aria-pressed={vistaTablet === view.id}
+              className={`min-h-11 rounded-xl border px-3 py-2 text-xs font-black uppercase tracking-wider transition-all ${
+                vistaTablet === view.id
+                  ? 'border-indigo-400/60 bg-indigo-500/20 text-indigo-200 shadow-lg shadow-indigo-950/30'
+                  : 'border-white/10 bg-white/[0.03] text-slate-400 hover:bg-white/[0.07] hover:text-slate-200'
+              }`}
+            >
+              {view.label}
+            </button>
+          ))}
+        </nav>
+
+        {/* Panel Izquierdo: Librería de Equipos */}
+        <aside className={`${vistaTablet === 'equipos' ? 'flex' : 'hidden'} xl:flex flex-1 xl:flex-none w-full xl:w-80 min-h-0 border-b xl:border-b-0 xl:border-r p-4 overflow-y-auto shrink-0 custom-scrollbar flex-col justify-between`} style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border)' }}>
+          <div>
+            <p className="text-[9px] font-black uppercase tracking-widest mb-3" style={{ color: 'var(--text-muted)' }}>Librería Illusion</p>
+            <div className="space-y-2">
+              {categoriasCatalogo.map(cat => (
+                <div key={cat} className="rounded-lg overflow-hidden border" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--bg-highlight)' }}>
+                  <button
+                    onClick={() => toggleCategoria(cat)}
+                    className="w-full px-3 py-2.5 flex items-center justify-between transition-colors hover:bg-white/5 cursor-pointer"
+                    aria-expanded={categoriasAbiertas.includes(cat)}
+                  >
+                    <div className="flex items-center gap-2">
+                      {getCategoryIcon(cat)}
+                      <span className="font-bold uppercase tracking-wider" style={{ fontSize: 'var(--font-label)', color: 'var(--text-secondary)' }}>{cat}</span>
+                      {cat === 'Personalizados' && (
+                        <span className="text-[9px] font-black text-indigo-300 bg-indigo-500/15 border border-indigo-500/20 px-1.5 py-0.5 rounded-full">
+                          {equiposPersonalizados.length}
                         </span>
-                        <div className="flex items-center justify-center w-7 h-7 rounded-full flex-shrink-0 ml-2" style={{ backgroundColor: 'rgba(58,62,224,0.15)' }}>
-                          <Plus size={13} style={{ color: 'var(--accent-light)' }} />
+                      )}
+
+                    </div>
+                    <ChevronDown size={12} style={{ color: 'var(--text-muted)' }} className={`transition-transform duration-300 ${categoriasAbiertas.includes(cat) ? 'rotate-180' : ''}`} />
+                  </button>
+                  {categoriasAbiertas.includes(cat) && (
+                    <div className="p-2 border-t space-y-1.5" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--bg-app)' }}>
+                      {obtenerItemsCategoria(cat).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' })).map(item => item.esPersonalizado ? (
+                        <div key={item.id} className="rounded-lg border overflow-hidden" style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border)' }}>
+                          <div className="flex items-center">
+                            <button onClick={() => agregarItem(item)} className="flex-1 min-w-0 p-2.5 text-left cursor-pointer hover:bg-indigo-500/15 transition-colors">
+                              <span className="font-semibold truncate flex items-center gap-1.5 text-xs text-white">
+                                <Sparkles size={11} className="text-indigo-400 shrink-0" />
+                                <span className="truncate">{item.nombre}</span>
+                              </span>
+                              <span className="block mt-1 text-[9px] text-slate-500 uppercase tracking-wider">
+                                {item.categoria} · {item.uOcupadas}U · {item.consumo}W
+                              </span>
+                            </button>
+                            <button onClick={() => abrirModalEditarEquipo(item)} className="p-2 text-slate-500 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors cursor-pointer" title="Editar equipo personalizado">
+                              <Edit3 size={12} />
+                            </button>
+                            <button onClick={() => eliminarEquipoPersonalizado(item.id)} className="p-2 mr-1 text-slate-500 hover:text-rose-300 hover:bg-rose-500/10 transition-colors cursor-pointer" title="Eliminar del catálogo personalizado">
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => enviarEquipoParaRevision(item)}
+                            disabled={envioRevision.status === 'sending'}
+                            className={`w-full px-2.5 py-2 border-t flex items-center justify-center gap-1.5 text-[9px] font-black uppercase tracking-wider transition-colors cursor-pointer disabled:cursor-wait ${
+                              envioRevision.itemId === item.id && envioRevision.status === 'success'
+                                ? 'border-emerald-500/25 bg-emerald-500/15 text-emerald-300'
+                                : envioRevision.itemId === item.id && envioRevision.status === 'error'
+                                  ? 'border-rose-500/25 bg-rose-500/15 text-rose-300'
+                                  : 'border-white/5 bg-indigo-500/[0.08] text-indigo-300 hover:bg-indigo-500/15 hover:text-indigo-200'
+                            }`}
+                          >
+                            {envioRevision.itemId === item.id && envioRevision.status === 'sending' ? (
+                              <><Loader2 size={11} className="animate-spin" /> Enviando solicitud...</>
+                            ) : envioRevision.itemId === item.id && envioRevision.status === 'success' ? (
+                              <><Check size={11} /> Solicitud enviada</>
+                            ) : envioRevision.itemId === item.id && envioRevision.status === 'error' ? (
+                              <><AlertCircle size={11} /> Error al enviar. Reintentar</>
+                            ) : (
+                              <><Send size={11} /> Enviar equipo para revisión</>
+                            )}
+                          </button>
                         </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
+                      ) : (
+                        <button key={item.id} onClick={() => agregarItem(item)}
+                          className="w-full p-2.5 rounded-lg group text-left flex justify-between items-center transition-all duration-200 border hover:shadow-lg cursor-pointer"
+                          style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border)' }}
+                          onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'var(--accent)'; e.currentTarget.style.borderColor = 'var(--accent)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'var(--bg-panel)'; e.currentTarget.style.borderColor = 'var(--border)'; }}>
+                          <span className="min-w-0 flex-1">
+                            <span className="font-semibold truncate flex items-center gap-1.5 text-xs text-white">
+                              <BrandLogo brand={getBrandForEquipment(item)} size={12} className="text-slate-300 shrink-0" />
+                              <span className="truncate">{item.nombre}</span>
+                            </span>
+                            {formatProfessionalIdentity(item.datosProfesionales) && (
+                              <span className="block truncate mt-1 pl-[18px] text-[9px] uppercase tracking-wider text-slate-500 group-hover:text-white/70">
+                                {formatProfessionalIdentity(item.datosProfesionales)}
+                              </span>
+                            )}
+                          </span>
+                          <div className="flex items-center justify-center w-6 h-6 rounded-full flex-shrink-0 ml-1.5 bg-indigo-500/20 group-hover:bg-white/20">
+                            <Plus size={12} className="text-indigo-300 group-hover:text-white" />
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              <button
+                onClick={abrirModalNuevoEquipo}
+                className="w-full mt-2 px-3 py-3 rounded-xl border border-dashed border-indigo-500/40 bg-indigo-500/[0.07] hover:bg-indigo-500/15 hover:border-indigo-400/60 text-indigo-300 hover:text-indigo-200 transition-all flex items-center justify-center gap-2 text-[11px] font-black uppercase tracking-wider cursor-pointer"
+              >
+                <Plus size={14} />
+                Crear equipo personalizado
+              </button>
+            </div>
           </div>
 
           {/* Rack Recomendado */}
-          <div className="mt-6 p-4 rounded-lg border" style={{ backgroundColor: 'var(--bg-highlight)', borderColor: 'var(--border-active)', borderLeftWidth: '3px' }}>
-            <h2 className="leading-none font-black" style={{ fontSize: '3rem', color: 'var(--text-primary)' }}>
-              {res.rackRecomendado}<span className="text-xl ml-2" style={{ color: 'var(--accent-light)' }}>U</span>
-            </h2>
-            <p className="font-black uppercase tracking-widest mt-2 pl-3" style={{ fontSize: '9px', color: 'var(--accent-light)', borderLeft: '3px solid var(--accent)' }}>
+          <div className="mt-4 p-4 rounded-xl border shrink-0 shadow-lg" style={{ backgroundColor: 'var(--bg-highlight)', borderColor: 'var(--border-active)', borderLeftWidth: '4px' }}>
+            <div className="flex items-baseline gap-1">
+              <span className="leading-none font-black text-4xl text-white tracking-tight">
+                {res.rackRecomendado}
+              </span>
+              <span className="text-xl font-bold text-indigo-400">U</span>
+            </div>
+            <p className="font-black uppercase tracking-widest mt-1.5 text-[9px] text-indigo-300">
               Rack Excell Recomendado
             </p>
           </div>
         </aside>
 
-        <section className="flex-1 relative flex items-center justify-center p-4 overflow-hidden" style={{ backgroundColor: 'var(--bg-app)' }}>
-          <div className="relative w-full max-w-[420px] h-full flex flex-col rounded-lg border-x-[24px]"
-               style={{ backgroundColor: 'var(--bg-rack)', borderColor: '#2a2d35', boxShadow: '0 0 40px rgba(58,62,224,0.15)', outline: '1px solid var(--border)' }}>
-            <div className="flex-1 flex flex-col p-1 overflow-y-auto custom-scrollbar">
+        {/* Bastidor Central 19" */}
+        <section className={`${vistaTablet === 'rack' ? 'flex' : 'hidden'} xl:flex flex-1 min-h-0 relative items-start xl:items-center justify-center p-4 xl:p-6 overflow-y-auto custom-scrollbar`} style={{ backgroundColor: 'var(--bg-app)' }}>
+          <div ref={rackContainerRef} className="relative w-full max-w-[620px] min-h-[500px] xl:h-full flex flex-col rounded-xl border-x-[14px] xl:border-x-[20px] shadow-2xl transition-all"
+               style={{ backgroundColor: 'var(--bg-rack)', borderColor: '#242731', boxShadow: '0 0 50px rgba(58,62,224,0.18)', outline: '1px solid #1c1e24' }}>
+            <div className="flex-1 flex flex-col p-1.5 overflow-y-auto custom-scrollbar">
               {/* Ventiladores */}
               <div style={{ 
                 height: `${PIXELS_PER_U}px`, 
@@ -1266,7 +2321,7 @@ export default function App() {
 
                 {/* Listado dinámico de equipos en orden de inserción */}
               <div className="flex-1 mt-1 space-y-1">
-                {res.rackItems.map((item, idx) => {
+                {res.rackItems.filter(item => !item.esPlacaCiegaExtra).map((item, idx) => {
 
                   // ── BLOQUE DE BALDA (no-rackable) ──────────────────────
                   if (item.__esBloque) {
@@ -1292,10 +2347,10 @@ export default function App() {
                             const bgColor = e.categoria === 'Redes' ? '#475569' :
                                            e.categoria === 'Audio' ? '#2563eb' :
                                            e.categoria === 'Video' ? '#9333ea' :
-                                           e.categoria === 'Control' ? '#4f46e5' :
+                                           e.categoria === 'Control' ? '#059669' :
                                            e.categoria === 'Cinema' ? '#be123c' :
                                            e.categoria === 'Energía' ? '#ea580c' :
-                                           e.categoria === 'Otros' ? '#16a34a' : '#475569';
+                                           e.categoria === 'Otros' ? '#52525b' : '#475569';
                             return (
                               <div key={e.instanceId}
                                    draggable={isDraggable}
@@ -1426,6 +2481,9 @@ export default function App() {
                   const equipoRealIndex = eq.tipoPasivo ? null : equipos.findIndex(e => e.instanceId === eq.instanceId);
                   const isDraggable = equipoRealIndex !== null && equipoRealIndex !== -1;
                   const isDragOver = isDraggable && dragOverIndex === equipoRealIndex;
+                  const visualSegments = getRackVisualSegments(eq);
+                  const equipmentVisualSegment = visualSegments.find(segment => segment.type === 'equipment');
+                  const hasCenteredRackSupport = visualSegments.length === 3;
                   const backgroundColor = eq.tipoPasivo === 'Ventilacion' || eq.esRejillaVentilacion ? '#000000' :
                                          eq.tipoPasivo === 'Escobilla' || eq.tipoPasivo === 'Ciego' ? '#000000' :
                                          eq.id === 'regleta-acc' ? '#181b24' :
@@ -1434,10 +2492,10 @@ export default function App() {
                                          eq.categoria === 'Redes' ? '#475569' :
                                          eq.categoria === 'Audio' ? '#2563eb' :
                                          eq.categoria === 'Video' ? '#9333ea' :
-                                         eq.categoria === 'Control' ? '#4f46e5' :
+                                         eq.categoria === 'Control' ? '#059669' :
                                          eq.categoria === 'Cinema' ? '#be123c' :
                                          eq.categoria === 'Energía' ? '#ea580c' :
-                                         eq.categoria === 'Otros' ? '#16a34a' :
+                                         eq.categoria === 'Otros' ? '#52525b' :
                                          eq.categoria === 'Accesorios' ? '#000000' : '#1e293b';
                   return (
                     <div key={eq.instanceId}
@@ -1452,11 +2510,22 @@ export default function App() {
                          }${isDragOver ? ' ring-2 ring-indigo-400 ring-inset brightness-125' : ''}`}
                          style={{
                            height: `${eq.uOcupadas * PIXELS_PER_U}px`,
-                           backgroundColor,
+                           backgroundColor: hasCenteredRackSupport ? '#222937' : backgroundColor,
+                           borderColor: hasCenteredRackSupport ? '#475569' : undefined,
                            opacity: isDraggable && draggingIndex === equipoRealIndex ? 0.35 : 1,
                          }}>
+                      {hasCenteredRackSupport && (
+                        <div
+                          aria-hidden="true"
+                          className="absolute inset-x-0 top-1/2 -translate-y-1/2 border-y border-blue-300/35 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+                          style={{
+                            height: `${equipmentVisualSegment.u * PIXELS_PER_U}px`,
+                            backgroundColor
+                          }}
+                        />
+                      )}
                       {isDraggable && <div className="w-8 shrink-0" />}
-                      <div className="flex-1 h-full flex items-center justify-center overflow-hidden">
+                      <div className="flex-1 h-full flex items-center justify-center overflow-hidden relative z-[1]">
                         {eq.tipoPasivo === 'Ventilacion' || eq.esRejillaVentilacion ? (
                           <div className="flex items-center gap-2">
                             <Fan size={11} className="text-white/40 shrink-0" />
@@ -1579,9 +2648,10 @@ export default function App() {
           </div>
         </section>
 
-        <aside className="w-[410px] bg-slate-900/40 border-l border-white/5 flex flex-col shrink-0 p-6 overflow-y-auto custom-scrollbar text-[11px]">
-          <p className="text-[11px] font-black text-slate-300 uppercase tracking-widest mb-6">Configuración Técnica</p>
-          <div className="space-y-3">
+        {/* Panel Derecho: Configuración Técnica & Resumen */}
+        <aside className={`${vistaTablet === 'resumen' ? 'flex' : 'hidden'} xl:flex flex-1 xl:flex-none w-full xl:w-80 min-h-0 bg-slate-900/40 border-t xl:border-t-0 xl:border-l border-white/5 flex-col shrink-0 p-4 xl:p-5 overflow-hidden text-[11px]`}>
+          <p className="shrink-0 text-[10px] font-black text-slate-300 uppercase tracking-widest mb-4">Configuración Técnica</p>
+          <div className="flex-1 min-h-0 space-y-3 overflow-y-auto custom-scrollbar pr-1">
              <div className="flex justify-between p-3 bg-white/5 rounded-xl border border-white/5">
                 <div className="flex items-center gap-2">
                    <LayoutList size={14} className="text-slate-300" />
@@ -1628,6 +2698,13 @@ export default function App() {
                 </div>
                 <span className="font-black text-white">x{res.numPlacasCiegas}</span>
              </div>
+             <div className="flex justify-between p-3 bg-indigo-500/10 rounded-xl border border-indigo-400/20">
+                <div className="flex items-center gap-2">
+                   <LayoutList size={14} className="text-indigo-300" />
+                   <span className="text-indigo-200 font-bold uppercase text-[10px]">Placas Ciegas Extra</span>
+                </div>
+                <span className="font-black text-indigo-100">x{res.numPlacasCiegasExtra}</span>
+             </div>
              <div className="flex justify-between p-3 bg-white/5 rounded-xl border border-white/5">
                 <div className="flex items-center gap-2">
                    <Cable size={14} className="text-slate-300" />
@@ -1651,13 +2728,6 @@ export default function App() {
              </div>
              <div className="flex justify-between p-3 bg-white/5 rounded-xl border border-white/5">
                 <div className="flex items-center gap-2">
-                   <Settings size={14} className="text-slate-300" />
-                   <span className="text-slate-200 font-bold uppercase text-[10px]">Tornillería</span>
-                </div>
-                <span className="font-black text-white">x{res.numTornillos}</span>
-             </div>
-             <div className="flex justify-between p-3 bg-white/5 rounded-xl border border-white/5">
-                <div className="flex items-center gap-2">
                    <Cable size={14} className="text-slate-300" />
                    <span className="text-slate-200 font-bold uppercase text-[10px]">Patch Panels (Auto)</span>
                 </div>
@@ -1665,40 +2735,34 @@ export default function App() {
              </div>
           </div>
 
-          <div className="mt-6">
-             <div className="flex flex-col p-3 bg-yellow-500/10 rounded-xl border border-yellow-500/30">
-                <div className="flex justify-between items-center mb-2">
-                   <div className="flex items-center gap-2">
-                      <Zap size={14} className="text-yellow-400" />
-                      <span className="text-yellow-400 font-black uppercase text-[9px]">Instalación Eléctrica</span>
-                   </div>
-                   <span className="font-black text-yellow-300/80 text-[8px]">{res.consumoTotal}W total</span>
-                </div>
-                <div className="text-[8px] text-yellow-400/80 space-y-1 pl-1">
-                   <div className="flex justify-between">
-                      <span>Líneas de 2,5 mm²</span>
-                      <span className="font-black text-white">x{res.numLineasElectricas}</span>
-                   </div>
-                   <div className="flex justify-between">
-                      <span>Magnetotérmicos 16A</span>
-                      <span className="font-black text-white">x{res.numLineasElectricas}</span>
-                   </div>
-                   <div className="flex justify-between">
-                      <span>Diferenciales 40A / 30mA</span>
-                      <span className="font-black text-white">x{res.numLineasElectricas}</span>
-                   </div>
-                </div>
-             </div>
-          </div>
+          {/* Acción contextual: documentación asociada al resumen técnico */}
+          <div className="shrink-0 mt-3 rounded-xl border border-indigo-400/40 bg-[#151a2d] p-3 shadow-[0_8px_20px_rgba(15,23,42,0.4)] ring-1 ring-indigo-500/10">
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-lg bg-indigo-500/20 border border-indigo-400/30 text-indigo-200 flex items-center justify-center shrink-0">
+                <FileText size={17} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-[15px] leading-tight font-black text-white tracking-tight">Documentación del proyecto</h3>
+              </div>
+            </div>
 
-          <div className="mt-auto pt-6">
             <button 
               onClick={descargarMaterialesRackPDF} 
-              className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-900/40 transition-all active:scale-95 flex items-center justify-center gap-2"
-              title="Descargar listado de materiales en PDF"
+              disabled={generandoPDF}
+              className="w-full mt-2.5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold text-[11px] uppercase tracking-wider shadow-md shadow-indigo-950/40 border border-indigo-400/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-wait"
+              title="Descargar dossier técnico con alzado visual en PDF"
             >
-              <Download size={14} />
-              Descargar Materiales de Rack (PDF)
+              {generandoPDF ? (
+                <>
+                  <Loader2 size={15} className="animate-spin" />
+                  <span>Generando documentación...</span>
+                </>
+              ) : (
+                <>
+                  <Download size={15} />
+                  <span>Descargar dossier PDF</span>
+                </>
+              )}
             </button>
           </div>
         </aside>
@@ -1770,6 +2834,143 @@ export default function App() {
                   <Check size={14} />
                   Guardar Proyecto
                 </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de creación y edición de equipos personalizados */}
+      {mostrarModalEquipoPersonalizado && (
+        <div className="modal-overlay" onClick={() => setMostrarModalEquipoPersonalizado(false)}>
+          <div className="modal-card max-h-[92vh] overflow-y-auto custom-scrollbar" style={{ maxWidth: '760px' }} onClick={(event) => event.stopPropagation()}>
+            <div className="flex items-start justify-between gap-4 mb-5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 flex items-center justify-center shrink-0">
+                  <Sparkles size={19} />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-white">{equipoPersonalizadoEditando ? 'Editar equipo personalizado' : 'Crear equipo personalizado'}</h3>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Completa los datos que afectan al espacio, consumo y montaje del rack.</p>
+                </div>
+              </div>
+              <button type="button" onClick={() => setMostrarModalEquipoPersonalizado(false)} className="p-2 rounded-lg text-slate-500 hover:text-white hover:bg-white/5 cursor-pointer" aria-label="Cerrar formulario">
+                <X size={17} />
+              </button>
+            </div>
+
+            <form onSubmit={guardarEquipoPersonalizado} className="space-y-5">
+              <section>
+                <p className="text-[10px] font-black uppercase tracking-widest text-indigo-300 mb-3">1. Identificación</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <label className="text-[11px] font-bold text-slate-300">
+                    Fabricante *
+                    <input className="modal-input mt-1.5" value={formEquipoPersonalizado.fabricante} onChange={event => setFormEquipoPersonalizado(prev => ({ ...prev, fabricante: event.target.value }))} placeholder="Ej: QSC" />
+                    {erroresEquipoPersonalizado.fabricante && <span className="block mt-1 text-[10px] text-rose-400">{erroresEquipoPersonalizado.fabricante}</span>}
+                  </label>
+                  <label className="text-[11px] font-bold text-slate-300">
+                    Modelo *
+                    <input className="modal-input mt-1.5" value={formEquipoPersonalizado.modelo} onChange={event => setFormEquipoPersonalizado(prev => ({ ...prev, modelo: event.target.value }))} placeholder="Ej: Core 110f" />
+                    {erroresEquipoPersonalizado.modelo && <span className="block mt-1 text-[10px] text-rose-400">{erroresEquipoPersonalizado.modelo}</span>}
+                  </label>
+                  <label className="text-[11px] font-bold text-slate-300">
+                    Nombre visible
+                    <input className="modal-input mt-1.5" value={formEquipoPersonalizado.nombre} onChange={event => setFormEquipoPersonalizado(prev => ({ ...prev, nombre: event.target.value }))} placeholder="Se genera con fabricante y modelo" />
+                  </label>
+                  <label className="text-[11px] font-bold text-slate-300">
+                    Subsistema
+                    <select className="modal-input mt-1.5" value={formEquipoPersonalizado.categoria} onChange={event => setFormEquipoPersonalizado(prev => ({ ...prev, categoria: event.target.value }))}>
+                      {['Redes', 'Control', 'Audio', 'Video', 'Cinema', 'Energía', 'Otros'].map(categoria => <option key={categoria} value={categoria}>{categoria}</option>)}
+                    </select>
+                  </label>
+                  <label className="sm:col-span-2 text-[11px] font-bold text-slate-300">
+                    URL oficial del producto
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <input type="url" className="modal-input flex-1" value={formEquipoPersonalizado.urlProducto} onChange={event => setFormEquipoPersonalizado(prev => ({ ...prev, urlProducto: event.target.value }))} placeholder="https://fabricante.com/producto-o-ficha.pdf" />
+                      {formEquipoPersonalizado.urlProducto?.startsWith('http') && (
+                        <a href={formEquipoPersonalizado.urlProducto} target="_blank" rel="noreferrer" className="h-10 px-3 rounded-lg border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 hover:bg-indigo-500/20 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider">
+                          <ExternalLink size={13} /> Abrir
+                        </a>
+                      )}
+                    </div>
+                    {erroresEquipoPersonalizado.urlProducto && <span className="block mt-1 text-[10px] text-rose-400">{erroresEquipoPersonalizado.urlProducto}</span>}
+                    <span className="block mt-1 text-[9px] font-normal text-slate-500">Se conservará como fuente para la revisión y el futuro análisis automático.</span>
+                  </label>
+                </div>
+              </section>
+
+              <section className="pt-4 border-t border-white/10">
+                <p className="text-[10px] font-black uppercase tracking-widest text-indigo-300 mb-3">2. Montaje mecánico</p>
+                <label className="flex items-center justify-between gap-4 p-3 rounded-xl bg-white/[0.04] border border-white/10 mb-3 cursor-pointer">
+                  <div>
+                    <span className="block text-xs font-bold text-white">Montaje directo en rack de 19”</span>
+                    <span className="block text-[10px] text-slate-500 mt-0.5">Actívalo si el equipo utiliza orejas o escuadras de rack.</span>
+                  </div>
+                  <input type="checkbox" checked={formEquipoPersonalizado.esRackable} onChange={event => setFormEquipoPersonalizado(prev => ({ ...prev, esRackable: event.target.checked }))} className="w-4 h-4 accent-indigo-500" />
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <label className="text-[11px] font-bold text-slate-300">
+                    Espacio (U) *
+                    <input type="number" min="1" max="20" step="1" className="modal-input mt-1.5" value={formEquipoPersonalizado.uOcupadas} onChange={event => setFormEquipoPersonalizado(prev => ({ ...prev, uOcupadas: event.target.value }))} />
+                    {erroresEquipoPersonalizado.uOcupadas && <span className="block mt-1 text-[10px] text-rose-400">{erroresEquipoPersonalizado.uOcupadas}</span>}
+                  </label>
+                  <label className="text-[11px] font-bold text-slate-300">
+                    Profundidad (mm)
+                    <input type="number" min="0" className="modal-input mt-1.5" value={formEquipoPersonalizado.fondo} onChange={event => setFormEquipoPersonalizado(prev => ({ ...prev, fondo: event.target.value }))} />
+                  </label>
+                  <label className="text-[11px] font-bold text-slate-300">
+                    Peso (kg)
+                    <input type="number" min="0" step="0.1" className="modal-input mt-1.5" value={formEquipoPersonalizado.pesoKg} onChange={event => setFormEquipoPersonalizado(prev => ({ ...prev, pesoKg: event.target.value }))} />
+                  </label>
+                  {!formEquipoPersonalizado.esRackable && (
+                    <label className="text-[11px] font-bold text-slate-300">
+                      Anchura en balda
+                      <select className="modal-input mt-1.5" value={formEquipoPersonalizado.ancho} onChange={event => setFormEquipoPersonalizado(prev => ({ ...prev, ancho: event.target.value }))}>
+                        <option value="media">Media balda</option>
+                        <option value="completo">Balda completa</option>
+                      </select>
+                    </label>
+                  )}
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
+                  {[
+                    ['incluyeOrejasRack', 'Incluye orejas/escuadras de rack'],
+                    ['requiereEscobilla', 'Requiere escobilla pasacables'],
+                    ['requierePlacaCiega', 'Requiere ventilación superior'],
+                    ['requiereTapaCiega', 'Requiere placa ciega en la balda']
+                  ].map(([campo, etiqueta]) => (
+                    <label key={campo} className="flex items-center gap-2.5 p-2.5 rounded-lg bg-black/20 border border-white/5 text-[11px] font-semibold text-slate-300 cursor-pointer">
+                      <input type="checkbox" checked={Boolean(formEquipoPersonalizado[campo])} onChange={event => setFormEquipoPersonalizado(prev => ({ ...prev, [campo]: event.target.checked }))} className="w-3.5 h-3.5 accent-indigo-500" />
+                      {etiqueta}
+                    </label>
+                  ))}
+                </div>
+              </section>
+
+              <section className="pt-4 border-t border-white/10">
+                <p className="text-[10px] font-black uppercase tracking-widest text-indigo-300 mb-3">3. Electricidad y notas</p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <label className="text-[11px] font-bold text-slate-300">
+                    Consumo máximo (W)
+                    <input type="number" min="0" className="modal-input mt-1.5" value={formEquipoPersonalizado.consumo} onChange={event => setFormEquipoPersonalizado(prev => ({ ...prev, consumo: event.target.value }))} />
+                    {erroresEquipoPersonalizado.consumo && <span className="block mt-1 text-[10px] text-rose-400">{erroresEquipoPersonalizado.consumo}</span>}
+                  </label>
+                  <label className="sm:col-span-2 text-[11px] font-bold text-slate-300">
+                    Notas técnicas
+                    <input className="modal-input mt-1.5" value={formEquipoPersonalizado.notas} onChange={event => setFormEquipoPersonalizado(prev => ({ ...prev, notas: event.target.value }))} placeholder="Alimentación externa, separación, guías..." />
+                  </label>
+                </div>
+              </section>
+
+              <div className="flex items-center justify-between gap-3 pt-4 border-t border-white/10">
+                <p className="text-[10px] text-slate-500">Se guardará en este navegador dentro de la categoría Personalizados.</p>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button type="button" onClick={() => setMostrarModalEquipoPersonalizado(false)} className="modal-btn-cancel">Cancelar</button>
+                  <button type="submit" className="modal-btn-confirm">
+                    <Check size={14} />
+                    {equipoPersonalizadoEditando ? 'Guardar cambios' : 'Crear equipo'}
+                  </button>
+                </div>
               </div>
             </form>
           </div>

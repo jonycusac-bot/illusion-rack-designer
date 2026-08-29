@@ -1,6 +1,6 @@
-# 🏢 Illusion Rack Designer Pro v2.0.0
+# 🏢 Illusion Rack Designer Pro v3.0.0
 
-## 🎉 **VERSIÓN FINAL - ENERO 2025**
+## Versión actual — Septiembre 2026
 
 **Diseñador profesional de racks audiovisuales con cálculos automáticos y gestión de proyectos.**
 
@@ -10,7 +10,7 @@
 
 ```bash
 # Clonar repositorio
-git clone https://github.com/jonycusac-bot/illusion-rack-designer.git
+git clone https://github.com/Jonycusac/illusion-rack-designer.git
 
 # Instalar dependencias
 cd illusion-rack-designer
@@ -19,7 +19,7 @@ npm install
 # Ejecutar aplicación
 npm run dev
 
-# Abrir en navegador: http://localhost:5173/
+# Abrir en navegador: http://localhost:3000/
 ```
 
 ---
@@ -27,7 +27,8 @@ npm run dev
 ## ✨ **Características Principales**
 
 ### 🎨 **Interfaz Intuitiva**
-- **7 categorías** de equipos con iconos coloridos
+- **8 categorías base** de equipos con iconos coloridos
+- **Equipos personalizados** creados por el usuario con categoría dinámica propia
 - **Auto-replegado** de pestañas (10 segundos)
 - **Visualización en tiempo real** del rack
 - **Diseño profesional** con fondo negro elegante
@@ -42,12 +43,21 @@ npm run dev
 ### 💾 **Gestión de Proyectos**
 - **Guardar/Cargar** proyectos con un clic
 - **Persistencia local** en el navegador
+- **Catálogo personalizado persistente** con creación, edición y eliminación
 - **Nombres automáticos** con fecha y hora
 - **Gestión completa** de proyectos guardados
 
+### ✉️ **Propuestas de Equipos**
+- URL oficial o ficha PDF como fuente de cada equipo personalizado
+- Uso inmediato y almacenamiento local en el navegador del usuario
+- Envío automático de una ficha estructurada a `jonycusac@gmail.com` mediante FormSubmit
+- Confirmación visual de envío, espera y error dentro del configurador
+- Ningún producto se almacena ni se publica automáticamente en Firebase
+- Incorporación manual al catálogo oficial únicamente después de revisar la fuente y los datos técnicos
+
 ### 📄 **Exportación Profesional**
-- **"Descargar Materiales de Rack"**
-- **Solo infraestructura** (sin equipos físicos)
+- **"Descargar dossier PDF"**
+- **Infraestructura, equipos instalados y alzado frontal**
 - **Formato profesional** para instaladores
 - **Listado completo** de materiales necesarios
 
@@ -64,6 +74,8 @@ npm run dev
 | 🎬 **Cinema** | Marantz AV, Integra DRX | 🎬 |
 | ⚡ **Energía** | SAI APC Smart-UPS | 🔋 |
 | 📦 **Otros** | Equipos genéricos 1U-4U | 📦 |
+| 🧰 **Accesorios** | Baldas, pasacables y elementos auxiliares | 🧰 |
+| ✨ **Personalizados** | Equipos creados por el usuario | ✨ |
 
 ---
 
@@ -73,6 +85,7 @@ npm run dev
 - Haz clic en las categorías del panel izquierdo
 - Selecciona los equipos necesarios
 - Se añaden automáticamente al rack
+- Usa **Crear equipo personalizado** para registrar fabricante, modelo, unidades, profundidad, consumo y requisitos de montaje
 
 ### 2. **Visualizar Rack**
 - Ve el diseño en tiempo real en el centro
@@ -85,9 +98,9 @@ npm run dev
 - **🔄 Limpiar**: Botón rojo para empezar de nuevo
 
 ### 4. **Exportar Materiales**
-- Botón "Descargar Materiales de Rack"
-- Listado completo para el instalador
-- Solo materiales de infraestructura
+- Botón "Descargar dossier PDF"
+- Listado de infraestructura y equipos para el instalador
+- Alzado frontal y resumen eléctrico del rack
 
 ---
 
@@ -98,6 +111,7 @@ npm run dev
 - **Lucide React** - Iconos
 - **CSS personalizado** - Estilos optimizados
 - **localStorage** - Persistencia de proyectos
+- **Vitest** - Pruebas de validación y normalización de equipos personalizados
 
 ---
 
@@ -134,14 +148,16 @@ src/
 ├── App.jsx          # Componente principal
 ├── main.jsx         # Punto de entrada
 ├── index.css        # Estilos personalizados
-└── App.css          # Configuración del contenedor
+├── customEquipment.js      # Dominio de equipos personalizados
+└── customEquipment.test.js # Pruebas automatizadas
 ```
 
 ### Funciones Principales
 - `agregarItem()` - Añade equipos al rack
 - `guardarProyecto()` - Guarda en localStorage
-- `descargarMaterialesRack()` - Exporta listado
+- `descargarMaterialesRackPDF()` - Exporta el dossier técnico
 - `toggleCategoria()` - Gestiona pestañas
+- `guardarEquipoPersonalizado()` - Crea o actualiza equipos del usuario
 
 ---
 
@@ -154,8 +170,8 @@ src/
 - ✅ Exportación de materiales
 - ✅ Documentación completa
 
-### 🎯 **Listo para Producción**
-**Illusion Rack Designer Pro v2.0.0** está completamente terminado y listo para uso profesional.
+### Estado actual
+**Illusion Rack Designer Pro v3.0.0** es la versión activa del configurador. Este README es la fuente principal para la versión, ejecución local y características vigentes; el historial de cambios se mantiene en `CHANGELOG.md`.
 
 ---
 
@@ -169,7 +185,7 @@ src/
 
 ## 📄 **Licencia**
 
-Proyecto desarrollado para Illusion AV Solutions - Enero 2025
+Proyecto desarrollado para Illusion AV Solutions — Septiembre 2026
 
 ---
 

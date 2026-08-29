@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Archivos locales de Windows y notas de trabajo
+desktop.ini
+Acceder en local.txt
+save_*.bat
+*.zip

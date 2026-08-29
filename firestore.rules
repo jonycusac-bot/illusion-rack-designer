@@ -1,0 +1,75 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default Deny All Catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidUserProfile(data) {
+      return data.userId is string && data.userId.size() <= 128 &&
+             data.email is string && data.email.size() <= 200 &&
+             (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 100)) &&
+             (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 500));
+    }
+
+    function isValidRackProject(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.userId is string && data.userId.size() <= 128 &&
+             data.nombre is string && data.nombre.size() > 0 && data.nombre.size() <= 150 &&
+             data.rackAltura is string && data.rackAltura.size() <= 10 &&
+             data.elementos is string && data.elementos.size() <= 100000 &&
+             (!('consumoTotal' in data) || data.consumoTotal is number) &&
+             (!('pesoTotal' in data) || data.pesoTotal is number) &&
+             (!('precioTotal' in data) || data.precioTotal is number) &&
+             (!('notas' in data) || (data.notas is string && data.notas.size() <= 1000));
+    }
+
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && isValidId(userId) &&
+                       isValidUserProfile(incoming()) &&
+                       incoming().userId == request.auth.uid;
+      allow update: if isOwner(userId) && isValidId(userId) &&
+                       isValidUserProfile(incoming()) &&
+                       incoming().userId == existing().userId;
+      allow delete: if false;
+
+      match /projects/{projectId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(projectId);
+        allow list: if isOwner(userId) && isValidId(userId);
+        allow create: if isOwner(userId) && isValidId(userId) && isValidId(projectId) &&
+                         isValidRackProject(incoming()) &&
+                         incoming().userId == request.auth.uid &&
+                         incoming().id == projectId;
+        allow update: if isOwner(userId) && isValidId(userId) && isValidId(projectId) &&
+                         isValidRackProject(incoming()) &&
+                         incoming().userId == existing().userId &&
+                         incoming().id == existing().id;
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(projectId);
+      }
+    }
+  }
+}

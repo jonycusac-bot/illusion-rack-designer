@@ -1,0 +1,47 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Información pública básica del perfil de usuario",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "displayName": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "maxLength": 200 },
+        "photoURL": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "email"]
+    },
+    "RackProject": {
+      "title": "RackProject",
+      "description": "Proyecto de diseño de rack guardado por un usuario",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "nombre": { "type": "string", "maxLength": 150 },
+        "rackAltura": { "type": "string", "maxLength": 10 },
+        "elementos": { "type": "string", "maxLength": 100000 },
+        "consumoTotal": { "type": "number" },
+        "pesoTotal": { "type": "number" },
+        "precioTotal": { "type": "number" },
+        "notas": { "type": "string", "maxLength": 1000 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "nombre", "rackAltura", "elementos"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Almacena los datos básicos de perfil de usuario"
+    },
+    "/users/{userId}/projects/{projectId}": {
+      "schema": "RackProject",
+      "description": "Colección de proyectos de rack pertenecientes a cada usuario autenticado"
+    }
+  }
+}
