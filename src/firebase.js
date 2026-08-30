@@ -1,9 +1,8 @@
 import { initializeApp } from 'firebase/app';
 import { 
   getAuth, 
-  GoogleAuthProvider,
-  signInWithPopup,
-  signInWithRedirect,
+  GoogleAuthProvider, 
+  signInWithPopup, 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
   signOut, 
@@ -15,13 +14,12 @@ import {
   getFirestore, 
   doc, 
   collection, 
-  setDoc,
-  getDocs,
-  deleteDoc,
-  getDocFromServer
+  setDoc, 
+  getDocs, 
+  deleteDoc, 
+  getDocFromServer 
 } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
-import { shouldUseGoogleRedirect } from './auth';
 
 // Initialize Firebase App
 export const app = initializeApp(firebaseConfig);
@@ -95,10 +93,6 @@ export async function loginWithGoogle() {
     }, { merge: true });
     return user;
   } catch (error) {
-    if (shouldUseGoogleRedirect(error)) {
-      await signInWithRedirect(auth, googleProvider);
-      return null;
-    }
     console.error('Error al iniciar sesión con Google:', error);
     throw error;
   }
@@ -209,5 +203,3 @@ export async function eliminarProyectoDeFirestore(userId, projectId) {
     handleFirestoreError(error, OperationType.DELETE, path);
   }
 }
-
-

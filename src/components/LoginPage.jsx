@@ -45,7 +45,7 @@ export default function LoginPage({
     setCargando(true);
     try {
       const user = await loginWithGoogle();
-      if (user && onLoginSuccess) onLoginSuccess(user);
+      if (onLoginSuccess) onLoginSuccess(user);
     } catch (err) {
       if (err.message?.includes('popup-closed-by-user')) {
         setAuthError('Ventana de autenticación cerrada.');
@@ -140,7 +140,7 @@ export default function LoginPage({
               <span className="font-black text-lg tracking-tight text-white">Illusion</span>
               <span className="font-extrabold text-lg tracking-tight text-indigo-400">Rack Designer</span>
               <span className="text-[9px] uppercase font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">
-                v3.0.0 Pro
+                v3.0 Pro
               </span>
             </div>
             <p className="text-[9px] font-semibold text-slate-400 tracking-wider uppercase">
@@ -465,15 +465,26 @@ export default function LoginPage({
                 </button>
               </div>
             )}
+
+            <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-[10px] text-slate-500 font-medium">
+              <span>© 2026 Jonathan Cusac</span>
+              <span className="text-indigo-400/80">Illusion Custom Solutions</span>
+            </div>
               </>
             )}
           </div>
         </div>
       </main>
 
-      {/* Pie de Página */}
-      <footer className="w-full border-t border-white/10 px-6 py-2.5 text-center text-[11px] text-slate-500 shrink-0">
-        <p>© 2026 Illusion Custom Solutions. Todos los derechos reservados. Diseñado para ingeniería y dirección de obra de instalaciones audiovisuales y telecomunicaciones.</p>
+      {/* Pie de Página con Copyright Destacado */}
+      <footer className="w-full border-t border-slate-800/80 bg-slate-950/80 backdrop-blur-md px-6 py-3.5 text-center shrink-0 z-10">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2 text-xs text-slate-400">
+          <span className="font-bold text-slate-200">© 2026 Jonathan Cusac / Illusion Custom Solutions</span>
+          <span className="hidden sm:inline text-slate-600">•</span>
+          <span className="text-slate-300 font-medium">Todos los derechos reservados</span>
+          <span className="hidden sm:inline text-slate-600">•</span>
+          <span className="text-indigo-400 text-[11px] font-mono font-semibold">Software Propietario</span>
+        </div>
       </footer>
     </div>
   );

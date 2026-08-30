@@ -1,14 +1,15 @@
 {
   "name": "illusion-rack-designer",
   "private": true,
-  "version": "3.0.0",
+  "version": "2.0.0",
+  "author": "Jonathan Cusac <jonycusac@gmail.com>",
+  "license": "UNLICENSED",
+  "copyright": "Copyright (c) 2026 Jonathan Cusac / Illusion. Todos los derechos reservados.",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 3000",
     "build": "vite build",
     "lint": "eslint .",
-    "test": "vitest run",
-    "catalog:import": "uv run --with openpyxl python scripts/import_catalog_xlsx.py",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -33,7 +34,6 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
-    "vite": "^7.2.4",
-    "vitest": "^4.1.11"
+    "vite": "^7.2.4"
   }
 }

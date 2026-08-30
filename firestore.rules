@@ -7,6 +7,7 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Helper functions
     function isSignedIn() {
       return request.auth != null;
     }
@@ -27,6 +28,7 @@ service cloud.firestore {
       return resource.data;
     }
 
+    // User Profile Validation
     function isValidUserProfile(data) {
       return data.userId is string && data.userId.size() <= 128 &&
              data.email is string && data.email.size() <= 200 &&
@@ -34,6 +36,7 @@ service cloud.firestore {
              (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 500));
     }
 
+    // Rack Project Validation
     function isValidRackProject(data) {
       return data.id is string && data.id.size() <= 128 &&
              data.userId is string && data.userId.size() <= 128 &&
@@ -46,17 +49,19 @@ service cloud.firestore {
              (!('notas' in data) || (data.notas is string && data.notas.size() <= 1000));
     }
 
+    // User Profiles Collection
     match /users/{userId} {
       allow get: if isOwner(userId) && isValidId(userId);
-      allow list: if false;
-      allow create: if isOwner(userId) && isValidId(userId) &&
-                       isValidUserProfile(incoming()) &&
+      allow list: if false; // No public user discovery
+      allow create: if isOwner(userId) && isValidId(userId) && 
+                       isValidUserProfile(incoming()) && 
                        incoming().userId == request.auth.uid;
-      allow update: if isOwner(userId) && isValidId(userId) &&
-                       isValidUserProfile(incoming()) &&
+      allow update: if isOwner(userId) && isValidId(userId) && 
+                       isValidUserProfile(incoming()) && 
                        incoming().userId == existing().userId;
       allow delete: if false;
 
+      // User Projects Subcollection
       match /projects/{projectId} {
         allow get: if isOwner(userId) && isValidId(userId) && isValidId(projectId);
         allow list: if isOwner(userId) && isValidId(userId);

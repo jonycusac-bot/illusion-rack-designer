@@ -37,8 +37,6 @@ import {
   Cloud,
   CloudOff,
   Mail,
-  ExternalLink,
-  Send,
   Lock,
   AlertCircle,
   Loader2
@@ -46,14 +44,6 @@ import {
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import LoginPage from './components/LoginPage';
-import { normalizeCustomEquipment, parseStoredCustomEquipment, validateCustomEquipment } from './customEquipment';
-import { submitEquipmentForReview } from './equipmentReview';
-import { getRackVisualSegments } from './rackEquipmentVisual';
-import { calculateRackCapacity } from './rackCapacity';
-import { PDF_REVIEW_LABELS } from './pdfReviewLabels';
-import { DEFAULT_TABLET_DESIGNER_VIEW, TABLET_DESIGNER_VIEWS } from './designerViewport';
-import { EQUIPMENT_CATALOG } from './catalog/equipmentCatalog';
-import { formatProfessionalIdentity } from './catalog/formatProfessionalIdentity';
 import { 
   auth, 
   onAuthStateChanged,
@@ -61,7 +51,7 @@ import {
   guardarProyectoEnFirestore, 
   cargarProyectosDeFirestore, 
   eliminarProyectoDeFirestore,
-  testConnection
+  testConnection 
 } from './firebase';
 
 // Icono Enchufe / Toma Schuko Redondeada (Estilo Flaticon 62931)
@@ -201,31 +191,60 @@ const getBrandForEquipment = (item) => {
  * Lógica PDU: 1 por cada 3.500W de consumo o 1 cada 6 equipos (el mayor).
  */
 
-const CATALOGO_EQUIPOS = EQUIPMENT_CATALOG;
+const CATALOGO_EQUIPOS = [
+  // --- REDES ---
+  { id: 'udm-pro', nombre: 'UniFi Dream Machine Pro', altura: 44, esRackable: true, categoria: 'Redes', consumo: 33, requiereEscobilla: true, fondo: 285 },
+  { id: 'sw-pro-48', nombre: 'UniFi Switch Pro 48 PoE', altura: 44, esRackable: true, categoria: 'Redes', consumo: 600, requiereEscobilla: true, fondo: 400 },
+  { id: 'sw-ent-24', nombre: 'UniFi Enterprise 24', altura: 44, esRackable: true, categoria: 'Redes', consumo: 450, requiereEscobilla: true, fondo: 320 },
+  { id: 'unifi-router-compact', nombre: 'UniFi Router Compact', altura: 44, esRackable: false, categoria: 'Redes', consumo: 200, ancho: 'media', requiereTapaCiega: true, fondo: 150 },
+  { id: 'switch-8p-dlink', nombre: 'Switch 8p D-Link', altura: 44, esRackable: false, categoria: 'Redes', consumo: 10, ancho: 'media', requiereTapaCiega: true, fondo: 120 },
+  
+  // --- CONTROL ---
+  { id: 'crestron-cp4', nombre: 'Crestron CP4', altura: 44, esRackable: true, categoria: 'Control', consumo: 15, fondo: 170 },
+  { id: 'crestron-rmc4', nombre: 'Crestron RMC4', altura: 44, esRackable: false, categoria: 'Control', consumo: 10, ancho: 'media', requiereTapaCiega: true, fondo: 120 },
+  { id: 'beoliving', nombre: 'Beoliving Intelligence', altura: 44, esRackable: false, categoria: 'Control', consumo: 20, ancho: 'media', requiereTapaCiega: true, fondo: 200 },
+  
+  // --- AUDIO (Ordenado Alfabéticamente) ---
+  { id: 'beoamp2', nombre: 'B&O Beoamp2', altura: 44, esRackable: true, categoria: 'Audio', consumo: 300, fondo: 250 },
+  { id: 'beocore', nombre: 'BeoCore (B&O)', altura: 44, esRackable: false, categoria: 'Audio', consumo: 50, fondo: 310, ancho: 'media', requiereTapaCiega: true },
+  { id: 'matrix-audio', nombre: 'Matriz Audio 16x16', altura: 88, esRackable: true, categoria: 'Audio', consumo: 80, fondo: 350, requierePlacaCiega: true },
+  { id: 'sonance-dsp', nombre: 'Sonance DSP 8-125', altura: 44, esRackable: true, categoria: 'Audio', consumo: 600, fondo: 425, requierePlacaCiega: true },
+  { id: 'sonos-amp', nombre: 'Sonos Amp', altura: 88, esRackable: false, categoria: 'Audio', consumo: 100, ancho: 'media', requiereTapaCiega: true, fondo: 220 },
+  { id: 'sonos-amp-multi', nombre: 'Sonos Amp Multi', altura: 88, esRackable: true, categoria: 'Audio', consumo: 200, fondo: 220, uOcupadas: 2, requierePlacaCiega: true },
+  { id: 'sonos-port', nombre: 'Sonos Port', altura: 44, esRackable: false, categoria: 'Audio', consumo: 10, ancho: 'media', requiereTapaCiega: true, fondo: 150 },
+  
+  // --- VIDEO ---
+  { id: 'apple-tv', nombre: 'Apple TV 4K', altura: 35, esRackable: false, categoria: 'Video', consumo: 6, requiereTapaCiega: true, ancho: 'media', fondo: 93 },
+  { id: 'kaleidescape', nombre: 'Kaleidescape Strato', altura: 44, esRackable: true, categoria: 'Video', consumo: 30, fondo: 250 },
+  { id: 'receptor-sat', nombre: 'Receptor Sat', altura: 44, esRackable: false, categoria: 'Video', consumo: 15, ancho: 'media', requiereTapaCiega: true, fondo: 150 },
+  
+  // --- CINEMA ---
+  { id: 'marantz-av', nombre: 'Marantz AV Processor', altura: 177, esRackable: true, categoria: 'Cinema', consumo: 800, fondo: 411, uOcupadas: 4 },
+  { id: 'integra-drx', nombre: 'Integra DRX Series', altura: 177, esRackable: true, categoria: 'Cinema', consumo: 850, fondo: 390, uOcupadas: 4 },
+  { id: 'audiocontrol-av', nombre: 'AudioControl Maestro', altura: 177, esRackable: true, categoria: 'Cinema', consumo: 850, fondo: 420, uOcupadas: 4 },
+
+  // --- ENERGÍA ---
+  { id: 'ups-apc', nombre: 'SAI APC Smart-UPS 1500', altura: 88, esRackable: true, categoria: 'Energía', consumo: 0, fondo: 457, requierePlacaCiega: true },
+
+  // --- OTROS ---
+  { id: 'equipo-1u', nombre: 'Equipo 1U', altura: 44, esRackable: true, categoria: 'Otros', consumo: 50, fondo: 300 },
+  { id: 'equipo-2u', nombre: 'Equipo 2U', altura: 88, esRackable: true, categoria: 'Otros', consumo: 100, fondo: 350 },
+  { id: 'equipo-3u', nombre: 'Equipo 3U', altura: 133, esRackable: true, categoria: 'Otros', consumo: 150, fondo: 400, uOcupadas: 3 },
+  { id: 'equipo-4u', nombre: 'Equipo 4U', altura: 177, esRackable: true, categoria: 'Otros', consumo: 200, fondo: 450, uOcupadas: 4 },
+  { id: 'equipo-media-balda', nombre: 'Equipo Media Balda', altura: 44, esRackable: false, categoria: 'Otros', consumo: 25, ancho: 'media', requiereTapaCiega: true, fondo: 150 },
+
+  // --- ACCESORIOS ---
+  { id: 'placa-ciega-1u', nombre: 'Placa Ciega 1U', altura: 44, esRackable: true, categoria: 'Accesorios', consumo: 0, fondo: 0, esAccesorio: true },
+  { id: 'placa-ciega-2u', nombre: 'Placa Ciega 2U', altura: 88, esRackable: true, categoria: 'Accesorios', consumo: 0, fondo: 0, uOcupadas: 2, esAccesorio: true },
+  { id: 'escobilla-acc', nombre: 'Escobilla', altura: 44, esRackable: true, categoria: 'Accesorios', consumo: 0, fondo: 0, esAccesorio: true, esEscobillaMaual: true },
+  { id: 'pasacables-acc', nombre: 'Pasacables', altura: 44, esRackable: true, categoria: 'Accesorios', consumo: 0, fondo: 100, esAccesorio: true },
+  { id: 'regleta-acc', nombre: 'Regleta de conexión', altura: 44, esRackable: true, categoria: 'Accesorios', consumo: 0, fondo: 150, esAccesorio: true },
+];
 
 const UNIDAD_RACK_MM = 44.45;
 const PIXELS_PER_U = 50; 
 // Modelos oficiales de rack marca Excell: 9U, 15U, 20U, 24U, 33U, 42U y 47U
 const RACKS_COMERCIALES = [9, 15, 20, 24, 33, 42, 47];
-const CUSTOM_EQUIPMENT_STORAGE_KEY = 'illusion-equipos-personalizados';
-const CUSTOM_EQUIPMENT_INITIAL_FORM = {
-  fabricante: '',
-  modelo: '',
-  nombre: '',
-  urlProducto: '',
-  categoria: 'Otros',
-  esRackable: true,
-  uOcupadas: 1,
-  fondo: 300,
-  consumo: 0,
-  pesoKg: 0,
-  ancho: 'media',
-  incluyeOrejasRack: true,
-  requiereTapaCiega: false,
-  requiereEscobilla: false,
-  requierePlacaCiega: false,
-  notas: ''
-};
 
 const PASOS_GUIA = [
   {
@@ -518,7 +537,7 @@ const calcularRackCalculos = (equipos, posicionVentiladorIntermedio = null) => {
           tipoPasivo: 'Ventilacion'
         });
       }
-      if (eq.requierePlacaCiega || eq.id === 'sonance-dsp') {
+      if (eq.requierePlacaCiega || eq.id === 'sonance-dsp' || eq.id === 'sonos-amp-multi' || eq.id === 'matrix-audio' || eq.id === 'ups-apc' || eq.nombre?.toLowerCase().includes('matriz audio') || eq.nombre?.toLowerCase().includes('sai') || eq.nombre?.toLowerCase().includes('smart-ups')) {
         numTapasAutomaticas++;
         rackItems.push({
           instanceId: `placa-auto-${eq.instanceId}`,
@@ -563,8 +582,7 @@ const calcularRackCalculos = (equipos, posicionVentiladorIntermedio = null) => {
     rackItems.push({ __esBloque: true, bloque });
   });
 
-  // Ventilación superior (1U) + termostato (1U), ambos visibles en el alzado.
-  const infraestructuraSuperiorU = 2;
+  const infraestructuraSuperiorU = 1;
   const uDeEquiposTotal = rackItems.reduce((acc, item) => {
     if (item.__esBloque) return acc + item.bloque.uTotal;
     return acc + (item.uOcupadas || 0);
@@ -574,19 +592,15 @@ const calcularRackCalculos = (equipos, posicionVentiladorIntermedio = null) => {
   const numEquiposTotal = equipos.length;
   const numRegletasTraseras = consumoTotalCalc === 0 ? (numEquiposTotal === 0 ? 0 : Math.ceil(numEquiposTotal / 6)) : Math.max(Math.ceil(consumoTotalCalc / 3500), Math.ceil(numEquiposTotal / 6));
   
-  const capacidadRack = calculateRackCapacity(
-    uDeEquiposTotal + infraestructuraSuperiorU,
-    RACKS_COMERCIALES
-  );
-  const totalUNecesariasFrontales = capacidadRack.occupiedU;
-  const rackRecomendado = capacidadRack.rackRecommended;
+  const totalUNecesariasFrontales = uDeEquiposTotal + infraestructuraSuperiorU;
+  const rackRecomendado = RACKS_COMERCIALES.find(r => r >= totalUNecesariasFrontales) || 47;
   
   const numVentiladores = rackRecomendado <= 24 ? 1 : 2;
   const totalSlotsSinVentilador = rackItems.length;
   const posicionVentiladorPorDefecto = Math.floor(totalSlotsSinVentilador / 2);
   let posicionVentiladorActual = null;
   
-  if (capacidadRack.intermediateFanU > 0 && totalSlotsSinVentilador > 0) {
+  if (rackRecomendado > 24 && totalSlotsSinVentilador > 0) {
     posicionVentiladorActual = (typeof posicionVentiladorIntermedio === 'number' && !isNaN(posicionVentiladorIntermedio))
       ? Math.max(0, Math.min(totalSlotsSinVentilador, posicionVentiladorIntermedio))
       : posicionVentiladorPorDefecto;
@@ -601,20 +615,6 @@ const calcularRackCalculos = (equipos, posicionVentiladorIntermedio = null) => {
       totalSlots: totalSlotsSinVentilador
     };
     rackItems.splice(posicionVentiladorActual, 0, ventiladorAdicional);
-  }
-
-  // Las U libres se mantienen disponibles para expansión y se cubren con placas desmontables.
-  for (let index = 0; index < capacidadRack.extraBlankPlates; index++) {
-    rackItems.push({
-      instanceId: `placa-extra-auto-${index + 1}`,
-      nombre: 'Placa Ciega Extra 1U',
-      categoria: 'Accesorios',
-      uOcupadas: 1,
-      tipoPasivo: 'Ciego',
-      esPlacaCiega: true,
-      esPlacaCiegaExtra: true,
-      esAutomatico: true
-    });
   }
   
   const bandejasSonosAmp = bloquesBaldas.filter(bloque => bloque.tieneVentilacionArriba).length;
@@ -646,8 +646,6 @@ const calcularRackCalculos = (equipos, posicionVentiladorIntermedio = null) => {
     numLineasElectricas: Math.max(1, Math.ceil(equipos.reduce((sum, eq) => sum + (eq.consumo || 0), 0) / 3680)),
     numEscobillas: numEscobillas + escobillasAccesorios,
     numPlacasCiegas: numTapasBalda + numTapasAutomaticas + placasCiegasAccesorios,
-    numPlacasCiegasExtra: capacidadRack.extraBlankPlates,
-    unidadesExpansion: capacidadRack.expansionU,
     pasacablesTraseros,
     numVentiladores,
     bandejasSonosAmp,
@@ -671,17 +669,6 @@ export default function App() {
   const [mostrarGuia, setMostrarGuia] = useState(false);
   const [pasoGuia, setPasoGuia] = useState(0);
   const [generandoPDF, setGenerandoPDF] = useState(false);
-  const [equiposPersonalizados, setEquiposPersonalizados] = useState(() =>
-    parseStoredCustomEquipment(localStorage.getItem(CUSTOM_EQUIPMENT_STORAGE_KEY))
-  );
-  const [mostrarModalEquipoPersonalizado, setMostrarModalEquipoPersonalizado] = useState(false);
-  const [equipoPersonalizadoEditando, setEquipoPersonalizadoEditando] = useState(null);
-  const [formEquipoPersonalizado, setFormEquipoPersonalizado] = useState(CUSTOM_EQUIPMENT_INITIAL_FORM);
-  const [erroresEquipoPersonalizado, setErroresEquipoPersonalizado] = useState({});
-  const [envioRevision, setEnvioRevision] = useState({ itemId: null, status: 'idle' });
-  const [vistaTablet, setVistaTablet] = useState(DEFAULT_TABLET_DESIGNER_VIEW);
-  const [menuProyectosAbierto, setMenuProyectosAbierto] = useState(false);
-  const [menuUsuarioAbierto, setMenuUsuarioAbierto] = useState(false);
   const timerAutoReplegadoRef = useRef(null);
   const rackContainerRef = useRef(null);
 
@@ -720,7 +707,6 @@ export default function App() {
     });
     return () => unsubscribe();
   }, []);
-
 
   const handleLogout = async () => {
     try {
@@ -811,70 +797,6 @@ export default function App() {
     setEquipos(prev => createNewEquiposList(prev, item));
   };
 
-  useEffect(() => {
-    localStorage.setItem(CUSTOM_EQUIPMENT_STORAGE_KEY, JSON.stringify(equiposPersonalizados));
-  }, [equiposPersonalizados]);
-
-  const abrirModalNuevoEquipo = () => {
-    setEquipoPersonalizadoEditando(null);
-    setFormEquipoPersonalizado(CUSTOM_EQUIPMENT_INITIAL_FORM);
-    setErroresEquipoPersonalizado({});
-    setMostrarModalEquipoPersonalizado(true);
-  };
-
-  const abrirModalEditarEquipo = (item) => {
-    setEquipoPersonalizadoEditando(item.id);
-    setFormEquipoPersonalizado({ ...CUSTOM_EQUIPMENT_INITIAL_FORM, ...item });
-    setErroresEquipoPersonalizado({});
-    setMostrarModalEquipoPersonalizado(true);
-  };
-
-  const guardarEquipoPersonalizado = (event) => {
-    event.preventDefault();
-    const errores = validateCustomEquipment(formEquipoPersonalizado);
-    if (Object.keys(errores).length > 0) {
-      setErroresEquipoPersonalizado(errores);
-      return;
-    }
-    const item = normalizeCustomEquipment(formEquipoPersonalizado, equipoPersonalizadoEditando || undefined);
-    setEquiposPersonalizados(prev => equipoPersonalizadoEditando
-      ? prev.map(actual => actual.id === equipoPersonalizadoEditando ? item : actual)
-      : [...prev, item]
-    );
-    setCategoriasAbiertas(prev => prev.includes('Personalizados') ? prev : [...prev, 'Personalizados']);
-    setMostrarModalEquipoPersonalizado(false);
-    setNotificacionGuardado(equipoPersonalizadoEditando ? 'Equipo personalizado actualizado' : 'Equipo personalizado creado');
-    setTimeout(() => setNotificacionGuardado(false), 3000);
-  };
-
-  const eliminarEquipoPersonalizado = (id) => {
-    setEquiposPersonalizados(prev => prev.filter(item => item.id !== id));
-    setNotificacionGuardado('Equipo eliminado del catálogo personalizado');
-    setTimeout(() => setNotificacionGuardado(false), 3000);
-  };
-
-  const enviarEquipoParaRevision = async (item) => {
-    if (envioRevision.status === 'sending') return;
-    setEnvioRevision({ itemId: item.id, status: 'sending' });
-    try {
-      await submitEquipmentForReview(item, usuario);
-      setEnvioRevision({ itemId: item.id, status: 'success' });
-      setNotificacionGuardado('Solicitud enviada a jonycusac@gmail.com');
-      setTimeout(() => setNotificacionGuardado(false), 4000);
-    } catch (error) {
-      console.error('Error enviando el equipo para revisión:', error);
-      setEnvioRevision({ itemId: item.id, status: 'error' });
-    } finally {
-      setTimeout(() => {
-        setEnvioRevision(current => current.itemId === item.id
-          ? { itemId: null, status: 'idle' }
-          : current
-        );
-      }, 5000);
-    }
-  };
-
-
   const eliminarItem = (id) => {
     playDeleteSound();
     setEquipos(prev => prev.filter(e => e.instanceId !== id));
@@ -959,7 +881,7 @@ export default function App() {
       posicionVentiladorIntermedio: posicionVentiladorIntermedio,
       nombre: nombreFinal,
       fecha: new Date().toISOString(),
-      version: '3.0.0'
+      version: '2.1'
     };
 
     // Guardar en almacenamiento local como respaldo rápido
@@ -1083,12 +1005,18 @@ export default function App() {
       doc.setFontSize(8);
       doc.setTextColor(71, 85, 105);
 
-      const hayEquiposRed = equipos.some(eq => eq.categoria === 'Redes');
+      const hayEquiposRed = equipos.some(eq => 
+        eq.categoria === 'Redes' || 
+        eq.nombre?.toLowerCase().includes('switch') || 
+        eq.nombre?.toLowerCase().includes('router') || 
+        eq.nombre?.toLowerCase().includes('unifi') || 
+        eq.nombre?.toLowerCase().includes('dream machine')
+      );
       const lineasTotales = hayEquiposRed ? res.numLineasElectricas + 1 : res.numLineasElectricas;
 
       doc.text(`• Rack Recomendado: ${res.rackRecomendado}U`, 19, 44);
       doc.text(`• Unidades Ocupadas: ${res.totalUNecesariasFrontales}U`, 19, 49.5);
-      doc.text(`• Reserva de Expansión: ${res.unidadesExpansion}U`, 78, 44);
+      doc.text(`• Unidades Libres: ${res.rackRecomendado - res.totalUNecesariasFrontales}U`, 78, 44);
       doc.text(`• Consumo Total: ${res.consumoTotal} W`, 78, 49.5);
       doc.text(`• Regletas PDU: ${res.numRegletasTraseras}`, 138, 44);
       doc.text(`• Líneas Eléctricas: ${lineasTotales} (2,5mm²)`, 138, 49.5);
@@ -1122,11 +1050,7 @@ export default function App() {
       );
 
       if (res.numPlacasCiegas > 0) {
-        materialesFilas.push(['Placas ciegas 1U (técnicas / baldas)', `x${res.numPlacasCiegas}`, 'XXXXX']);
-      }
-
-      if (res.numPlacasCiegasExtra > 0) {
-        materialesFilas.push(['Placas ciegas extra 1U (huecos libres)', `x${res.numPlacasCiegasExtra}`, 'XXXXX']);
+        materialesFilas.push(['Placas ciegas 1U (reserva / baldas)', `x${res.numPlacasCiegas}`, 'XXXXX']);
       }
 
       materialesFilas.push(
@@ -1191,7 +1115,7 @@ export default function App() {
           'Líneas eléctricas dedicadas 2,5 mm²',
           `x${lineasTotales}`,
           hayEquiposRed 
-            ? `Tirada directa desde cuadro general / SAI (incluye +1 línea extra para Redes)`
+            ? 'Tirada directa desde cuadro general / SAI (incluye +1 línea extra para Redes)'
             : 'Tirada directa desde cuadro general / SAI'
         ],
         [
@@ -1538,11 +1462,12 @@ export default function App() {
               doc.setFillColor(52, 211, 153);
               doc.circle(subX + 2.5, subY + (subH / 2), 0.4, 'F');
 
-              // Texto equipo balda
+              // Texto equipo balda - legible y de alto contraste
               doc.setFont('helvetica', 'bold');
-              doc.setFontSize(Math.min(subH * 0.35, 5.8));
+              const subFontSize = totalRackU > 32 ? 5.5 : 6.5;
+              doc.setFontSize(subFontSize);
               doc.setTextColor(255, 255, 255);
-              doc.text((eq.nombre || 'Dispositivo').toUpperCase(), subX + (subEqW / 2), subY + (subH * 0.58), { align: 'center', maxWidth: subEqW - 5 });
+              doc.text((eq.nombre || 'Dispositivo').toUpperCase(), subX + (subEqW / 2), subY + (subH / 2) + 0.9, { align: 'center', maxWidth: subEqW - 4 });
             });
 
             currentUnitPointer -= uEquipos;
@@ -1562,9 +1487,9 @@ export default function App() {
             doc.circle(equipX + equipW - 1.2, blindY + (uHeight / 2), 0.4, 'F');
 
             doc.setFont('helvetica', 'bold');
-            doc.setFontSize(Math.min(uHeight * 0.55, 5.5));
-            doc.setTextColor(148, 163, 184);
-            doc.text('PLACA CIEGA 1U', equipX + (equipW / 2), blindY + (uHeight * 0.63), { align: 'center' });
+            doc.setFontSize(totalRackU > 32 ? 5.5 : 6.5);
+            doc.setTextColor(203, 213, 225);
+            doc.text('PLACA CIEGA 1U', equipX + (equipW / 2), blindY + (uHeight / 2) + 0.9, { align: 'center' });
 
             currentUnitPointer -= 1;
           }
@@ -1574,11 +1499,6 @@ export default function App() {
           const uOcupadas = item.uOcupadas || 1;
           const itemH = uOcupadas * uHeight;
           const itemY = rackY + headerH + ((totalRackU - currentUnitPointer) * uHeight);
-          const visualSegments = getRackVisualSegments(item);
-          const equipmentVisualSegment = visualSegments.find(segment => segment.type === 'equipment');
-          const hasCenteredRackSupport = visualSegments.length === 3;
-          const equipmentVisualY = itemY + ((hasCenteredRackSupport ? visualSegments[0].u : 0) * uHeight);
-          const equipmentVisualH = equipmentVisualSegment.u * uHeight;
 
           const esPlacaCiega = item.id?.includes('placa-ciega') || item.nombre?.toLowerCase().includes('placa ciega');
           const esRejillaVent = item.id?.includes('ventilacion') || item.nombre?.toLowerCase().includes('ventilación') || item.tipoPasivo === 'Ventilacion';
@@ -1586,7 +1506,7 @@ export default function App() {
           const esPasacables = item.id?.includes('pasacables') || item.nombre?.toLowerCase().includes('pasacables');
           const isPassiveOrAccessory = item.categoria === 'Pasivo' || item.categoria === 'Accesorios' || item.esAutomatico || item.esAccesorio || esPlacaCiega || esRejillaVent || esEscobilla || esPasacables;
 
-          // Si es Placa Ciega (manual o automática, 1U o 2U): estilo IDÉNTICO y uniforme al de 19U y 22U
+          // Si es Placa Ciega (manual o automática, 1U o 2U)
           if (esPlacaCiega) {
             doc.setFillColor(15, 18, 26);
             doc.rect(equipX, itemY, equipW, itemH, 'F');
@@ -1599,11 +1519,11 @@ export default function App() {
             doc.circle(equipX + 1.2, itemY + (itemH / 2), 0.4, 'F');
             doc.circle(equipX + equipW - 1.2, itemY + (itemH / 2), 0.4, 'F');
 
-            // Texto placa ciega centrado, sin LED ni badge lateral
+            // Texto placa ciega centrado, nítido y claro
             doc.setFont('helvetica', 'bold');
-            doc.setFontSize(Math.min(uHeight * 0.55, 5.5));
-            doc.setTextColor(148, 163, 184);
-            doc.text((item.nombre || 'PLACA CIEGA 1U').toUpperCase(), equipX + (equipW / 2), itemY + (itemH * 0.63), { align: 'center' });
+            doc.setFontSize(totalRackU > 32 ? 5.5 : 6.5);
+            doc.setTextColor(203, 213, 225);
+            doc.text((item.nombre || 'PLACA CIEGA 1U').toUpperCase(), equipX + (equipW / 2), itemY + (itemH / 2) + 0.9, { align: 'center' });
 
             currentUnitPointer -= uOcupadas;
           }
@@ -1621,9 +1541,9 @@ export default function App() {
             doc.circle(equipX + equipW - 1.2, itemY + (itemH / 2), 0.4, 'F');
 
             doc.setFont('helvetica', 'bold');
-            doc.setFontSize(Math.min(uHeight * 0.55, 5.5));
-            doc.setTextColor(148, 163, 184);
-            doc.text((item.nombre || 'ACCESORIO DE GESTIÓN').toUpperCase(), equipX + (equipW / 2), itemY + (itemH * 0.63), { align: 'center' });
+            doc.setFontSize(totalRackU > 32 ? 5.5 : 6.5);
+            doc.setTextColor(203, 213, 225);
+            doc.text((item.nombre || 'ACCESORIO DE GESTIÓN').toUpperCase(), equipX + (equipW / 2), itemY + (itemH / 2) + 0.9, { align: 'center' });
 
             currentUnitPointer -= uOcupadas;
           }
@@ -1631,22 +1551,12 @@ export default function App() {
           else {
             const colors = getCategoryColor(item.categoria);
 
-            // Soporte oficial: conserva la ocupación total y centra el frontal real del equipo.
-            if (hasCenteredRackSupport) {
-              // Grafito azulado: distingue el soporte del hueco negro del rack.
-              doc.setFillColor(34, 41, 55);
-              doc.rect(equipX, itemY, equipW, itemH, 'F');
-              doc.setDrawColor(100, 116, 139);
-              doc.setLineWidth(0.2);
-              doc.rect(equipX, itemY, equipW, itemH, 'D');
-            }
-
-            // Fondo del frontal real del equipo
+            // Fondo equipo
             doc.setFillColor(...colors.bg);
-            doc.rect(equipX, equipmentVisualY, equipW, equipmentVisualH, 'F');
+            doc.rect(equipX, itemY, equipW, itemH, 'F');
             doc.setDrawColor(...colors.border);
             doc.setLineWidth(0.2);
-            doc.rect(equipX, equipmentVisualY, equipW, equipmentVisualH, 'D');
+            doc.rect(equipX, itemY, equipW, itemH, 'D');
 
             // Tornillos frontales M6 en las orejas
             doc.setFillColor(199, 210, 254);
@@ -1655,14 +1565,14 @@ export default function App() {
 
             // Indicador LED de alimentación
             doc.setFillColor(34, 197, 94); // Green LED
-            doc.circle(equipX + 3.8, equipmentVisualY + (equipmentVisualH / 2), 0.5, 'F');
+            doc.circle(equipX + 3.8, itemY + (itemH / 2), 0.5, 'F');
 
-            // Nombre del Equipo (Centrado)
+            // Nombre del Equipo (Centrado y claramente legible)
             doc.setFont('helvetica', 'bold');
-            const maxNameSize = uOcupadas > 1 ? 6.8 : 5.8;
-            doc.setFontSize(Math.min(equipmentVisualH * 0.5, maxNameSize));
-            doc.setTextColor(...colors.text);
-            doc.text((item.nombre || 'Equipo').toUpperCase(), equipX + (equipW / 2), equipmentVisualY + (equipmentVisualH * 0.62), { align: 'center', maxWidth: equipW - 16 });
+            const calculatedFontSize = uOcupadas > 1 ? 8 : (totalRackU > 32 ? 6.2 : 7.2);
+            doc.setFontSize(calculatedFontSize);
+            doc.setTextColor(255, 255, 255);
+            doc.text((item.nombre || 'Equipo').toUpperCase(), equipX + (equipW / 2), itemY + (itemH / 2) + (calculatedFontSize * 0.12), { align: 'center', maxWidth: equipW - 14 });
 
             currentUnitPointer -= uOcupadas;
           }
@@ -1758,7 +1668,7 @@ export default function App() {
         doc.text(sub.name, rightColX + 11, itemY + 0.8);
       });
 
-      // Bloque 3: Información de revisión técnica
+      // Bloque 3: Sello y Aprobación de Obra
       const posYSello = 158;
       doc.setFillColor(...lightBg);
       doc.roundedRect(rightColX, posYSello, rightColW, 60, 2, 2, 'FD');
@@ -1768,7 +1678,7 @@ export default function App() {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(8);
       doc.setTextColor(255, 255, 255);
-      doc.text(PDF_REVIEW_LABELS.heading, rightColX + 4, posYSello + 5);
+      doc.text('HOMOLOGACIÓN & CONTROL DE CALIDAD', rightColX + 4, posYSello + 5);
 
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7.5);
@@ -1777,20 +1687,20 @@ export default function App() {
       doc.text(`• Ingeniería: Illusion Custom Solutions`, rightColX + 4, posYSello + 19);
       doc.text(`• Proyectista: Jony Cusac`, rightColX + 4, posYSello + 25);
       doc.text(`• Contacto: info@e-illusion.es | Illusion.es`, rightColX + 4, posYSello + 31);
-      doc.text(`• ${PDF_REVIEW_LABELS.status}`, rightColX + 4, posYSello + 37);
+      doc.text(`• Estado: CONFORME PARA INSTALACIÓN`, rightColX + 4, posYSello + 37);
 
-      // Aviso de revisión profesional
+      // Sello de verificación técnica
       doc.setDrawColor(16, 185, 129);
       doc.setFillColor(236, 253, 245);
       doc.roundedRect(rightColX + 4, posYSello + 42, rightColW - 8, 14, 1, 1, 'FD');
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(7);
       doc.setTextColor(5, 150, 105);
-      doc.text(PDF_REVIEW_LABELS.standard, rightColX + rightColW / 2, posYSello + 48, { align: 'center' });
+      doc.text('DISEÑO VERIFICADO BAJO NORMATIVA 19"', rightColX + rightColW / 2, posYSello + 48, { align: 'center' });
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(6.5);
       doc.setTextColor(4, 120, 87);
-      doc.text(PDF_REVIEW_LABELS.notice, rightColX + rightColW / 2, posYSello + 53, { align: 'center' });
+      doc.text(`Código Verificación: ILS-${Math.floor(100000 + Math.random() * 900000)}`, rightColX + rightColW / 2, posYSello + 53, { align: 'center' });
 
       // Pie de página para todas las páginas
       const totalPages = doc.internal.getNumberOfPages();
@@ -1814,18 +1724,6 @@ export default function App() {
   };
 
   const res = calcularRackCalculos(equipos, posicionVentiladorIntermedio);
-  const categoriasPrioritarias = ['Audio', 'Video', 'Control', 'Redes'];
-  const categoriasRestantes = [...new Set(CATALOGO_EQUIPOS.map(item => item.categoria))]
-    .filter(categoria => !categoriasPrioritarias.includes(categoria));
-  const categoriasCatalogo = [
-    ...categoriasPrioritarias,
-    ...categoriasRestantes,
-    ...(equiposPersonalizados.length > 0 ? ['Personalizados'] : [])
-  ];
-  const obtenerItemsCategoria = (categoria) => {
-    if (categoria === 'Personalizados') return equiposPersonalizados;
-    return CATALOGO_EQUIPOS.filter(item => item.categoria === categoria);
-  };
 
   const getCategoryIcon = (cat) => {
     switch(cat) {
@@ -1837,7 +1735,6 @@ export default function App() {
       case 'Energía': return <Battery size={12} className="text-orange-500" />;
       case 'Otros': return <Package size={12} className="text-zinc-400" />;
       case 'Accesorios': return <LayoutList size={12} className="text-cyan-500" />;
-      case 'Personalizados': return <Sparkles size={12} className="text-indigo-400" />;
       default: return <Server size={12} className="text-slate-400" />;
     }
   };
@@ -1879,44 +1776,43 @@ export default function App() {
 
   return (
     <div className="h-screen text-slate-100 flex flex-col overflow-hidden font-sans" style={{ backgroundColor: 'var(--bg-app)' }}>
-      <header className="hidden md:flex h-16 items-center justify-between px-3 xl:px-6 border-b shrink-0 relative select-none shadow-md z-20"
+      <header className="h-16 flex items-center justify-between px-6 border-b shrink-0 relative select-none shadow-md z-20"
               style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border)' }}>
         
         {/* Lado Izquierdo: Logo y Nombre Illusion Rack Designer (Click para volver al Inicio) */}
         <div 
           onClick={() => setEnDisenador(false)}
-          className="flex items-center gap-2.5 xl:gap-3.5 shrink-0 cursor-pointer group"
+          className="flex items-center gap-3.5 shrink-0 cursor-pointer group"
           title="Volver a la Página de Inicio / Portal"
         >
-          <div className="p-2 xl:p-2.5 rounded-2xl shadow-lg shadow-indigo-500/20 flex items-center justify-center bg-gradient-to-br from-indigo-500 to-indigo-700 border border-indigo-400/30 group-hover:scale-105 transition-all">
-            <ShieldCheck className="text-white w-6 h-6 xl:w-7 xl:h-7" />
+          <div className="p-2.5 rounded-2xl shadow-lg shadow-indigo-500/20 flex items-center justify-center bg-gradient-to-br from-indigo-500 to-indigo-700 border border-indigo-400/30 group-hover:scale-105 transition-all">
+            <ShieldCheck className="text-white w-7 h-7" />
           </div>
           <div className="flex items-center">
-            <h1 className="text-base xl:text-xl font-black tracking-tight text-white leading-none whitespace-nowrap">
+            <h1 className="text-xl font-black tracking-tight text-white leading-none">
               Illusion <span className="text-indigo-400 font-extrabold">Rack Designer</span>
             </h1>
           </div>
         </div>
 
         {/* Lado Derecho: Pestaña Guía, Indicador de Consumo & Botones de Acción */}
-        <div className="flex items-center gap-1 xl:gap-2 shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
           {/* Pestaña / Botón de GUÍA homogéneo con los botones de acción */}
           <button
             onClick={() => {
               setPasoGuia(0);
               setMostrarGuia(true);
             }}
-            className="flex items-center gap-1.5 px-2.5 xl:px-3 py-2 xl:py-1.5 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 hover:text-indigo-200 border border-indigo-500/35 transition-all text-xs font-bold shadow-sm active:scale-95 cursor-pointer shrink-0"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 hover:text-indigo-200 border border-indigo-500/35 transition-all text-xs font-bold shadow-sm active:scale-95 cursor-pointer shrink-0"
             title="Abrir Guía y Manual de Uso"
           >
             <BookOpen size={14} className="text-indigo-400" />
-            <span className="hidden xl:inline">Guía</span>
+            <span>Guía</span>
           </button>
-
 
           {/* Métrica de Consumo (Estilo píldora ámbar) */}
           <div 
-            className="hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-full select-none cursor-default shrink-0" 
+            className="flex items-center gap-2 px-3 py-1.5 rounded-full select-none cursor-default shrink-0" 
             style={{ backgroundColor: 'rgba(224, 153, 63, 0.15)' }}
             title="Consumo eléctrico total estimado"
           >
@@ -1927,14 +1823,14 @@ export default function App() {
           </div>
 
           {/* Separador vertical */}
-          <div className="hidden xl:block h-6 w-px bg-white/10 mx-0.5" />
+          <div className="h-6 w-px bg-white/10 mx-0.5" />
 
           {/* Botones de Acción Homogéneos */}
-          <div className="flex items-center gap-1 xl:gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             {/* Botón Guardar */}
             <button 
               onClick={abrirModalGuardar} 
-              className="flex items-center gap-1.5 px-2.5 xl:px-3 py-2 xl:py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 hover:text-emerald-200 border border-emerald-500/35 transition-all text-xs font-bold shadow-sm active:scale-95 cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 hover:text-emerald-200 border border-emerald-500/35 transition-all text-xs font-bold shadow-sm active:scale-95 cursor-pointer"
               title="Guardar diseño de rack actual"
             >
               {guardandoNube ? (
@@ -1942,29 +1838,26 @@ export default function App() {
               ) : (
                 <Save size={14} className="text-emerald-400" />
               )}
-              <span className="hidden xl:inline">Guardar</span>
+              <span>Guardar</span>
             </button>
 
             {/* Menú Proyectos Guardados (Nube + Local) */}
             <div className="relative group">
-              <button
-                type="button"
-                onClick={() => setMenuProyectosAbierto(prev => !prev)}
-                aria-expanded={menuProyectosAbierto}
-                className="flex items-center gap-1.5 px-2.5 xl:px-3 py-2 xl:py-1.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 hover:text-sky-200 border border-sky-500/35 transition-all text-xs font-bold shadow-sm cursor-pointer"
+              <button 
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 hover:text-sky-200 border border-sky-500/35 transition-all text-xs font-bold shadow-sm cursor-pointer"
                 title="Ver y abrir proyectos guardados"
               >
                 <FolderOpen size={14} className="text-sky-400" />
-                <span className="hidden xl:inline">Proyectos</span>
+                <span>Proyectos</span>
                 {usuario && proyectosNube.length > 0 && (
                   <span className="px-1.5 py-0.2 rounded-full bg-sky-500/30 text-[10px] font-black text-sky-200">
                     {proyectosNube.length}
                   </span>
                 )}
-                <ChevronDown size={12} className={`hidden xl:block text-sky-400/80 transition-transform ${menuProyectosAbierto ? 'rotate-180' : 'group-hover:rotate-180'}`} />
+                <ChevronDown size={12} className="text-sky-400/80 group-hover:rotate-180 transition-transform" />
               </button>
               
-              <div className={`absolute right-0 top-full mt-2 w-72 rounded-xl shadow-2xl transition-all z-50 border overflow-hidden ${menuProyectosAbierto ? 'opacity-100 visible' : 'opacity-0 invisible xl:group-hover:opacity-100 xl:group-hover:visible'}`}
+              <div className="absolute right-0 top-full mt-2 w-72 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 border overflow-hidden"
                    style={{ backgroundColor: '#111420', borderColor: 'rgba(99, 102, 241, 0.3)' }}>
                 
                 {/* Sección Nube si está autenticado */}
@@ -2063,15 +1956,15 @@ export default function App() {
                 setEquipos([]);
                 setPosicionVentiladorIntermedio(null);
               }} 
-              className="flex items-center gap-1.5 px-2.5 xl:px-3 py-2 xl:py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 hover:text-rose-200 border border-rose-500/30 transition-all text-xs font-bold shadow-sm active:scale-95 cursor-pointer" 
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 hover:text-rose-200 border border-rose-500/30 transition-all text-xs font-bold shadow-sm active:scale-95 cursor-pointer" 
               title="Vaciar todos los equipos del rack y empezar de nuevo"
             >
               <RotateCcw size={14} className="text-rose-400" />
-              <span className="hidden xl:inline">Limpiar</span>
+              <span>Limpiar</span>
             </button>
 
             {/* Separador vertical */}
-            <div className="hidden xl:block h-6 w-px bg-white/10 mx-0.5" />
+            <div className="h-6 w-px bg-white/10 mx-0.5" />
 
             {/* Botón / Menú de Usuario & Login Firebase */}
             {cargandoAuth ? (
@@ -2080,10 +1973,7 @@ export default function App() {
               </div>
             ) : usuario ? (
               <div className="relative group">
-                <button
-                  type="button"
-                  onClick={() => setMenuUsuarioAbierto(prev => !prev)}
-                  aria-expanded={menuUsuarioAbierto}
+                <button 
                   className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700/90 text-slate-200 border border-indigo-500/40 transition-all text-xs font-bold shadow-sm cursor-pointer shrink-0"
                   title="Perfil de Usuario"
                 >
@@ -2094,16 +1984,16 @@ export default function App() {
                       {(usuario.displayName || usuario.email || 'U')[0].toUpperCase()}
                     </div>
                   )}
-                  <span className="hidden xl:inline max-w-[100px] truncate">{usuario.displayName || usuario.email?.split('@')[0]}</span>
+                  <span className="max-w-[100px] truncate">{usuario.displayName || usuario.email?.split('@')[0]}</span>
                   <span className="flex h-2 w-2 relative" title="Conectado a Firebase Cloud">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                   </span>
-                  <ChevronDown size={11} className={`hidden xl:block text-slate-400 transition-transform ${menuUsuarioAbierto ? 'rotate-180' : 'group-hover:rotate-180'}`} />
+                  <ChevronDown size={11} className="text-slate-400 group-hover:rotate-180 transition-transform" />
                 </button>
                 
                 {/* Menú de Usuario Desplegable */}
-                <div className={`absolute right-0 top-full mt-2 w-64 rounded-xl shadow-2xl transition-all z-50 border overflow-hidden ${menuUsuarioAbierto ? 'opacity-100 visible' : 'opacity-0 invisible xl:group-hover:opacity-100 xl:group-hover:visible'}`}
+                <div className="absolute right-0 top-full mt-2 w-64 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 border overflow-hidden"
                      style={{ backgroundColor: '#111420', borderColor: 'rgba(99, 102, 241, 0.3)' }}>
                   <div className="p-3 border-b border-white/10 bg-black/30">
                     <p className="text-xs font-bold text-white truncate">{usuario.displayName || 'Usuario Illusion'}</p>
@@ -2127,130 +2017,46 @@ export default function App() {
             ) : (
               <button 
                 onClick={() => setEnDisenador(false)}
-                className="flex items-center gap-1.5 px-2.5 xl:px-3 py-2 xl:py-1.5 rounded-xl bg-indigo-600/25 hover:bg-indigo-600/40 text-indigo-200 hover:text-white border border-indigo-500/45 transition-all text-xs font-bold shadow-sm active:scale-95 cursor-pointer shrink-0"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600/25 hover:bg-indigo-600/40 text-indigo-200 hover:text-white border border-indigo-500/45 transition-all text-xs font-bold shadow-sm active:scale-95 cursor-pointer shrink-0"
                 title="Iniciar sesión para guardar en la nube"
               >
                 <User size={14} className="text-indigo-400" />
-                <span className="hidden xl:inline">Iniciar Sesión / Nube</span>
+                <span>Iniciar Sesión / Nube</span>
               </button>
             )}
           </div>
         </div>
       </header>
 
-      <div className="md:hidden flex-1 flex items-center justify-center p-6 text-center" style={{ backgroundColor: 'var(--bg-app)' }}>
-        <div className="max-w-sm rounded-2xl border border-indigo-500/30 bg-indigo-500/10 p-6 shadow-2xl">
-          <Monitor size={36} className="mx-auto mb-4 text-indigo-400" />
-          <h2 className="text-lg font-black text-white">Diseñador para iPad y PC</h2>
-          <p className="mt-2 text-sm leading-relaxed text-slate-300">
-            Para trabajar cómodamente con el rack, abre el configurador desde un iPad en horizontal o desde un ordenador.
-          </p>
-        </div>
-      </div>
-
-      <main className="hidden md:flex flex-1 min-h-0 flex-col xl:flex-row overflow-hidden">
-        <nav className="xl:hidden shrink-0 grid grid-cols-3 gap-1.5 border-b p-2" style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border)' }} aria-label="Vistas del diseñador">
-          {TABLET_DESIGNER_VIEWS.map(view => (
-            <button
-              key={view.id}
-              type="button"
-              onClick={() => setVistaTablet(view.id)}
-              aria-pressed={vistaTablet === view.id}
-              className={`min-h-11 rounded-xl border px-3 py-2 text-xs font-black uppercase tracking-wider transition-all ${
-                vistaTablet === view.id
-                  ? 'border-indigo-400/60 bg-indigo-500/20 text-indigo-200 shadow-lg shadow-indigo-950/30'
-                  : 'border-white/10 bg-white/[0.03] text-slate-400 hover:bg-white/[0.07] hover:text-slate-200'
-              }`}
-            >
-              {view.label}
-            </button>
-          ))}
-        </nav>
-
+      <main className="flex-1 flex overflow-hidden">
         {/* Panel Izquierdo: Librería de Equipos */}
-        <aside className={`${vistaTablet === 'equipos' ? 'flex' : 'hidden'} xl:flex flex-1 xl:flex-none w-full xl:w-80 min-h-0 border-b xl:border-b-0 xl:border-r p-4 overflow-y-auto shrink-0 custom-scrollbar flex-col justify-between`} style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border)' }}>
+        <aside className="w-72 xl:w-80 border-r p-3.5 overflow-y-auto shrink-0 custom-scrollbar flex flex-col justify-between" style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border)' }}>
           <div>
             <p className="text-[9px] font-black uppercase tracking-widest mb-3" style={{ color: 'var(--text-muted)' }}>Librería Illusion</p>
             <div className="space-y-2">
-              {categoriasCatalogo.map(cat => (
+              {[...new Set(CATALOGO_EQUIPOS.map(i => i.categoria))].map(cat => (
                 <div key={cat} className="rounded-lg overflow-hidden border" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--bg-highlight)' }}>
                   <button
                     onClick={() => toggleCategoria(cat)}
                     className="w-full px-3 py-2.5 flex items-center justify-between transition-colors hover:bg-white/5 cursor-pointer"
-                    aria-expanded={categoriasAbiertas.includes(cat)}
                   >
                     <div className="flex items-center gap-2">
                       {getCategoryIcon(cat)}
                       <span className="font-bold uppercase tracking-wider" style={{ fontSize: 'var(--font-label)', color: 'var(--text-secondary)' }}>{cat}</span>
-                      {cat === 'Personalizados' && (
-                        <span className="text-[9px] font-black text-indigo-300 bg-indigo-500/15 border border-indigo-500/20 px-1.5 py-0.5 rounded-full">
-                          {equiposPersonalizados.length}
-                        </span>
-                      )}
-
                     </div>
                     <ChevronDown size={12} style={{ color: 'var(--text-muted)' }} className={`transition-transform duration-300 ${categoriasAbiertas.includes(cat) ? 'rotate-180' : ''}`} />
                   </button>
                   {categoriasAbiertas.includes(cat) && (
                     <div className="p-2 border-t space-y-1.5" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--bg-app)' }}>
-                      {obtenerItemsCategoria(cat).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' })).map(item => item.esPersonalizado ? (
-                        <div key={item.id} className="rounded-lg border overflow-hidden" style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border)' }}>
-                          <div className="flex items-center">
-                            <button onClick={() => agregarItem(item)} className="flex-1 min-w-0 p-2.5 text-left cursor-pointer hover:bg-indigo-500/15 transition-colors">
-                              <span className="font-semibold truncate flex items-center gap-1.5 text-xs text-white">
-                                <Sparkles size={11} className="text-indigo-400 shrink-0" />
-                                <span className="truncate">{item.nombre}</span>
-                              </span>
-                              <span className="block mt-1 text-[9px] text-slate-500 uppercase tracking-wider">
-                                {item.categoria} · {item.uOcupadas}U · {item.consumo}W
-                              </span>
-                            </button>
-                            <button onClick={() => abrirModalEditarEquipo(item)} className="p-2 text-slate-500 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors cursor-pointer" title="Editar equipo personalizado">
-                              <Edit3 size={12} />
-                            </button>
-                            <button onClick={() => eliminarEquipoPersonalizado(item.id)} className="p-2 mr-1 text-slate-500 hover:text-rose-300 hover:bg-rose-500/10 transition-colors cursor-pointer" title="Eliminar del catálogo personalizado">
-                              <Trash2 size={12} />
-                            </button>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => enviarEquipoParaRevision(item)}
-                            disabled={envioRevision.status === 'sending'}
-                            className={`w-full px-2.5 py-2 border-t flex items-center justify-center gap-1.5 text-[9px] font-black uppercase tracking-wider transition-colors cursor-pointer disabled:cursor-wait ${
-                              envioRevision.itemId === item.id && envioRevision.status === 'success'
-                                ? 'border-emerald-500/25 bg-emerald-500/15 text-emerald-300'
-                                : envioRevision.itemId === item.id && envioRevision.status === 'error'
-                                  ? 'border-rose-500/25 bg-rose-500/15 text-rose-300'
-                                  : 'border-white/5 bg-indigo-500/[0.08] text-indigo-300 hover:bg-indigo-500/15 hover:text-indigo-200'
-                            }`}
-                          >
-                            {envioRevision.itemId === item.id && envioRevision.status === 'sending' ? (
-                              <><Loader2 size={11} className="animate-spin" /> Enviando solicitud...</>
-                            ) : envioRevision.itemId === item.id && envioRevision.status === 'success' ? (
-                              <><Check size={11} /> Solicitud enviada</>
-                            ) : envioRevision.itemId === item.id && envioRevision.status === 'error' ? (
-                              <><AlertCircle size={11} /> Error al enviar. Reintentar</>
-                            ) : (
-                              <><Send size={11} /> Enviar equipo para revisión</>
-                            )}
-                          </button>
-                        </div>
-                      ) : (
+                      {CATALOGO_EQUIPOS.filter(i => i.categoria === cat).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' })).map(item => (
                         <button key={item.id} onClick={() => agregarItem(item)}
                           className="w-full p-2.5 rounded-lg group text-left flex justify-between items-center transition-all duration-200 border hover:shadow-lg cursor-pointer"
                           style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border)' }}
                           onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'var(--accent)'; e.currentTarget.style.borderColor = 'var(--accent)'; }}
                           onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'var(--bg-panel)'; e.currentTarget.style.borderColor = 'var(--border)'; }}>
-                          <span className="min-w-0 flex-1">
-                            <span className="font-semibold truncate flex items-center gap-1.5 text-xs text-white">
-                              <BrandLogo brand={getBrandForEquipment(item)} size={12} className="text-slate-300 shrink-0" />
-                              <span className="truncate">{item.nombre}</span>
-                            </span>
-                            {formatProfessionalIdentity(item.datosProfesionales) && (
-                              <span className="block truncate mt-1 pl-[18px] text-[9px] uppercase tracking-wider text-slate-500 group-hover:text-white/70">
-                                {formatProfessionalIdentity(item.datosProfesionales)}
-                              </span>
-                            )}
+                          <span className="font-semibold truncate flex items-center gap-1.5 text-xs text-white">
+                            <BrandLogo brand={getBrandForEquipment(item)} size={12} className="text-slate-300 shrink-0" />
+                            <span className="truncate">{item.nombre}</span>
                           </span>
                           <div className="flex items-center justify-center w-6 h-6 rounded-full flex-shrink-0 ml-1.5 bg-indigo-500/20 group-hover:bg-white/20">
                             <Plus size={12} className="text-indigo-300 group-hover:text-white" />
@@ -2261,14 +2067,6 @@ export default function App() {
                   )}
                 </div>
               ))}
-
-              <button
-                onClick={abrirModalNuevoEquipo}
-                className="w-full mt-2 px-3 py-3 rounded-xl border border-dashed border-indigo-500/40 bg-indigo-500/[0.07] hover:bg-indigo-500/15 hover:border-indigo-400/60 text-indigo-300 hover:text-indigo-200 transition-all flex items-center justify-center gap-2 text-[11px] font-black uppercase tracking-wider cursor-pointer"
-              >
-                <Plus size={14} />
-                Crear equipo personalizado
-              </button>
             </div>
           </div>
 
@@ -2287,8 +2085,8 @@ export default function App() {
         </aside>
 
         {/* Bastidor Central 19" */}
-        <section className={`${vistaTablet === 'rack' ? 'flex' : 'hidden'} xl:flex flex-1 min-h-0 relative items-start xl:items-center justify-center p-4 xl:p-6 overflow-y-auto custom-scrollbar`} style={{ backgroundColor: 'var(--bg-app)' }}>
-          <div ref={rackContainerRef} className="relative w-full max-w-[620px] min-h-[500px] xl:h-full flex flex-col rounded-xl border-x-[14px] xl:border-x-[20px] shadow-2xl transition-all"
+        <section className="flex-1 relative flex items-center justify-center p-4 xl:p-6 overflow-y-auto custom-scrollbar" style={{ backgroundColor: 'var(--bg-app)' }}>
+          <div ref={rackContainerRef} className="relative w-full max-w-[560px] xl:max-w-[620px] min-h-[500px] h-full flex flex-col rounded-xl border-x-[20px] shadow-2xl transition-all"
                style={{ backgroundColor: 'var(--bg-rack)', borderColor: '#242731', boxShadow: '0 0 50px rgba(58,62,224,0.18)', outline: '1px solid #1c1e24' }}>
             <div className="flex-1 flex flex-col p-1.5 overflow-y-auto custom-scrollbar">
               {/* Ventiladores */}
@@ -2321,7 +2119,7 @@ export default function App() {
 
                 {/* Listado dinámico de equipos en orden de inserción */}
               <div className="flex-1 mt-1 space-y-1">
-                {res.rackItems.filter(item => !item.esPlacaCiegaExtra).map((item, idx) => {
+                {res.rackItems.map((item, idx) => {
 
                   // ── BLOQUE DE BALDA (no-rackable) ──────────────────────
                   if (item.__esBloque) {
@@ -2481,9 +2279,6 @@ export default function App() {
                   const equipoRealIndex = eq.tipoPasivo ? null : equipos.findIndex(e => e.instanceId === eq.instanceId);
                   const isDraggable = equipoRealIndex !== null && equipoRealIndex !== -1;
                   const isDragOver = isDraggable && dragOverIndex === equipoRealIndex;
-                  const visualSegments = getRackVisualSegments(eq);
-                  const equipmentVisualSegment = visualSegments.find(segment => segment.type === 'equipment');
-                  const hasCenteredRackSupport = visualSegments.length === 3;
                   const backgroundColor = eq.tipoPasivo === 'Ventilacion' || eq.esRejillaVentilacion ? '#000000' :
                                          eq.tipoPasivo === 'Escobilla' || eq.tipoPasivo === 'Ciego' ? '#000000' :
                                          eq.id === 'regleta-acc' ? '#181b24' :
@@ -2510,22 +2305,11 @@ export default function App() {
                          }${isDragOver ? ' ring-2 ring-indigo-400 ring-inset brightness-125' : ''}`}
                          style={{
                            height: `${eq.uOcupadas * PIXELS_PER_U}px`,
-                           backgroundColor: hasCenteredRackSupport ? '#222937' : backgroundColor,
-                           borderColor: hasCenteredRackSupport ? '#475569' : undefined,
+                           backgroundColor,
                            opacity: isDraggable && draggingIndex === equipoRealIndex ? 0.35 : 1,
                          }}>
-                      {hasCenteredRackSupport && (
-                        <div
-                          aria-hidden="true"
-                          className="absolute inset-x-0 top-1/2 -translate-y-1/2 border-y border-blue-300/35 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
-                          style={{
-                            height: `${equipmentVisualSegment.u * PIXELS_PER_U}px`,
-                            backgroundColor
-                          }}
-                        />
-                      )}
                       {isDraggable && <div className="w-8 shrink-0" />}
-                      <div className="flex-1 h-full flex items-center justify-center overflow-hidden relative z-[1]">
+                      <div className="flex-1 h-full flex items-center justify-center overflow-hidden">
                         {eq.tipoPasivo === 'Ventilacion' || eq.esRejillaVentilacion ? (
                           <div className="flex items-center gap-2">
                             <Fan size={11} className="text-white/40 shrink-0" />
@@ -2649,9 +2433,9 @@ export default function App() {
         </section>
 
         {/* Panel Derecho: Configuración Técnica & Resumen */}
-        <aside className={`${vistaTablet === 'resumen' ? 'flex' : 'hidden'} xl:flex flex-1 xl:flex-none w-full xl:w-80 min-h-0 bg-slate-900/40 border-t xl:border-t-0 xl:border-l border-white/5 flex-col shrink-0 p-4 xl:p-5 overflow-hidden text-[11px]`}>
-          <p className="shrink-0 text-[10px] font-black text-slate-300 uppercase tracking-widest mb-4">Configuración Técnica</p>
-          <div className="flex-1 min-h-0 space-y-3 overflow-y-auto custom-scrollbar pr-1">
+        <aside className="w-72 xl:w-80 bg-slate-900/40 border-l border-white/5 flex flex-col shrink-0 p-4 xl:p-5 overflow-y-auto custom-scrollbar text-[11px]">
+          <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-4">Configuración Técnica</p>
+          <div className="space-y-3">
              <div className="flex justify-between p-3 bg-white/5 rounded-xl border border-white/5">
                 <div className="flex items-center gap-2">
                    <LayoutList size={14} className="text-slate-300" />
@@ -2698,13 +2482,6 @@ export default function App() {
                 </div>
                 <span className="font-black text-white">x{res.numPlacasCiegas}</span>
              </div>
-             <div className="flex justify-between p-3 bg-indigo-500/10 rounded-xl border border-indigo-400/20">
-                <div className="flex items-center gap-2">
-                   <LayoutList size={14} className="text-indigo-300" />
-                   <span className="text-indigo-200 font-bold uppercase text-[10px]">Placas Ciegas Extra</span>
-                </div>
-                <span className="font-black text-indigo-100">x{res.numPlacasCiegasExtra}</span>
-             </div>
              <div className="flex justify-between p-3 bg-white/5 rounded-xl border border-white/5">
                 <div className="flex items-center gap-2">
                    <Cable size={14} className="text-slate-300" />
@@ -2735,32 +2512,22 @@ export default function App() {
              </div>
           </div>
 
-          {/* Acción contextual: documentación asociada al resumen técnico */}
-          <div className="shrink-0 mt-3 rounded-xl border border-indigo-400/40 bg-[#151a2d] p-3 shadow-[0_8px_20px_rgba(15,23,42,0.4)] ring-1 ring-indigo-500/10">
-            <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-lg bg-indigo-500/20 border border-indigo-400/30 text-indigo-200 flex items-center justify-center shrink-0">
-                <FileText size={17} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <h3 className="text-[15px] leading-tight font-black text-white tracking-tight">Documentación del proyecto</h3>
-              </div>
-            </div>
-
+          <div className="mt-auto pt-6">
             <button 
               onClick={descargarMaterialesRackPDF} 
               disabled={generandoPDF}
-              className="w-full mt-2.5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold text-[11px] uppercase tracking-wider shadow-md shadow-indigo-950/40 border border-indigo-400/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-wait"
+              className="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-xl shadow-indigo-900/40 transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
               title="Descargar dossier técnico con alzado visual en PDF"
             >
               {generandoPDF ? (
                 <>
                   <Loader2 size={15} className="animate-spin" />
-                  <span>Generando documentación...</span>
+                  <span>Generando Plano & PDF...</span>
                 </>
               ) : (
                 <>
                   <Download size={15} />
-                  <span>Descargar dossier PDF</span>
+                  <span>Descargar Dossier & Alzado (PDF)</span>
                 </>
               )}
             </button>
@@ -2834,143 +2601,6 @@ export default function App() {
                   <Check size={14} />
                   Guardar Proyecto
                 </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Modal de creación y edición de equipos personalizados */}
-      {mostrarModalEquipoPersonalizado && (
-        <div className="modal-overlay" onClick={() => setMostrarModalEquipoPersonalizado(false)}>
-          <div className="modal-card max-h-[92vh] overflow-y-auto custom-scrollbar" style={{ maxWidth: '760px' }} onClick={(event) => event.stopPropagation()}>
-            <div className="flex items-start justify-between gap-4 mb-5">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 flex items-center justify-center shrink-0">
-                  <Sparkles size={19} />
-                </div>
-                <div>
-                  <h3 className="text-base font-black text-white">{equipoPersonalizadoEditando ? 'Editar equipo personalizado' : 'Crear equipo personalizado'}</h3>
-                  <p className="text-[11px] text-slate-400 mt-0.5">Completa los datos que afectan al espacio, consumo y montaje del rack.</p>
-                </div>
-              </div>
-              <button type="button" onClick={() => setMostrarModalEquipoPersonalizado(false)} className="p-2 rounded-lg text-slate-500 hover:text-white hover:bg-white/5 cursor-pointer" aria-label="Cerrar formulario">
-                <X size={17} />
-              </button>
-            </div>
-
-            <form onSubmit={guardarEquipoPersonalizado} className="space-y-5">
-              <section>
-                <p className="text-[10px] font-black uppercase tracking-widest text-indigo-300 mb-3">1. Identificación</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <label className="text-[11px] font-bold text-slate-300">
-                    Fabricante *
-                    <input className="modal-input mt-1.5" value={formEquipoPersonalizado.fabricante} onChange={event => setFormEquipoPersonalizado(prev => ({ ...prev, fabricante: event.target.value }))} placeholder="Ej: QSC" />
-                    {erroresEquipoPersonalizado.fabricante && <span className="block mt-1 text-[10px] text-rose-400">{erroresEquipoPersonalizado.fabricante}</span>}
-                  </label>
-                  <label className="text-[11px] font-bold text-slate-300">
-                    Modelo *
-                    <input className="modal-input mt-1.5" value={formEquipoPersonalizado.modelo} onChange={event => setFormEquipoPersonalizado(prev => ({ ...prev, modelo: event.target.value }))} placeholder="Ej: Core 110f" />
-                    {erroresEquipoPersonalizado.modelo && <span className="block mt-1 text-[10px] text-rose-400">{erroresEquipoPersonalizado.modelo}</span>}
-                  </label>
-                  <label className="text-[11px] font-bold text-slate-300">
-                    Nombre visible
-                    <input className="modal-input mt-1.5" value={formEquipoPersonalizado.nombre} onChange={event => setFormEquipoPersonalizado(prev => ({ ...prev, nombre: event.target.value }))} placeholder="Se genera con fabricante y modelo" />
-                  </label>
-                  <label className="text-[11px] font-bold text-slate-300">
-                    Subsistema
-                    <select className="modal-input mt-1.5" value={formEquipoPersonalizado.categoria} onChange={event => setFormEquipoPersonalizado(prev => ({ ...prev, categoria: event.target.value }))}>
-                      {['Redes', 'Control', 'Audio', 'Video', 'Cinema', 'Energía', 'Otros'].map(categoria => <option key={categoria} value={categoria}>{categoria}</option>)}
-                    </select>
-                  </label>
-                  <label className="sm:col-span-2 text-[11px] font-bold text-slate-300">
-                    URL oficial del producto
-                    <div className="flex items-center gap-2 mt-1.5">
-                      <input type="url" className="modal-input flex-1" value={formEquipoPersonalizado.urlProducto} onChange={event => setFormEquipoPersonalizado(prev => ({ ...prev, urlProducto: event.target.value }))} placeholder="https://fabricante.com/producto-o-ficha.pdf" />
-                      {formEquipoPersonalizado.urlProducto?.startsWith('http') && (
-                        <a href={formEquipoPersonalizado.urlProducto} target="_blank" rel="noreferrer" className="h-10 px-3 rounded-lg border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 hover:bg-indigo-500/20 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider">
-                          <ExternalLink size={13} /> Abrir
-                        </a>
-                      )}
-                    </div>
-                    {erroresEquipoPersonalizado.urlProducto && <span className="block mt-1 text-[10px] text-rose-400">{erroresEquipoPersonalizado.urlProducto}</span>}
-                    <span className="block mt-1 text-[9px] font-normal text-slate-500">Se conservará como fuente para la revisión y el futuro análisis automático.</span>
-                  </label>
-                </div>
-              </section>
-
-              <section className="pt-4 border-t border-white/10">
-                <p className="text-[10px] font-black uppercase tracking-widest text-indigo-300 mb-3">2. Montaje mecánico</p>
-                <label className="flex items-center justify-between gap-4 p-3 rounded-xl bg-white/[0.04] border border-white/10 mb-3 cursor-pointer">
-                  <div>
-                    <span className="block text-xs font-bold text-white">Montaje directo en rack de 19”</span>
-                    <span className="block text-[10px] text-slate-500 mt-0.5">Actívalo si el equipo utiliza orejas o escuadras de rack.</span>
-                  </div>
-                  <input type="checkbox" checked={formEquipoPersonalizado.esRackable} onChange={event => setFormEquipoPersonalizado(prev => ({ ...prev, esRackable: event.target.checked }))} className="w-4 h-4 accent-indigo-500" />
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <label className="text-[11px] font-bold text-slate-300">
-                    Espacio (U) *
-                    <input type="number" min="1" max="20" step="1" className="modal-input mt-1.5" value={formEquipoPersonalizado.uOcupadas} onChange={event => setFormEquipoPersonalizado(prev => ({ ...prev, uOcupadas: event.target.value }))} />
-                    {erroresEquipoPersonalizado.uOcupadas && <span className="block mt-1 text-[10px] text-rose-400">{erroresEquipoPersonalizado.uOcupadas}</span>}
-                  </label>
-                  <label className="text-[11px] font-bold text-slate-300">
-                    Profundidad (mm)
-                    <input type="number" min="0" className="modal-input mt-1.5" value={formEquipoPersonalizado.fondo} onChange={event => setFormEquipoPersonalizado(prev => ({ ...prev, fondo: event.target.value }))} />
-                  </label>
-                  <label className="text-[11px] font-bold text-slate-300">
-                    Peso (kg)
-                    <input type="number" min="0" step="0.1" className="modal-input mt-1.5" value={formEquipoPersonalizado.pesoKg} onChange={event => setFormEquipoPersonalizado(prev => ({ ...prev, pesoKg: event.target.value }))} />
-                  </label>
-                  {!formEquipoPersonalizado.esRackable && (
-                    <label className="text-[11px] font-bold text-slate-300">
-                      Anchura en balda
-                      <select className="modal-input mt-1.5" value={formEquipoPersonalizado.ancho} onChange={event => setFormEquipoPersonalizado(prev => ({ ...prev, ancho: event.target.value }))}>
-                        <option value="media">Media balda</option>
-                        <option value="completo">Balda completa</option>
-                      </select>
-                    </label>
-                  )}
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
-                  {[
-                    ['incluyeOrejasRack', 'Incluye orejas/escuadras de rack'],
-                    ['requiereEscobilla', 'Requiere escobilla pasacables'],
-                    ['requierePlacaCiega', 'Requiere ventilación superior'],
-                    ['requiereTapaCiega', 'Requiere placa ciega en la balda']
-                  ].map(([campo, etiqueta]) => (
-                    <label key={campo} className="flex items-center gap-2.5 p-2.5 rounded-lg bg-black/20 border border-white/5 text-[11px] font-semibold text-slate-300 cursor-pointer">
-                      <input type="checkbox" checked={Boolean(formEquipoPersonalizado[campo])} onChange={event => setFormEquipoPersonalizado(prev => ({ ...prev, [campo]: event.target.checked }))} className="w-3.5 h-3.5 accent-indigo-500" />
-                      {etiqueta}
-                    </label>
-                  ))}
-                </div>
-              </section>
-
-              <section className="pt-4 border-t border-white/10">
-                <p className="text-[10px] font-black uppercase tracking-widest text-indigo-300 mb-3">3. Electricidad y notas</p>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <label className="text-[11px] font-bold text-slate-300">
-                    Consumo máximo (W)
-                    <input type="number" min="0" className="modal-input mt-1.5" value={formEquipoPersonalizado.consumo} onChange={event => setFormEquipoPersonalizado(prev => ({ ...prev, consumo: event.target.value }))} />
-                    {erroresEquipoPersonalizado.consumo && <span className="block mt-1 text-[10px] text-rose-400">{erroresEquipoPersonalizado.consumo}</span>}
-                  </label>
-                  <label className="sm:col-span-2 text-[11px] font-bold text-slate-300">
-                    Notas técnicas
-                    <input className="modal-input mt-1.5" value={formEquipoPersonalizado.notas} onChange={event => setFormEquipoPersonalizado(prev => ({ ...prev, notas: event.target.value }))} placeholder="Alimentación externa, separación, guías..." />
-                  </label>
-                </div>
-              </section>
-
-              <div className="flex items-center justify-between gap-3 pt-4 border-t border-white/10">
-                <p className="text-[10px] text-slate-500">Se guardará en este navegador dentro de la categoría Personalizados.</p>
-                <div className="flex items-center gap-2 shrink-0">
-                  <button type="button" onClick={() => setMostrarModalEquipoPersonalizado(false)} className="modal-btn-cancel">Cancelar</button>
-                  <button type="submit" className="modal-btn-confirm">
-                    <Check size={14} />
-                    {equipoPersonalizadoEditando ? 'Guardar cambios' : 'Crear equipo'}
-                  </button>
-                </div>
               </div>
             </form>
           </div>
