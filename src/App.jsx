@@ -1829,6 +1829,24 @@ export default function App() {
     }
   };
 
+  const renderBotonesCatalogo = (categoria) => (
+    CATALOGO_EQUIPOS
+      .filter(item => item.categoria === categoria)
+      .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }))
+      .map(item => (
+        <button key={item.id} onClick={() => agregarItem(item)}
+          className="w-full min-h-11 p-2.5 rounded-lg group text-left flex justify-between items-center transition-all duration-200 border border-slate-700/70 bg-slate-800/80 hover:bg-indigo-600 hover:border-indigo-400 hover:shadow-lg cursor-pointer">
+          <span className="font-semibold truncate flex items-center gap-2 text-[13px] text-slate-100 group-hover:text-white">
+            <BrandLogo brand={getBrandForEquipment(item)} size={13} className="text-slate-200 shrink-0" />
+            <span className="truncate">{item.nombre}</span>
+          </span>
+          <div className="flex items-center justify-center w-7 h-7 rounded-full flex-shrink-0 ml-2 bg-indigo-500/25 group-hover:bg-white/20">
+            <Plus size={14} className="text-indigo-200 group-hover:text-white" />
+          </div>
+        </button>
+      ))
+  );
+
   // 1. Pantalla de carga si Firebase está comprobando la sesión
   if (cargandoAuth) {
     return (
@@ -2127,9 +2145,9 @@ export default function App() {
               <span className="text-[11px] font-semibold text-slate-400">{CATALOGO_EQUIPOS.length} equipos</span>
             </div>
             <div className="space-y-2.5">
-              {[...new Set(CATALOGO_EQUIPOS.map(i => i.categoria))].map(cat => {
+              {[...new Set(CATALOGO_EQUIPOS.map(i => i.categoria))].filter(cat => cat !== 'Otros').map(cat => {
                 const categoriaAbierta = categoriasAbiertas.includes(cat);
-                const cantidadCategoria = CATALOGO_EQUIPOS.filter(item => item.categoria === cat).length;
+                const cantidadCategoria = CATALOGO_EQUIPOS.filter(item => cat === 'Accesorios' ? ['Accesorios', 'Otros'].includes(item.categoria) : item.categoria === cat).length;
                 return (
                 <div key={cat} className={`rounded-xl overflow-hidden border transition-all duration-200 ${categoriaAbierta ? 'border-indigo-400/70 bg-indigo-950/35 shadow-lg shadow-indigo-950/20' : 'border-slate-600/55 bg-slate-800/75 hover:border-slate-500'}`}>
                   <button
@@ -2149,18 +2167,40 @@ export default function App() {
                   </button>
                   {categoriaAbierta && (
                     <div className="p-2.5 border-t border-indigo-400/20 space-y-2 bg-[#0d111b]">
-                      {CATALOGO_EQUIPOS.filter(i => i.categoria === cat).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' })).map(item => (
-                        <button key={item.id} onClick={() => agregarItem(item)}
-                          className="w-full min-h-11 p-2.5 rounded-lg group text-left flex justify-between items-center transition-all duration-200 border border-slate-700/70 bg-slate-800/80 hover:bg-indigo-600 hover:border-indigo-400 hover:shadow-lg cursor-pointer">
-                          <span className="font-semibold truncate flex items-center gap-2 text-[13px] text-slate-100 group-hover:text-white">
-                            <BrandLogo brand={getBrandForEquipment(item)} size={13} className="text-slate-200 shrink-0" />
-                            <span className="truncate">{item.nombre}</span>
-                          </span>
-                          <div className="flex items-center justify-center w-7 h-7 rounded-full flex-shrink-0 ml-2 bg-indigo-500/25 group-hover:bg-white/20">
-                            <Plus size={14} className="text-indigo-200 group-hover:text-white" />
-                          </div>
-                        </button>
-                      ))}
+                      {cat === 'Accesorios' ? (
+                        ['Accesorios', 'Otros'].map(subcategoria => {
+                          const claveSubcategoria = `sub-${subcategoria}`;
+                          const subcategoriaAbierta = categoriasAbiertas.includes(claveSubcategoria);
+                          const cantidadSubcategoria = CATALOGO_EQUIPOS.filter(item => item.categoria === subcategoria).length;
+                          const esSubcarpetaRack = subcategoria === 'Accesorios';
+                          const nombreSubcategoria = esSubcarpetaRack ? 'Rack' : 'Equipos';
+                          return (
+                            <div key={subcategoria} className="rounded-lg border border-slate-700/70 overflow-hidden bg-slate-900/65">
+                              <button
+                                type="button"
+                                onClick={() => toggleCategoria(claveSubcategoria)}
+                                className="w-full min-h-10 px-3 flex items-center justify-between text-left hover:bg-white/[0.05] transition-colors cursor-pointer"
+                              >
+                                <div className="flex items-center gap-2.5">
+                                  <span className={`w-7 h-7 rounded-md flex items-center justify-center ${subcategoriaAbierta ? 'bg-indigo-500/20 text-indigo-300' : 'bg-black/25 text-slate-400'}`}>
+                                    {esSubcarpetaRack ? <Server size={15} /> : <Package size={15} />}
+                                  </span>
+                                  <span className="text-[12px] font-bold text-slate-200">{nombreSubcategoria}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] font-bold text-slate-400">{cantidadSubcategoria}</span>
+                                  <ChevronDown size={13} className={`text-slate-400 transition-transform ${subcategoriaAbierta ? 'rotate-180' : ''}`} />
+                                </div>
+                              </button>
+                              {subcategoriaAbierta && (
+                                <div className="p-2 space-y-2 border-t border-slate-700/60 bg-black/20">
+                                  {renderBotonesCatalogo(subcategoria)}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })
+                      ) : renderBotonesCatalogo(cat)}
                     </div>
                   )}
                 </div>
