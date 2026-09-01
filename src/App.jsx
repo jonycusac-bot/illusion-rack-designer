@@ -44,6 +44,10 @@ import {
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import LoginPage from './components/LoginPage';
+import {
+  buildEquipmentReviewMailtoLink,
+  submitEquipmentForReview
+} from './equipmentReview';
 import { 
   auth, 
   onAuthStateChanged,
@@ -679,6 +683,45 @@ export default function App() {
   const [proyectosNube, setProyectosNube] = useState([]);
   const [cargandoProyectosNube, setCargandoProyectosNube] = useState(false);
   const [guardandoNube, setGuardandoNube] = useState(false);
+  const [mostrarNuevoProducto, setMostrarNuevoProducto] = useState(false);
+  const [enviandoProducto, setEnviandoProducto] = useState(false);
+  const [errorNuevoProducto, setErrorNuevoProducto] = useState('');
+  const [nuevoProducto, setNuevoProducto] = useState({
+    fabricante: '', modelo: '', nombre: '', categoria: 'Otros', urlProducto: '',
+    esRackable: true, uOcupadas: 1, fondo: '', pesoKg: '', consumo: '', notas: ''
+  });
+
+  const cerrarNuevoProducto = () => {
+    if (enviandoProducto) return;
+    setMostrarNuevoProducto(false);
+    setErrorNuevoProducto('');
+  };
+
+  const enviarNuevoProducto = async (event) => {
+    event.preventDefault();
+    setErrorNuevoProducto('');
+
+    if (!nuevoProducto.fabricante.trim() || !nuevoProducto.modelo.trim()) {
+      setErrorNuevoProducto('Indica al menos el fabricante y el modelo.');
+      return;
+    }
+
+    setEnviandoProducto(true);
+    try {
+      await submitEquipmentForReview(nuevoProducto, usuario);
+      setMostrarNuevoProducto(false);
+      setNuevoProducto({
+        fabricante: '', modelo: '', nombre: '', categoria: 'Otros', urlProducto: '',
+        esRackable: true, uOcupadas: 1, fondo: '', pesoKg: '', consumo: '', notas: ''
+      });
+      setNotificacionGuardado('Producto enviado correctamente para revisión');
+      setTimeout(() => setNotificacionGuardado(false), 4000);
+    } catch (error) {
+      setErrorNuevoProducto(error.message || 'No se pudo enviar el producto.');
+    } finally {
+      setEnviandoProducto(false);
+    }
+  };
 
   const refrescarProyectosNube = async (uid) => {
     if (!uid) return;
@@ -2068,6 +2111,15 @@ export default function App() {
                 </div>
               ))}
             </div>
+
+            <button
+              type="button"
+              onClick={() => { setErrorNuevoProducto(''); setMostrarNuevoProducto(true); }}
+              className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-dashed border-indigo-500/50 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-200 text-xs font-bold transition-all cursor-pointer"
+            >
+              <Mail size={14} />
+              Proponer nuevo producto
+            </button>
           </div>
 
           {/* Rack Recomendado */}
@@ -2604,6 +2656,94 @@ export default function App() {
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* Modal para proponer un producto nuevo */}
+      {mostrarNuevoProducto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={cerrarNuevoProducto}>
+          <form
+            onSubmit={enviarNuevoProducto}
+            onClick={(event) => event.stopPropagation()}
+            className="w-full max-w-2xl max-h-[92vh] overflow-y-auto custom-scrollbar rounded-2xl border border-indigo-500/30 bg-[#111420] shadow-2xl"
+          >
+            <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-4 border-b border-white/10 bg-[#111420]">
+              <div>
+                <h3 className="text-base font-extrabold text-white">Proponer nuevo producto</h3>
+                <p className="mt-0.5 text-xs text-slate-400">Se enviará por correo para revisarlo antes de incorporarlo al catálogo.</p>
+              </div>
+              <button type="button" onClick={cerrarNuevoProducto} disabled={enviandoProducto} className="p-2 text-slate-400 hover:text-white disabled:opacity-40 cursor-pointer">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-5">
+              {[
+                ['fabricante', 'Fabricante *', 'Ej. QSC'],
+                ['modelo', 'Modelo *', 'Ej. Core 110f'],
+                ['nombre', 'Nombre comercial', 'Ej. QSC Core 110f'],
+                ['urlProducto', 'URL oficial', 'https://...']
+              ].map(([campo, etiqueta, placeholder]) => (
+                <label key={campo} className="block text-xs font-bold text-slate-300">
+                  {etiqueta}
+                  <input
+                    type={campo === 'urlProducto' ? 'url' : 'text'}
+                    required={campo === 'fabricante' || campo === 'modelo'}
+                    value={nuevoProducto[campo]}
+                    onChange={(event) => setNuevoProducto((actual) => ({ ...actual, [campo]: event.target.value }))}
+                    placeholder={placeholder}
+                    className="mt-1.5 w-full rounded-lg border border-white/10 bg-black/25 px-3 py-2.5 text-sm font-normal text-white outline-none focus:border-indigo-500"
+                  />
+                </label>
+              ))}
+
+              <label className="block text-xs font-bold text-slate-300">
+                Categoría
+                <select value={nuevoProducto.categoria} onChange={(event) => setNuevoProducto((actual) => ({ ...actual, categoria: event.target.value }))} className="mt-1.5 w-full rounded-lg border border-white/10 bg-[#0c0e15] px-3 py-2.5 text-sm font-normal text-white outline-none focus:border-indigo-500">
+                  {[...new Set(CATALOGO_EQUIPOS.map((item) => item.categoria)), 'Otros'].filter((categoria, indice, lista) => lista.indexOf(categoria) === indice).map((categoria) => <option key={categoria}>{categoria}</option>)}
+                </select>
+              </label>
+
+              <label className="flex items-center gap-2 self-end rounded-lg border border-white/10 bg-black/20 px-3 py-2.5 text-xs font-bold text-slate-300 cursor-pointer">
+                <input type="checkbox" checked={nuevoProducto.esRackable} onChange={(event) => setNuevoProducto((actual) => ({ ...actual, esRackable: event.target.checked }))} className="accent-indigo-500" />
+                Se puede montar en rack
+              </label>
+
+              {[
+                ['uOcupadas', 'Altura (U)', 1, 1],
+                ['fondo', 'Profundidad (mm)', 0, 1],
+                ['pesoKg', 'Peso (kg)', 0, 0.1],
+                ['consumo', 'Consumo (W)', 0, 1]
+              ].map(([campo, etiqueta, minimo, paso]) => (
+                <label key={campo} className="block text-xs font-bold text-slate-300">
+                  {etiqueta}
+                  <input type="number" min={minimo} step={paso} value={nuevoProducto[campo]} onChange={(event) => setNuevoProducto((actual) => ({ ...actual, [campo]: event.target.value }))} className="mt-1.5 w-full rounded-lg border border-white/10 bg-black/25 px-3 py-2.5 text-sm font-normal text-white outline-none focus:border-indigo-500" />
+                </label>
+              ))}
+
+              <label className="sm:col-span-2 block text-xs font-bold text-slate-300">
+                Notas u observaciones
+                <textarea value={nuevoProducto.notas} onChange={(event) => setNuevoProducto((actual) => ({ ...actual, notas: event.target.value }))} rows={3} className="mt-1.5 w-full resize-y rounded-lg border border-white/10 bg-black/25 px-3 py-2.5 text-sm font-normal text-white outline-none focus:border-indigo-500" />
+              </label>
+
+              {errorNuevoProducto && (
+                <div className="sm:col-span-2 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-200">
+                  <div className="flex items-start gap-2"><AlertCircle size={15} className="mt-0.5 shrink-0" /><span>{errorNuevoProducto}</span></div>
+                  <a href={buildEquipmentReviewMailtoLink(nuevoProducto, usuario)} className="mt-2 inline-flex items-center gap-1.5 font-bold text-white underline underline-offset-2">
+                    <Mail size={13} /> Abrir mi aplicación de correo
+                  </a>
+                </div>
+              )}
+            </div>
+
+            <div className="sticky bottom-0 flex justify-end gap-2 px-5 py-4 border-t border-white/10 bg-[#111420]">
+              <button type="button" onClick={cerrarNuevoProducto} disabled={enviandoProducto} className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-bold text-slate-300 disabled:opacity-40 cursor-pointer">Cancelar</button>
+              <button type="submit" disabled={enviandoProducto} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white disabled:opacity-50 cursor-pointer">
+                {enviandoProducto ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />}
+                {enviandoProducto ? 'Enviando…' : 'Enviar para revisión'}
+              </button>
+            </div>
+          </form>
         </div>
       )}
 
