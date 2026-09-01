@@ -1817,15 +1817,15 @@ export default function App() {
 
   const getCategoryIcon = (cat) => {
     switch(cat) {
-      case 'Redes': return <Wifi size={12} className="text-slate-400" />;
-      case 'Control': return <Settings size={12} className="text-emerald-400" />;
-      case 'Audio': return <Volume2 size={12} className="text-blue-500" />;
-      case 'Video': return <Monitor size={12} className="text-purple-500" />;
-      case 'Cinema': return <Film size={12} className="text-rose-500" />;
-      case 'Energía': return <Battery size={12} className="text-orange-500" />;
-      case 'Otros': return <Package size={12} className="text-zinc-400" />;
-      case 'Accesorios': return <LayoutList size={12} className="text-cyan-500" />;
-      default: return <Server size={12} className="text-slate-400" />;
+      case 'Redes': return <Wifi size={16} className="text-sky-300" />;
+      case 'Control': return <Settings size={16} className="text-emerald-300" />;
+      case 'Audio': return <Volume2 size={16} className="text-blue-300" />;
+      case 'Video': return <Monitor size={16} className="text-purple-300" />;
+      case 'Cinema': return <Film size={16} className="text-rose-300" />;
+      case 'Energía': return <Battery size={16} className="text-orange-300" />;
+      case 'Otros': return <Package size={16} className="text-zinc-300" />;
+      case 'Accesorios': return <LayoutList size={16} className="text-cyan-300" />;
+      default: return <Server size={16} className="text-slate-300" />;
     }
   };
 
@@ -2120,43 +2120,51 @@ export default function App() {
 
       <main className="flex-1 flex overflow-hidden">
         {/* Panel Izquierdo: Librería de Equipos */}
-        <aside className="w-72 xl:w-80 border-r p-3.5 overflow-y-auto shrink-0 custom-scrollbar flex flex-col justify-between" style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border)' }}>
+        <aside className="w-[19rem] xl:w-[21rem] border-r p-4 overflow-y-auto shrink-0 custom-scrollbar flex flex-col justify-between" style={{ backgroundColor: '#151925', borderColor: '#30364a' }}>
           <div>
-            <p className="text-[9px] font-black uppercase tracking-widest mb-3" style={{ color: 'var(--text-muted)' }}>Librería Illusion</p>
-            <div className="space-y-2">
-              {[...new Set(CATALOGO_EQUIPOS.map(i => i.categoria))].map(cat => (
-                <div key={cat} className="rounded-lg overflow-hidden border" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--bg-highlight)' }}>
+            <div className="flex items-end justify-between mb-3 px-1">
+              <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-300">Biblioteca Illusion</p>
+              <span className="text-[11px] font-semibold text-slate-400">{CATALOGO_EQUIPOS.length} equipos</span>
+            </div>
+            <div className="space-y-2.5">
+              {[...new Set(CATALOGO_EQUIPOS.map(i => i.categoria))].map(cat => {
+                const categoriaAbierta = categoriasAbiertas.includes(cat);
+                const cantidadCategoria = CATALOGO_EQUIPOS.filter(item => item.categoria === cat).length;
+                return (
+                <div key={cat} className={`rounded-xl overflow-hidden border transition-all duration-200 ${categoriaAbierta ? 'border-indigo-400/70 bg-indigo-950/35 shadow-lg shadow-indigo-950/20' : 'border-slate-600/55 bg-slate-800/75 hover:border-slate-500'}`}>
                   <button
                     onClick={() => toggleCategoria(cat)}
-                    className="w-full px-3 py-2.5 flex items-center justify-between transition-colors hover:bg-white/5 cursor-pointer"
+                    className={`w-full min-h-12 px-3.5 py-3 flex items-center justify-between transition-colors cursor-pointer ${categoriaAbierta ? 'bg-indigo-500/10' : 'hover:bg-white/[0.06]'}`}
                   >
-                    <div className="flex items-center gap-2">
-                      {getCategoryIcon(cat)}
-                      <span className="font-bold uppercase tracking-wider" style={{ fontSize: 'var(--font-label)', color: 'var(--text-secondary)' }}>{cat}</span>
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${categoriaAbierta ? 'bg-indigo-500/25' : 'bg-black/25'}`}>
+                        {getCategoryIcon(cat)}
+                      </span>
+                      <span className="text-[13px] font-extrabold tracking-wide text-slate-100">{cat}</span>
                     </div>
-                    <ChevronDown size={12} style={{ color: 'var(--text-muted)' }} className={`transition-transform duration-300 ${categoriasAbiertas.includes(cat) ? 'rotate-180' : ''}`} />
+                    <div className="flex items-center gap-2.5">
+                      <span className="min-w-6 h-6 px-1.5 rounded-md bg-black/25 flex items-center justify-center text-[11px] font-bold text-slate-300">{cantidadCategoria}</span>
+                      <ChevronDown size={15} className={`text-slate-300 transition-transform duration-300 ${categoriaAbierta ? 'rotate-180' : ''}`} />
+                    </div>
                   </button>
-                  {categoriasAbiertas.includes(cat) && (
-                    <div className="p-2 border-t space-y-1.5" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--bg-app)' }}>
+                  {categoriaAbierta && (
+                    <div className="p-2.5 border-t border-indigo-400/20 space-y-2 bg-[#0d111b]">
                       {CATALOGO_EQUIPOS.filter(i => i.categoria === cat).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' })).map(item => (
                         <button key={item.id} onClick={() => agregarItem(item)}
-                          className="w-full p-2.5 rounded-lg group text-left flex justify-between items-center transition-all duration-200 border hover:shadow-lg cursor-pointer"
-                          style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border)' }}
-                          onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'var(--accent)'; e.currentTarget.style.borderColor = 'var(--accent)'; }}
-                          onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'var(--bg-panel)'; e.currentTarget.style.borderColor = 'var(--border)'; }}>
-                          <span className="font-semibold truncate flex items-center gap-1.5 text-xs text-white">
-                            <BrandLogo brand={getBrandForEquipment(item)} size={12} className="text-slate-300 shrink-0" />
+                          className="w-full min-h-11 p-2.5 rounded-lg group text-left flex justify-between items-center transition-all duration-200 border border-slate-700/70 bg-slate-800/80 hover:bg-indigo-600 hover:border-indigo-400 hover:shadow-lg cursor-pointer">
+                          <span className="font-semibold truncate flex items-center gap-2 text-[13px] text-slate-100 group-hover:text-white">
+                            <BrandLogo brand={getBrandForEquipment(item)} size={13} className="text-slate-200 shrink-0" />
                             <span className="truncate">{item.nombre}</span>
                           </span>
-                          <div className="flex items-center justify-center w-6 h-6 rounded-full flex-shrink-0 ml-1.5 bg-indigo-500/20 group-hover:bg-white/20">
-                            <Plus size={12} className="text-indigo-300 group-hover:text-white" />
+                          <div className="flex items-center justify-center w-7 h-7 rounded-full flex-shrink-0 ml-2 bg-indigo-500/25 group-hover:bg-white/20">
+                            <Plus size={14} className="text-indigo-200 group-hover:text-white" />
                           </div>
                         </button>
                       ))}
                     </div>
                   )}
                 </div>
-              ))}
+              )})}
             </div>
 
             <button
