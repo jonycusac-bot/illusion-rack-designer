@@ -214,7 +214,8 @@ const CATALOGO_EQUIPOS = [
   { id: 'matrix-audio', nombre: 'Matriz Audio 16x16', altura: 88, esRackable: true, categoria: 'Audio', consumo: 80, fondo: 350, requierePlacaCiega: true },
   { id: 'sonance-dsp', nombre: 'Sonance DSP 8-125', altura: 44, esRackable: true, categoria: 'Audio', consumo: 600, fondo: 425, requierePlacaCiega: true },
   { id: 'sonos-amp', nombre: 'Sonos Amp', altura: 88, esRackable: false, categoria: 'Audio', consumo: 100, ancho: 'media', requiereTapaCiega: true, fondo: 220 },
-  { id: 'sonos-amp-multi', nombre: 'Sonos Amp Multi', altura: 88, esRackable: true, categoria: 'Audio', consumo: 200, fondo: 220, uOcupadas: 2, requierePlacaCiega: true },
+  // El equipo mide 1U, pero su soporte ocupa 0,5U por encima y 0,5U por debajo (2U totales de rack).
+  { id: 'sonos-amp-multi', nombre: 'Sonos Amp Multi', altura: 44, esRackable: true, categoria: 'Audio', consumo: 200, fondo: 220, uOcupadas: 2, estructuraMediaUSuperiorInferior: true },
   { id: 'sonos-port', nombre: 'Sonos Port', altura: 44, esRackable: false, categoria: 'Audio', consumo: 10, ancho: 'media', requiereTapaCiega: true, fondo: 150 },
   
   // --- VIDEO ---
@@ -541,7 +542,7 @@ const calcularRackCalculos = (equipos, posicionVentiladorIntermedio = null) => {
           tipoPasivo: 'Ventilacion'
         });
       }
-      if (eq.requierePlacaCiega || eq.id === 'sonance-dsp' || eq.id === 'sonos-amp-multi' || eq.id === 'matrix-audio' || eq.id === 'ups-apc' || eq.nombre?.toLowerCase().includes('matriz audio') || eq.nombre?.toLowerCase().includes('sai') || eq.nombre?.toLowerCase().includes('smart-ups')) {
+      if ((eq.requierePlacaCiega && eq.id !== 'sonos-amp-multi') || eq.id === 'sonance-dsp' || eq.id === 'matrix-audio' || eq.id === 'ups-apc' || eq.nombre?.toLowerCase().includes('matriz audio') || eq.nombre?.toLowerCase().includes('sai') || eq.nombre?.toLowerCase().includes('smart-ups')) {
         numTapasAutomaticas++;
         rackItems.push({
           instanceId: `placa-auto-${eq.instanceId}`,
@@ -1547,10 +1548,56 @@ export default function App() {
           const esRejillaVent = item.id?.includes('ventilacion') || item.nombre?.toLowerCase().includes('ventilación') || item.tipoPasivo === 'Ventilacion';
           const esEscobilla = item.id?.includes('esc') || item.nombre?.toLowerCase().includes('escobilla') || item.tipoPasivo === 'Escobilla';
           const esPasacables = item.id?.includes('pasacables') || item.nombre?.toLowerCase().includes('pasacables');
+          const esSonosAmpMulti = item.id === 'sonos-amp-multi';
           const isPassiveOrAccessory = item.categoria === 'Pasivo' || item.categoria === 'Accesorios' || item.esAutomatico || item.esAccesorio || esPlacaCiega || esRejillaVent || esEscobilla || esPasacables;
 
+          // Sonos Amp Multi: equipo de 1U con estructura de soporte de 0,5U arriba y abajo.
+          if (esSonosAmpMulti) {
+            const soporteH = itemH * 0.25;
+            const cuerpoY = itemY + soporteH;
+            const cuerpoH = itemH * 0.5;
+            const soporteInferiorY = cuerpoY + cuerpoH;
+
+            // Estructuras metálicas superior e inferior.
+            doc.setFillColor(82, 92, 108);
+            doc.rect(equipX, itemY, equipW, soporteH, 'F');
+            doc.setFillColor(65, 75, 91);
+            doc.rect(equipX, soporteInferiorY, equipW, soporteH, 'F');
+            doc.setDrawColor(148, 163, 184);
+            doc.setLineWidth(0.2);
+            doc.rect(equipX, itemY, equipW, soporteH, 'D');
+            doc.rect(equipX, soporteInferiorY, equipW, soporteH, 'D');
+
+            // Cuerpo del amplificador (1U).
+            doc.setFillColor(37, 99, 235);
+            doc.rect(equipX, cuerpoY, equipW, cuerpoH, 'F');
+            doc.setDrawColor(96, 165, 250);
+            doc.rect(equipX, cuerpoY, equipW, cuerpoH, 'D');
+
+            // Tornillos de anclaje y LED del equipo.
+            doc.setFillColor(226, 232, 240);
+            [itemY + (soporteH / 2), soporteInferiorY + (soporteH / 2)].forEach((screwY) => {
+              doc.circle(equipX + 1.2, screwY, 0.35, 'F');
+              doc.circle(equipX + equipW - 1.2, screwY, 0.35, 'F');
+            });
+            doc.setFillColor(34, 197, 94);
+            doc.circle(equipX + 3.8, cuerpoY + (cuerpoH / 2), 0.45, 'F');
+
+            // Etiquetas de las medias unidades y nombre del equipo central.
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(Math.max(3.2, Math.min(4.5, soporteH * 0.55)));
+            doc.setTextColor(226, 232, 240);
+            doc.text('ESTRUCTURA 0,5U', equipX + (equipW / 2), itemY + (soporteH * 0.66), { align: 'center' });
+            doc.text('ESTRUCTURA 0,5U', equipX + (equipW / 2), soporteInferiorY + (soporteH * 0.66), { align: 'center' });
+
+            doc.setFontSize(totalRackU > 32 ? 6.2 : 7.2);
+            doc.setTextColor(255, 255, 255);
+            doc.text('SONOS AMP MULTI', equipX + (equipW / 2), cuerpoY + (cuerpoH / 2) + 0.9, { align: 'center', maxWidth: equipW - 14 });
+
+            currentUnitPointer -= uOcupadas;
+          }
           // Si es Placa Ciega (manual o automática, 1U o 2U)
-          if (esPlacaCiega) {
+          else if (esPlacaCiega) {
             doc.setFillColor(15, 18, 26);
             doc.rect(equipX, itemY, equipW, itemH, 'F');
             doc.setDrawColor(45, 52, 70);
@@ -2331,7 +2378,9 @@ export default function App() {
                   const equipoRealIndex = eq.tipoPasivo ? null : equipos.findIndex(e => e.instanceId === eq.instanceId);
                   const isDraggable = equipoRealIndex !== null && equipoRealIndex !== -1;
                   const isDragOver = isDraggable && dragOverIndex === equipoRealIndex;
-                  const backgroundColor = eq.tipoPasivo === 'Ventilacion' || eq.esRejillaVentilacion ? '#000000' :
+                  const tieneEstructuraMediaU = eq.id === 'sonos-amp-multi' || eq.estructuraMediaUSuperiorInferior;
+                  const backgroundColor = tieneEstructuraMediaU ? 'transparent' :
+                                         eq.tipoPasivo === 'Ventilacion' || eq.esRejillaVentilacion ? '#000000' :
                                          eq.tipoPasivo === 'Escobilla' || eq.tipoPasivo === 'Ciego' ? '#000000' :
                                          eq.id === 'regleta-acc' ? '#181b24' :
                                          eq.id === 'pasacables-acc' ? '#111827' :
@@ -2360,6 +2409,17 @@ export default function App() {
                            backgroundColor,
                            opacity: isDraggable && draggingIndex === equipoRealIndex ? 0.35 : 1,
                          }}>
+                      {tieneEstructuraMediaU && (
+                        <div className="absolute inset-0 flex flex-col" aria-label="Estructura de montaje: media unidad superior, equipo de una unidad y media unidad inferior">
+                          <div className="h-1/4 border-b border-slate-400/40 bg-gradient-to-b from-slate-500 to-slate-600 flex items-center justify-center">
+                            <span className="text-[8px] font-bold uppercase tracking-widest text-slate-200/75">Estructura 0,5U</span>
+                          </div>
+                          <div className="h-1/2 bg-blue-600" />
+                          <div className="h-1/4 border-t border-slate-400/40 bg-gradient-to-b from-slate-600 to-slate-700 flex items-center justify-center">
+                            <span className="text-[8px] font-bold uppercase tracking-widest text-slate-200/75">Estructura 0,5U</span>
+                          </div>
+                        </div>
+                      )}
                       {isDraggable && <div className="w-8 shrink-0" />}
                       <div className="flex-1 h-full flex items-center justify-center overflow-hidden">
                         {eq.tipoPasivo === 'Ventilacion' || eq.esRejillaVentilacion ? (
